@@ -277,6 +277,7 @@
                             else if (fk == "Gelb") ti = "Anker";
                             else if (fk == "Blau") ti = "Füll";
                             else if (fk == "Weiss") ti = "Projekt";
+                            else if (fk == "Rot") ti = "Specials";
                             else if (fk) ti = fk;
 
 

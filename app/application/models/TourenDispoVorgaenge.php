@@ -586,7 +586,8 @@ if ($orderby) {
                             $data['ZeitBis']);
             
             if (!$validation->ok) {
-                $this->_error = "Tour konnte wegen Resourcen-Ueberschneidungen nicht aktualisiert werden:" . PHP_EOL . $validation->msg;
+                $this->_error = "Tour konnte wegen Resourcen-Ueberschneidungen nicht aktualisiert werden!";
+                // . PHP_EOL . $validation->msg;
                 return false;
             }            
         }
@@ -1631,7 +1632,7 @@ if ($orderby) {
             foreach($rsrcKeys as $_rsrcKey) {
                 $r = $_model->checkResourceIsFree($_rsrcKey, $filter, $tour_id, $tourData['timeline_id']);
                 if (!$r->free) {
-                    $re->msg.= $re->message;
+                    $re->msg.= $r->message;
                 }
             }
         }

@@ -117,7 +117,7 @@ class Model_Fuhrpark extends MyProject_Model_Database implements Model_ResourceI
         $deleteCategoryIds = $this->fetchCategoryIds($id);
         
         if ( count($deleteCategoryIds)===0 )
-            return;
+            return true;
         
         $lnk = new Model_Db_FuhrparkCategoriesLnk();
         $lnkMap  = $lnk->info('referenceMap');
@@ -130,6 +130,7 @@ class Model_Fuhrpark extends MyProject_Model_Database implements Model_ResourceI
             $row = $lnk->find($id, $categoryId)->current();
             $row->delete();
         }
+        return true;
     }
     
     public function fetchCategoryIds($id) {

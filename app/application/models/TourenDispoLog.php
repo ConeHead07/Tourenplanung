@@ -315,21 +315,24 @@ class Model_TourenDispoLog extends MyProject_Model_Database implements Model_Tou
         $sModifiedDateTo = $aSearch['lastModifiedTo'] ?? '';
         $sTourId     = $aSearch['tour_id'] ?? '';
         $sTourAnr     = $aSearch['tour_anr'] ?? '';
+
         $sTourDatum     = $aSearch['dispo_datum'] ?? '';
         $sTourZeitVon     = $aSearch['dispo_zeit_von'] ?? '';
         $sTourZeitBis     = $aSearch['dispo_zeit_bis'] ?? '';
         $sLogBemerkung     = $aSearch['bemerkung'] ?? '';
         $sLogTime = $aSearch['action_time'] ?? '';
+
         $sObjectType = $aSearch['object_type'] ?? '';
         $sObjectId   = $aSearch['object_id']   ?? '';
         $sObjectName = $aSearch['resource'] ?? '';
+        $sBmkgJsonInfo = $aSearch['bemerkung'] ?? '';
         $sActionType = $aSearch['action'] ?? '';
         $joinIsRequiredForCountQuery = true;
 
         $dVon = $queryOptions['datumVon'] ?? '';
         $dBis = $queryOptions['datumBis'] ?? '';
         if ($dBis && !$dVon) $dVon = $dBis;
-        $lager_id = $queryOptions['lager_id'] ?? '';
+        $lagerId = $queryOptions['lager_id'] ?? '';
 
         $qb = $this->buildQuery([]);
         $qb->setSelect(
@@ -348,53 +351,61 @@ class Model_TourenDispoLog extends MyProject_Model_Database implements Model_Tou
             l.dispo_zeit_bis,
             l.bemerkung,' . PHP_EOL
             .' if (m.mid is not null, m.mid, if (f.fid is not null,f.fid, \'\')) AS `Rsrc-ID`' . PHP_EOL)
-            ->setFrom('mr_touren_dispo_log l')
+            ->setFrom('mr_touren_dispo_log l' . "\n")
             ->setJoin('LEFT JOIN mr_user u ON (l.user_id = u.user_id)' . PHP_EOL
                 .' LEFT JOIN mr_mitarbeiter m ON (l.object_type = \'MA\' AND l.object_id = m.mid )' . PHP_EOL
-                .' LEFT JOIN mr_fuhrpark f ON ( l.object_type = \'FP\' AND l.object_id = f.fid  )',
+                .' LEFT JOIN mr_fuhrpark f ON ( l.object_type = \'FP\' AND l.object_id = f.fid  )' . "\n",
                 $joinIsRequiredForCountQuery);
 
 
         if ($sModifiedDateFrom) {
-            $qb->andWhere('action_time >= ' . $this->_db->quote(date('Y-m-d H:i', strtotime($sModifiedDateFrom))));
+            $qb->andWhere('action_time >= ' . $this->_db->quote(date('Y-m-d H:i', strtotime($sModifiedDateFrom))) . "\n");
         }
         if ($sModifiedDateTo) {
-            $qb->andWhere('action_time <= ' . $this->_db->quote(date('Y-m-d H:i', strtotime($sModifiedDateTo))));
+            $qb->andWhere('action_time <= ' . $this->_db->quote(date('Y-m-d H:i', strtotime($sModifiedDateTo))) . "\n");
         }
         if ((int)$sTourId){
             $qb->andWhere('tour_id = ' . (int)$sTourId);
         }
+        if ((int)$lagerId){
+            $qb->andWhere('lager_id = ' . (int)$lagerId);
+        }
         if ((int)$sTourAnr){
             $qb->andWhere('tour_anr LIKE "' . (int)$sTourAnr . '%"');
         }
-        if (!empty($sObjectType)){
-            $qb->andWhere('object_type = ' . $this->_db->quote($sObjectType));
+        if (!empty($sBmkgJsonInfo)){
+            $qb->andWhere('bemerkung LIKE ' . $this->_db->quote( '%' . $sBmkgJsonInfo . '%') . "\n");
         }
         if (!empty($sObjectName)){
             $_qy = $this->_db->quote("%$sObjectName%");
-            $qb->andWhere("m.name LIKE $_qy OR f.kennzeichen LIKE $_qy");
+            $qb->andWhere("m.name LIKE $_qy OR f.kennzeichen LIKE $_qy" . "\n");
         }
+        if (!empty($sObjectName)){
+            $_qy = $this->_db->quote("%$sObjectName%");
+            $qb->andWhere("m.name LIKE $_qy OR f.kennzeichen LIKE $_qy" . "\n");
+        }
+
         if (!empty($sObjectId)){
-            $qb->andWhere('object_id LIKE ' . $this->_db->quote("%$sObjectId%") );
+            $qb->andWhere('object_id LIKE ' . $this->_db->quote("%$sObjectId%") . "\n" );
         }
         if (!empty($sActionType)){
-            $qb->andWhere('action LIKE ' . $this->_db->quote("%$sActionType%") );
+            $qb->andWhere('action LIKE ' . $this->_db->quote("%$sActionType%") . "\n" );
         }
         if (!empty($aSearch['user'])) {
-            $qb->andWhere('u.user_name LIKE ' . $this->_db->quote("%{$aSearch['user']}%") );
+            $qb->andWhere('u.user_name LIKE ' . $this->_db->quote("%{$aSearch['user']}%") . "\n" );
         }
         if (!empty($aSearch['user_id'])) {
-            $qb->andWhere('l.user_id = ' . (int)$aSearch['user_id'] );
+            $qb->andWhere('l.user_id = ' . (int)$aSearch['user_id'] . "\n" );
         }
 
         if ($dVon) {
             if ($dBis && $dVon < $dBis) {
                 $qb->andWhere(
-                    'dispo_datum BETWEEN ' . $db->quote($dVon) . ' AND ' . $db->quote($dBis)
-                    . 'OR action_time BETWEEN ' . $db->quote($dVon) . ' AND ' . $db->quote($dBis)
+                    'dispo_datum BETWEEN ' . $db->quote($dVon) . ' AND ' . $db->quote($dBis) . "\n"
+                    . 'OR action_time BETWEEN ' . $db->quote($dVon) . ' AND ' . $db->quote($dBis) . "\n"
                 );
             } else {
-                $qb->andWhere('dispo_datum = ' . $db->quote($dVon) . ' OR action_time = ' . $db->quote($dVon));
+                $qb->andWhere('dispo_datum = ' . $db->quote($dVon) . ' OR action_time = ' . $db->quote($dVon) . "\n");
             }
         }
         if ($sTourDatum){
@@ -419,8 +430,6 @@ class Model_TourenDispoLog extends MyProject_Model_Database implements Model_Tou
             ->setOrderDir($sSortDir)
             ->setOffset($iOffset)
             ->setLimit($iLimit);
-
-        // die($qb->assemble());
 
         return [
             'total' => $this->_db->fetchOne( $qb->assembleCount() ),

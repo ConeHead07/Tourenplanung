@@ -77,8 +77,8 @@ $JsOnInitForm = new JsFunction('function(formid) {
         ->jsonReader(array( "repeatitems" => false, "id" => 0 ) )
         ->width(1000)
         //->hiddengrid(true)
-        ->rowList(array(10, 20, 30, 40, 50,100))
-        ->rowNum(100)
+        ->rowList(array(10, 20, 30, 40, 50,100, 200, 300, 400, 500))
+        ->rowNum(20)
         ->rownumbers(true)
         ->resizable(true)
         ->sortable(true)
@@ -94,30 +94,53 @@ $JsOnInitForm = new JsFunction('function(formid) {
         ->addChainMethod('.jqGrid("filterToolbar",{stringResult: true,searchOnEnter : false})')
 //        ->addChainMethod( ".jqGrid('searchGrid', {sopt:['cn','bw','eq','ne','lt','gt','ew']} )")
         ->colNames( array(
-            'sperren','dispo','fid','Extern', 'Menge', 'Leistung', 'Standort', 
+            'sperren','dispo', 'aktionen', 'fid','Extern', 'Menge', 'Leistung', 'Standort',
             'Kennzeichen', 'Hersteller', 'Modell', 'Fzg-Art', 'FKL', 'Erstzulassung', 'Anschaffung', 'NaechsteInspektion', 'Kmst', 'Laderaum-L', 'Laderaum-B', 'Laderaum-H', 'Ladevol', 'Nutzlast', 'KW', 'Sitze', 
             'Kategorien'
         ))
         ->colModel(array('addFieldsProperties' => array(
-                       "sperren" => array('key'=>false, 'editable'=>false, 'sortable'=>false, 'search'=>false, 'formatter' => new JsFunction(
-                                'function(cellvalue, options, rowObject) { '
-                               .'return "<a href=\'#"+rowObject.mid+"\' onclick=\'showDialogFpDispozeiten("+rowObject.fid+",0);return false;\' >Sperrzeiten</a>"; '
-                               .'}'
-                               )),
-                       "dispo" => array('key'=>false, 'editable'=>false, 'sortable'=>false, 'search'=>false, 'formatter' => new JsFunction(
-                                'function(cellvalue, options, rowObject) { '
-                               .'return "<a href=\'#"+rowObject.mid+"\' onclick=\'showDialogFpDispozeiten("+rowObject.fid+",1);return false;\' >Dispozeiten</a>"; '
-                               .'}'
-                               )),
-                          "fid" => array('key'=>true),
-                   "extern_id"  => array('editable'=>true, 'edittype'=>'text', 
+
+            "sperren" => array('key'=>false, 'editable'=>false, 'sortable'=>false, 'search'=>false, 'formatter' => new JsFunction(
+                    'function(cellvalue, options, rowObject) { '
+                   .'return "<a href=\'#"+rowObject.fid+"\' onclick=\'showDialogFpDispozeiten("+rowObject.fid+",0);return false;\' >Sperrzeiten</a>"; '
+                   .'}'
+                   )),
+
+            "dispo" => array('key'=>false, 'editable'=>false, 'sortable'=>false, 'search'=>false, 'formatter' => new JsFunction(
+                    'function(cellvalue, options, rowObject) { '
+                   .'return "<a href=\'#"+rowObject.fid+"\' onclick=\'showDialogFpDispozeiten("+rowObject.fid+",1);return false;\' >Dispozeiten</a>"; '
+                   .'}'
+                   )),
+
+            'aktionen' => [ 'key'=>false, 'editable'=>false, 'sortable'=>false, 'search'=>false,
+                            'formatter' => new JsFunction(
+                                    'function(cellValue, options, rowObject) {
+                                     return \'<span class="ui-buttonset row-edit-buttons" data-rowid="\' + rowObject.fid + \'">\' + 
+                                     \'<button data-rowid="\' + rowObject.fid + \'" class="ui-button btn-row-edit"><span class="ui-icon ui-icon-pencil"></span></button>\' +
+                                     \'<button data-rowid="\' + rowObject.fid + \'" class="ui-button btn-row-save"><span class="ui-icon ui-icon-disk"></span></button>\' +
+                                     \'<button data-rowid="\' + rowObject.fid + \'" class="ui-button btn-row-cancel"><span class="ui-icon ui-icon-cancel"></span></button>\' +
+                                     \'<button data-rowid="\' + rowObject.fid + \'" class="ui-button btn-row-remove"><span class="ui-icon ui-icon-trash"></span></button>\' +
+                                     \'</span>\';
+                                     }'
+                            )
+            ],
+
+            "fid" => array('key'=>true),
+
+            "extern_id"  => array('editable'=>true, 'edittype'=>'text',
                                     'editoptions'=>null,
-                                    "formatter" => new JsFunction("function(value, options, rData) { 
-                                        if (value) ExternCacheId[value] = rData['extern_firma'];
-                                        re = '<span rel-value=\"'+value+'\" rel-label=\"'+rData['extern_firma']+'\">'+rData['extern_firma']+'</span>';
+                                    "formatter" => new JsFunction('function(value, options, rData) { 
+console.log("grid editoptions formatter for extern_id");
+                                        if (value) {
+                                            ExternCacheId[value] = rData["extern_firma"];
+                                        }
+                                        re = \'<span rel-value="\'+value+\'" rel-label="\' + 
+                                              rData["extern_firma"] + \'">\' + 
+                                              rData["extern_firma"] + 
+                                              \'</span>\';
                                         alert(re);
                                         return re;
-                                  }")
+                                  }')
                                  ),
                    "menge"  => array('editable'=>true, 'edittype'=>'text', 'editrules'=>array('number'=>true)),
                    "leistungs_id"  => array('editable'=>true, 'edittype'=>'text', 
@@ -142,13 +165,13 @@ $JsOnInitForm = new JsFunction('function(formid) {
                 "Erstzulassung" => array('editable'=>true, 'edittype'=>'text', 'hidden'=>true),
                   "Anschaffung" => array('editable'=>true, 'edittype'=>'text', 'hidden'=>true),
            "NaechsteInspektion" => array('editable'=>true, 'edittype'=>'text', 'hidden'=>true),
-                         "Kmst" => array('editable'=>true, 'edittype'=>'text'),
-              "laderaum_laenge" => array('editable'=>true, 'edittype'=>'text'),
-              "laderaum_breite" => array('editable'=>true, 'edittype'=>'text'),
-               "laderaum_hoehe" => array('editable'=>true, 'edittype'=>'text'),
-                  "ladevolumen" => array('editable'=>true, 'edittype'=>'text'),
-                     "nutzlast" => array('editable'=>true, 'edittype'=>'text'),
-                           "kw" => array('editable'=>true, 'edittype'=>'text',),
+                         "Kmst" => array('editable'=>true, 'edittype'=>'text', 'hidden' => true),
+              "laderaum_laenge" => array('editable'=>true, 'edittype'=>'text', 'hidden' => true),
+              "laderaum_breite" => array('editable'=>true, 'edittype'=>'text', 'hidden' => true),
+               "laderaum_hoehe" => array('editable'=>true, 'edittype'=>'text', 'hidden' => true),
+                  "ladevolumen" => array('editable'=>true, 'edittype'=>'text', 'hidden' => true),
+                     "nutzlast" => array('editable'=>true, 'edittype'=>'text', 'hidden' => true),
+                           "kw" => array('editable'=>true, 'edittype'=>'text', 'hidden' => true),
                         "sitze" => array('editable'=>true, 'edittype'=>'text', 'hidden'=>true),
                    "categories" => array('editable'=>true, 'edittype'=>'text', 
                                          'sortable'=>false,  
@@ -198,44 +221,36 @@ $JsOnInitForm = new JsFunction('function(formid) {
         
         /* @var $colModelList JqGridColModelList */
         $colModelList = $JqGrid->colModel();
+        $quotedGridId = json_encode($GridId);
+
+        $JqGrid->on_loadComplete(new JsFunction('function() {
+                jQuery(' . $quotedGridId . ').find(".row-edit-buttons").each(function() {
+                var grid = $(this).closest(".ui-jqgrid-btable");
+                var rowid = $(this).data("rowid");
+                var btnEdit = $(this).find("button.btn-row-edit");
+                var btnSave = $(this).find("button.btn-row-save").hide();
+                var btnCancel = $(this).find("button.btn-row-cancel").hide();
+                var btnRemove = $(this).find("button.btn-row-remove");
+            
+                btnEdit.bind(  "click", function() { grid.jqGrid("editRow",    rowid); onFPRowEditInline(rowid); btnEdit.hide(); btnRemove.hide(); btnSave.show(); btnCancel.show(); });
+                btnSave.bind(  "click", function() { grid.jqGrid("saveRow",    rowid); btnEdit.show(); btnRemove.show(); btnSave.hide(); btnCancel.hide(); });
+                btnCancel.bind("click", function() { grid.jqGrid("restoreRow", rowid); btnEdit.show(); btnRemove.show(); btnSave.hide(); btnCancel.hide(); });
+                btnRemove.bind("click", function() {
+                    var rowData = grid.jqGrid("getRowData", rowid);
+                    if (!confirm("Soll das ausgew√§hlte Fahrzeug " + rowData.kennzeichen + " wirklich gel√∂scht werden?")) {
+                        return false;
+                    }
+                    $.post("/fuhrpark/grideditdata", { oper: "del", id: rowid}, function() { grid.jqGrid("delRowData",  rowid); }) 
+                });
+            });
+                
+        }'));
         
-        $JqGrid->enableInlineEditingDefaults(array('oneditfunc' => new JsFunction('function() {
-            // Input f¸r Initialisierung leeren, Daten wurden zuvor von der
+        if (0) $JqGrid->enableInlineEditingDefaults(array('oneditfunc' => new JsFunction('function() {
+            // Input f√ºr Initialisierung leeren, Daten wurden zuvor von der
             // CustomUnformatter-Funktion in td.dat(inputData) abgelegt
             // von wo sie zur Initialisierung des Chooser-Objekts ausgelesen werden
-            var $input = $( "#"+id+"_categories" ).val( "" );
-            
-            // Chooser registrieren und an Input-Feld binden
-            if (0) jqChooser.register( $input, "' . APPLICATION_BASE_URL . '/fpcategories/autocomplete");
-            else if(1) jqChooser.registerUserBox( $input, "' . APPLICATION_BASE_URL . '/fpcategories/selectdialog", 
-                function(searchInput) {            
-                    $(searchInput).hide();
-                    $("#treeSelectDialog").bind("selectTreeNode", function(event, data) {
-                        jqChooser.addValue( searchInput, data.id, data.name );
-                        CategoryIdCache[data.id] = data.name;
-                    });
-            });
-            
-            // Chooser mit Werten bef¸llen
-            var data = $input.closest( "td" ).data("inputData");
-            var chooserSearch = jqChooser.getSearchInputByOriginInput( $input );
-            jqChooser.setData( chooserSearch, data );
-
-            // Autocomplete-Chooser: extern_id
-            $( "#"+id+"_extern_id" ).fbChooser({
-                "showSearchInput": true
-                ,"source": "' . APPLICATION_BASE_URL . '/extern/autocomplete?type=FP"
-                ,"multiple": false
-                ,"cacheValues" : ExternIdCache
-            });
-            
-            // Autocomplete-Chooser: leistungs_id
-            $( "#"+id+"_leistungs_id" ).fbChooser({
-                "showSearchInput": true
-                ,"source": "' . APPLICATION_BASE_URL . '/leistung/autocomplete?type=FP"
-                ,"multiple": false
-                ,"cacheValues" : ExternIdCache
-            });
+            onFPRowEditInline(id);
         }')));
         
         $colModelList->getItem('categories')->getInstanceFormatterCustom(
@@ -281,8 +296,9 @@ $JsOnInitForm = new JsFunction('function(formid) {
         );
         
         $colModelList->getItem('extern_id')->getInstanceFormatterCustom(
-            'function( cellvalue, opts, rowObject ) { /* Beim ersten Rendering ... */}'
-            /*
+            'function( cellvalue, opts, rowObject ) { 
+            // * Beim ersten Rendering ... * / }
+            // *
                 if (!parseInt(cellvalue) ) return "";
                 var cellSelector = "tr#"+opts.rowId + " td[aria-describedby="+opts.gid+"_"+opts.colModel.index+"]";
                 var cell = $(cellSelector),
@@ -296,7 +312,7 @@ $JsOnInitForm = new JsFunction('function(formid) {
                 
                 return "<span rel-value=\'"+cellvalue+"\' rel-label=\'"+lbl+"\'>"+lbl+"</span>";                
             }'
-            */
+            // */
         );
         $colModelList->getItem('extern_id')->getInstanceUnformatCustom(
             'function( cellvalue, options, cell ) {
@@ -402,7 +418,7 @@ $JsOnInitForm = new JsFunction('function(formid) {
                 'function(formid) {'
                 .'//alert("#344");
                 
-            // Input f¸r Initialisierung leeren, Daten wurden zuvor von der
+            // Input fÔøΩr Initialisierung leeren, Daten wurden zuvor von der
             // CustomUnformatter-Funktion in td.dat(inputData) abgelegt
             // von wo sie zur Initialisierung des Chooser-Objekts ausgelesen werden
             var $input = $( "#categories", formid ).val( "" );
@@ -417,7 +433,7 @@ $JsOnInitForm = new JsFunction('function(formid) {
                     });
             });
             
-            // Chooser mit Werten bef¸llen
+            // Chooser mit Werten befÔøΩllen
             var data = $input.closest( "td" ).data("inputData");
             var chooserSearch = jqChooser.getSearchInputByOriginInput( $input );
             jqChooser.setData( chooserSearch, data );
@@ -518,6 +534,43 @@ EOT;
         // put your code here
         ?>
 
+<script>
+    function onFPRowEditInline(id) {
+        var $input = $( "#"+id+"_categories" ).val( "" );
+
+        // Chooser registrieren und an Input-Feld binden
+        if (0) jqChooser.register( $input, "<?= APPLICATION_BASE_URL ?>/fpcategories/autocomplete");
+        else if(1) jqChooser.registerUserBox( $input, "<?= APPLICATION_BASE_URL ?>/fpcategories/selectdialog",
+            function(searchInput) {
+                $(searchInput).hide();
+                $("#treeSelectDialog").bind("selectTreeNode", function(event, data) {
+                    jqChooser.addValue( searchInput, data.id, data.name );
+                    CategoryIdCache[data.id] = data.name;
+                });
+            });
+
+        // Chooser mit Werten bef√ºllen
+        var data = $input.closest( "td" ).data("inputData");
+        var chooserSearch = jqChooser.getSearchInputByOriginInput( $input );
+        jqChooser.setData( chooserSearch, data );
+
+        // Autocomplete-Chooser: extern_id
+        $( "#"+id+"_extern_id" ).fbChooser({
+            "showSearchInput": true
+            ,"source": "<?= APPLICATION_BASE_URL ?>/extern/autocomplete?type=FP"
+            ,"multiple": false
+            ,"cacheValues" : ExternIdCache
+        });
+
+        // Autocomplete-Chooser: leistungs_id
+        $( "#"+id+"_leistungs_id" ).fbChooser({
+            "showSearchInput": true
+            ,"source": "<?= APPLICATION_BASE_URL ?>/leistung/autocomplete?type=FP"
+            ,"multiple": false
+            ,"cacheValues" : ExternIdCache
+        });
+    }
+</script>
     <span id="RsrcFilterBtnSet"><button>Filter: </button><input type="radio" id="rsrcFilterAll" name="rsrcFilter" value="all"><label for="rsrcFilterAll">Alle</label>
     <input type="radio" id="rsrcFilterInt" name="rsrcFilter" value="int"><label for="rsrcFilterInt">Interne</label>
     <input type="radio" id="rsrcFilterExt" name="rsrcFilter" value="ext"><label for="rsrcFilterExt">Externe</label>

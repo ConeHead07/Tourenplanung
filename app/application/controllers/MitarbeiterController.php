@@ -11,21 +11,32 @@
  */
 class MitarbeiterController extends MyProject_Controller_RestAbstract
 {
+    /** @var null|Model_Mitarbeiter  */
+    private $_model = null;
+
+    /** @var null|Model_Db_Mitarbeiter */
+    private $_storage = null;
+
+    /** @var null|Model_TourenDispoVorgaenge  */
+    private $_tourModel = null;
+
+    /** @var null|Model_Db_TourenDispoVorgaenge */
+    private $_tourStorage = null;
 
     // Initialize ActionController
     public function init()
     {
         $this->_db = Zend_Registry::get('db');
-        $this->_model = MyProject_Model_Database::loadModel('mitarbeiter');
+        $this->_model = new Model_Mitarbeiter();
         $this->_storage = $this->_model->getStorage();
         
         /* @var $this->_tourModel Model_TourenDispoVorgaenge */
-        $this->_tourModel = MyProject_Model_Database::loadModel('tourenDispoVorgaenge');
+        $this->_tourModel = new Model_TourenDispoVorgaenge();
         
         /* @var $this->_tourStorage Model_Db_TourenDispoVorgaenge */
         $this->_tourStorage = $this->_tourModel->getStorage();
 
-        // response-Objekt f�r den View
+        // response-Objekt für den View
         $this->_rsp = new stdClass();
 
         /* @var $request Zend_Controller_Request_Abstract */
@@ -486,7 +497,10 @@ class MitarbeiterController extends MyProject_Controller_RestAbstract
         if ($categorieSubSql) {
             $sqlWhere.= ($sqlWhere?' AND ':'') . ' mid IN(' . $categorieSubSql . ') ';
         }
-        
+        $joinExtern  = 'LEFT JOIN `mr_extern` AS `e` ON e.extern_id = mr_mitarbeiter.extern_id';
+        $extFirmaExp = ($extFilter == 'int') ? ' "" extern_firma' : ' e.extern_firma';
+        $extWhere    = ($extFilter == 'int') ? '(mr_mitarbeiter.extern_id IS NULL OR mr_mitarbeiter.extern_id = 0)' : '1';
+
         /* @var $select Zend_Db_Table_Select */
         $select = $db->select();
         $select->from( $mainTbl, new Zend_Db_Expr('COUNT(*) AS count'));

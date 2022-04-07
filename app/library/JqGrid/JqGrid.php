@@ -210,7 +210,7 @@ class JqGrid extends JqGridBaseObject
 	 * @abstract Wenn navGridId angegeben wird, wird das Objekt
          * automatisch angelegt, falls es noch nicht existiert.
          * Falls navGrid noch nicht instanziert und keine navGridId
-         * übergeben wurde, wird Null zurückgegeben!
+         * ï¿½bergeben wurde, wird Null zurï¿½ckgegeben!
 	 * @param string $pagerId
 	 * @param array $properties [optional]
 	 * @return mixed JqGridNavGrid|NULL

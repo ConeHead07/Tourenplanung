@@ -22,8 +22,8 @@ NS = "wiki";var toolbar = [{"type":"format","title":"Bold Text","icon":"bold.png
 
 //--><!]]></script>
 		<title>wiki:form_editing - jqGrid Wiki</title>
-					<link rel="shortcut icon" href="http://www.trirand.com/jqgridwiki/lib/tpl/monobook/user/favicon.ico">
-				<style type="text/css" media="screen,projection">/*<![CDATA[*/ @import "/jqgridwiki/lib/tpl/monobook/monobook/main.css"; /*]]>*/</style>
+        <link rel="shortcut icon" href="http://www.trirand.com/jqgridwiki/lib/tpl/monobook/user/favicon.ico">
+        <style type="text/css" media="screen,projection">/*<![CDATA[*/ @import "/jqgridwiki/lib/tpl/monobook/monobook/main.css"; /*]]>*/</style>
 
 		<link rel="stylesheet" type="text/css" media="print" href="jqgrid_form_editing-Dateien/commonPrint.css">
 		<link rel="stylesheet" type="text/css" media="print" href="jqgrid_form_editing-Dateien/print.htm">

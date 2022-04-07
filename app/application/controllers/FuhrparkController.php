@@ -8,6 +8,7 @@ class FuhrparkController extends MyProject_Controller_RestAbstract
 {
     /** @var $_model MyProject_Model_Database */
     protected $_storage = null;
+    /** @var null|Model_Fuhrpark  */
     protected $_model = null;
     protected $_db = null;
     protected $_rsp = null;
@@ -17,7 +18,10 @@ class FuhrparkController extends MyProject_Controller_RestAbstract
     public function init()
     {
         $this->_db = Zend_Registry::get('db');
-        $this->_model = MyProject_Model_Database::loadModel('fuhrpark');
+        // $this->_model = MyProject_Model_Database::loadModel('fuhrpark');
+
+        $this->_model = new Model_Fuhrpark();
+
         $this->_storage = $this->_model->getStorage();
         
         /* @var $this->_tourModel Model_TourenDispoVorgaenge */
@@ -61,7 +65,6 @@ class FuhrparkController extends MyProject_Controller_RestAbstract
         try {
             switch($op) {
                 case 'edit':
-                    // $this->sendJsonData($data);
                     if (isset($data['extern_id'])) {
                         $data['extern_id'] = (int)$data['extern_id'];
                     }
@@ -82,7 +85,7 @@ class FuhrparkController extends MyProject_Controller_RestAbstract
                     if (empty($data['extern_id'])) {
                         $data['extern_id'] = 0;
                     }
-                    if (empty($data['extern_id'])) {
+                    if (empty($data['leistungs_id'])) {
                         $data['leistungs_id'] = 0;
                     }
                     if (empty($data['menge'])) {
@@ -134,7 +137,7 @@ class FuhrparkController extends MyProject_Controller_RestAbstract
                     if ($this->_model->delete($id)) {
                         $return->type = 'success';
                     } else {
-                        $return->err = 'Datensatz konnte nicht geloescht werden!';
+                        $return->err = 'Datensatz mit der ID ' . $id . ' konnte nicht geloescht werden!';
                     }
                     break;
                     
