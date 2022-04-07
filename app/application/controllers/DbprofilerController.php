@@ -19,7 +19,9 @@ class DbprofilerController extends Zend_Controller_Action {
         $this->view->dbprofiler = '';
         $db = Zend_Registry::get( 'db' );
         $profiler = new Zend_Db_Profiler();
-        $this->view->dbprofiler.= Zend_Debug::dump($profiler->getEnabled(), 'dbprofiler->getEnabled()', false);
+
+        $this->view->dbprofiler.= '<div style="margin-top:1rem;margin-botttom:.5rem;color:#ccc">Db-Profiler is ' . ($profiler->getEnabled() ? 'enabled' : 'disabled'). "<br>\n";
+
         if (Zend_Registry::get('dbprofiler_enabled') )  {
             $profiler = $db->getProfiler();
             if ($profiler->getQueryProfiles()) {
@@ -28,7 +30,7 @@ class DbprofilerController extends Zend_Controller_Action {
                 }
             }
         }
+        $this->view->dbprofiler.= "</div>\n";
     }
 }
 
-?>

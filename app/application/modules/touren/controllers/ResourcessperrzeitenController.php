@@ -198,7 +198,8 @@ class Touren_ResourcessperrzeitenController extends Zend_Controller_Action {
                 return;
             }
 
-            $aTouren = $rsrcDispoModel->getTourlistByIdAndDaterange($rsrcID, $dtVon, $dtBis);
+            $bWithDefaultTour = true;
+            $aTouren = $rsrcDispoModel->getTourlistByIdAndDaterange($rsrcID, $dtVon, $dtBis, $bWithDefaultTour);
             $aTourIDs = array_map(function($v) {
                 return $v['tour_id'];
             }, $aTouren);

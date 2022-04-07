@@ -361,6 +361,13 @@ Fb.CalendarSurveyLoad = function(surveyID, context, baseUrl, interval) {
     Fb.dateToString = function(date) { return dateToString(date); };
     
     Fb.addCalendar = function(date) {
+        var lager_id = arguments.length > 1 ? arguments[1] : 0;
+        var lagerSelect = $("select#DispoLager");
+
+        if (lagerSelect.val() != lager_id ) {
+            lagerSelect.val( lager_id ).trigger("change");
+        }
+
         var lastCal = $("div.fbDispoCalendar:last");
         var newNum = 2;
         var newDt = new Date();

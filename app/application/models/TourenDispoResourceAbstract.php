@@ -16,13 +16,13 @@ implements MyProject_Model_TourenResourceInterface
     // abstract Muss in abgeleiteter Klasse definiert werden
     protected $_rsrcTitleField = '0';
     
-    // Start: Zu überschreibende Properties
+    // Start: Zu Ã¼berschreibende Properties
     protected $_storageName   = '';  // Bsp: 'tourenDispoFuhrpark';
     protected $_resourceName  = ''; // Bsp: 'Fuhrpark';
     protected $_resourceModel =''; // Bsp:  'Model_Fuhrpark';
     protected $_resourceType  ='';  // Bsp:  MA|FP|WZ;
     protected $_prmRsrcKey    = '';   // Bsp: 'fid';
-    // Ende: Zu überschreibende Properties
+    // Ende: Zu Ã¼berschreibende Properties
     
     protected $_db = null;
     protected $_map = null;
@@ -51,7 +51,7 @@ implements MyProject_Model_TourenResourceInterface
         $this->_tblRsrcName = $this->_tblRsrcObj->info(Zend_Db_Table::NAME);
         $this->_tblRsrcKey  = $this->_map['resource']['refColumns'];
         
-        // Resource-Verknüpfungs-Tabelle
+        // Resource-VerknÃ¼pfungs-Tabelle
         $this->_tblRsrcLnkName = $this->_cnf['name'];
         $this->_tblRsrcLnkKey  = $this->_map['resource']['columns'];
 
@@ -213,9 +213,9 @@ implements MyProject_Model_TourenResourceInterface
         $tid = $db->fetchOne('SELECT timeline_id FROM '.$this->tourTbl.' WHERE '.$this->tourKey.' = '.$tourId);
         
         
-        // Prüfen, ob Resource disponierbar ist:
-        // - Zeitliche Überschneidung (bereits verbucht)
-        // - Für Disposition freigegeben
+        // PrÃ¼fen, ob Resource disponierbar ist:
+        // - Zeitliche Ã¼berschneidung (bereits verbucht)
+        // - fÃ¼r Disposition freigegeben
         
         $sql = 'SELECT * FROM '.$this->rsrcLnkTbl.' r
             LEFT JOIN '.$this->tourTbl.' t 
@@ -296,12 +296,12 @@ implements MyProject_Model_TourenResourceInterface
         $dstTourEntry = $tour->fetchEntry( $tourId );
         
         if ($srcTourEntry['IsDefault']) {
-            // Lösungsidee für Default-Resourcen
-            // Erst alle Buchungs-ID für die Resource aus alter Timeline holen
-            // Resourcen-Prüfung mit Ausnahme für ermittelte Buchungs-IDs
+            // LÃ¶sungsidee fÃ¼r Default-Resourcen
+            // Erst alle Buchungs-ID fÃ¼r die Resource aus alter Timeline holen
+            // Resourcen-PrÃ¼fung mit Ausnahme fÃ¼r ermittelte Buchungs-IDs
             // Wenn frei:
-            // Einträge mit den alten Buchungs-IDs löschen
-            // Neue Einträge anlegen: Die Aufgabe kann wieder die Methode drop übernehmen
+            // EintrÃ¤ge mit den alten Buchungs-IDs lÃ¶schen
+            // Neue EintrÃ¤ge anlegen: Die Aufgabe kann wieder die Methode drop Ã¼bernehmen
             $tdaTbl = MyProject_Model_Database::loadStorage('tourenDispoAuftraege')->info(Zend_Db_Table::NAME);
 
             $sql = 'SELECT * FROM '.$tourTbl . ' t '
@@ -356,7 +356,7 @@ implements MyProject_Model_TourenResourceInterface
         if (!$_chckFree->free) $returnObject->rsrcConflictData = $_chckFree->data;
         
         if (count($returnObject->rsrcConflictData)) {
-            $returnObject->message = 'Konflikt: Resource ist für den Zielzeitraum bereits gebucht oder gesperrt!' . PHP_EOL;
+            $returnObject->message = 'Konflikt: Resource ist fÃ¼r den Zielzeitraum bereits gebucht oder gesperrt!' . PHP_EOL;
             foreach($returnObject->rsrcConflictData as $_tour) {
                 $returnObject->message.= '-' . $_tour['Auftragsnummer'] . ' '.$_tour['DatumVon'].' '.$_tour['ZeitVon'] . PHP_EOL;
             }
@@ -387,7 +387,7 @@ implements MyProject_Model_TourenResourceInterface
         $db  = $this->_db;
         
         // Hole alle Touren der Timeline, 
-        // denen die Resource noch nicht hinzugefügt wurden
+        // denen die Resource noch nicht hinzugefÃ¼gt wurden
         $sql = 'SELECT r.'.$this->rsrcLnkKey.' FROM '.$this->tourTbl.' t JOIN '
               . $this->rsrcLnkTbl.' r USING('.$this->tourKey.') '
               .' WHERE timeline_id = '.$db->quote($tid).' AND IsDefault = 1';
@@ -427,7 +427,7 @@ implements MyProject_Model_TourenResourceInterface
 
         // $this->tourKey, timeline_id, IsDefault, DatumVon, DatumBis, ZeitVon, ZeitBis
         // Hole alle Touren der Timeline, 
-        // denen die Resource noch nicht hinzugefügt wurden
+        // denen die Resource noch nicht hinzugefÃ¼gt wurden
         $sql = 'SELECT '.$this->tourKey .', timeline_id, IsDefault, DatumVon, DatumBis, ZeitVon, ZeitBis '
               .' FROM '.$this->tourTbl
               .' WHERE timeline_id = '.$db->quote($tid).' AND IsDefault = 0 '
@@ -458,7 +458,7 @@ implements MyProject_Model_TourenResourceInterface
                 $lastElm = $_tourData;
                 $_tour_id = $_tourData[$this->_tblTourKey];
 //            echo '#'.__LINE__.' '.__METHOD__.' Drop Rsrc to tour_id: ' . $_tour_id . '<br/>' . PHP_EOL;
-                $id = $this->drop(array(  // Nachträglich geändert von insert auf drop => Enthält Dispo-Prüfung
+                $id = $this->drop(array(  // NachtrÃ¤glich geÃ¤ndert von insert auf drop => EnthÃ¤lt Dispo-PrÃ¼fung
                     $this->_tblRsrcKey => $rid,
                     $this->_tblRsrcLnkKey => $rid,
                     $this->_tblTourKey => $_tour_id,
@@ -515,7 +515,7 @@ implements MyProject_Model_TourenResourceInterface
     
     /**
      * @param int $tour_id
-     * @param bool $keysOnly default = false, gibt alle Felder zurück, bei true nur die IDs
+     * @param bool $keysOnly default = false, gibt alle Felder zurÃ¼ck, bei true nur die IDs
      * @return array withd IDs if keysOnly is true, else Rows with resource-Data, first Field is named id
      */
     public function getResourcesByTourId($tour_id, $keysOnly = false) 
@@ -543,7 +543,7 @@ implements MyProject_Model_TourenResourceInterface
     
     /**
      * @param int $tour_id
-     * @param bool $keysOnly default = false, gibt alle Felder zurück, bei true nur die IDs
+     * @param bool $keysOnly default = false, gibt alle Felder zurÃ¼ck, bei true nur die IDs
      * @return array withd IDs if keysOnly is true, else Rows with resource-Data, first Field is named id
      */
     public function getResourcesByTimelineId($timeline_id, $keysOnly = false) 
@@ -566,8 +566,8 @@ implements MyProject_Model_TourenResourceInterface
     
     /**
      * @abstract
-     * Prüft, ob Resource für Ziel-Slot (siehe Param $filter) frei und gibt ergebnis-Objekt mit Details zurück
-     * tourData enthält rows mit den Feldern ResourceId, Resource und allen tour-Feldern
+     * PrÃ¼ft, ob Resource fÃ¼r Ziel-Slot (siehe Param $filter) frei und gibt ergebnis-Objekt mit Details zurÃ¼ck
+     * tourData enthÃ¤lt rows mit den Feldern ResourceId, Resource und allen tour-Feldern
      * @param int $rsrc_id
      * @param array $filter assoc (DatumVon=>YYYY-MM-DD,DatumBis=>YYYY-MM-DD,ZeitVon=>HH:MM,ZeitBis=>HH:MM
      * @param int $tour_id
@@ -681,10 +681,10 @@ implements MyProject_Model_TourenResourceInterface
         $re->data = $db->fetchAll($re->sql);
         $re->free = (!is_array($re->data) || count($re->data) == 0);
         if (count($re->data)) {
-            $re->message = 'Konflikt: Resource ist für den Zielzeitraum nicht disponierbar!' . PHP_EOL;
+            $re->message = 'Konflikt: Resource ist fÃ¼r den Zielzeitraum nicht disponierbar!' . PHP_EOL;
             foreach($re->data as $_d) {
                 if ($_d['tour_id'])
-                    $re->message.= '-Gebucht für' . $_d['Auftragsnummer'] . ' '.$_d['DatumVon'].' '.$_d['ZeitVon'] . PHP_EOL;
+                    $re->message.= '-Gebucht fÃ¼r' . $_d['Auftragsnummer'] . ' '.$_d['DatumVon'].' '.$_d['ZeitVon'] . PHP_EOL;
                 else
                     $re->message.= '-Gesperrt von '.$_d['gesperrt_von'].' bis '.$_d['gesperrt_bis'] . PHP_EOL;
             }
@@ -810,7 +810,7 @@ implements MyProject_Model_TourenResourceInterface
      * @param string $DatumBis format YYYY-mm-dd
      * @return array [ [ id, tour_id, DatumVon, DatumBis ] ]
      */
-    public function getTourlistByIdAndDaterange($id, $DatumVon, $DatumBis)
+    public function getTourlistByIdAndDaterange($id, $DatumVon, $DatumBis, bool $bWithDefaultTour = false)
     {
         $dbDatumVon = $this->_db->quote($DatumVon);
         $dbDatumBis = $this->_db->quote($DatumBis);
@@ -818,11 +818,15 @@ implements MyProject_Model_TourenResourceInterface
         $sqlFetch = 'select r.id, t.tour_id, t.DatumVon, t.ZeitVon '
             .'FROM '.$this->rsrcLnkTbl.' r '
             .' LEFT JOIN mr_touren_dispo_vorgaenge t USING(tour_id) '
-            .' WHERE '.$this->_rsrcLnkKey .' = ' . intval($id)
-            .'  AND t.IsDefault = 0 '
-            .'  AND DatumVon >= ' . $dbDatumVon
+            .' WHERE '.$this->_rsrcLnkKey .' = ' . intval($id);
+
+        if ($bWithDefaultTour === false) {
+            $sqlFetch .= '  AND t.IsDefault = 0 ';
+        }
+
+        $sqlFetch.= '  AND DatumVon >= ' . $dbDatumVon
             .'  AND DatumVon <= ' . $dbDatumBis
-            .' ORDER BY DatumVon, ZeitVon';
+            .' ORDER BY DatumVon, ZeitVon, IsDefault';
 
         return $this->_db->fetchAll( $sqlFetch );
     }

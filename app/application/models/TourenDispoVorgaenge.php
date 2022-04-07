@@ -344,7 +344,8 @@ if ($orderby) {
         } catch(Zend_Db_Exception $e) {
             $db->rollBack();
             echo $e->getMessage();
-            die(__METHOD__ . ' id:' . print_r($id,1));
+            echo $e->getTraceAsString();
+            die(__METHOD__ . print_r([' id' => $id ],1));
         }
     }
     
@@ -1734,7 +1735,7 @@ if ($orderby) {
         
         $cols = '
         DT.Mandant, DT.tour_id, DT.timeline_id, 
-        P.lager_id, P.tagesnr, tour_disponiert_am, tour_disponiert_user,
+        P.lager_id, L.lager_name, P.tagesnr, tour_disponiert_am, tour_disponiert_user,
         DatumVon, DatumBis, ZeitVon, ZeitBis';
         
         if ($GetTourSum)
@@ -1769,15 +1770,19 @@ if ($orderby) {
         $bind = array(':DVon' => $DVon, ':DBis' => $DBis);
         
         $select = $db->select()
-        ->from( array( 'DT' => 'mr_touren_dispo_vorgaenge'), '' )
-        ->joinLeft( 
-            array( 'TL' => 'mr_touren_timelines' ),
-            'TL.timeline_id = DT.timeline_id',
-            '')
-        ->joinLeft( 
+            ->from( array( 'DT' => 'mr_touren_dispo_vorgaenge'), '' )
+            ->joinLeft(
+                array( 'TL' => 'mr_touren_timelines' ),
+                'TL.timeline_id = DT.timeline_id',
+                '')
+            ->joinLeft(
             array( 'P' => 'mr_touren_portlets' ),
-            'P.portlet_id = TL.portlet_id',
-            '' );
+            'TL.portlet_id = P.portlet_id',
+            '' )
+            ->joinLeft(
+                array( 'L' => 'mr_lager' ),
+                'P.lager_id = L.lager_id',
+                '');
         
         if ($GetTourSum)
         $select

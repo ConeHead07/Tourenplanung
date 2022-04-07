@@ -1,6 +1,9 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html>
-<head><?php $qRrefresh = '20180924c'; ?>
+<head><?php
+    $qRrefresh = '20180924c';
+    $hdBgColor = (APPLICATION_ENV === 'production') ? 'inherit' : '#b5f7a1';
+?>
     <title>UI-Tourenplaner</title>
     <style>
     .sticky {
@@ -119,8 +122,8 @@ if ($use_minified = 0) {
 <?php echo $this->headScript (); ?>
 <?php echo $this->headStyle();  ?>
 </head>
-<body>
-<DIV class="ui-layout-north xui-widget-header" style="padding-top:8px;">
+<body class="env-<?= APPLICATION_ENV ?>">
+<DIV class="ui-layout-north xui-widget-header" style="padding-top:8px;background-color:<?= $hdBgColor; ?>">
 <?php echo $this->render('header.phtml') ?>
 </DIV>
 
@@ -129,7 +132,7 @@ if ($use_minified = 0) {
 
     <div style="text-align:right;padding:10px;color:#6caad4;opacity:.7;">
     Branch: <?= Zend_Registry::get('BRANCH_NAME'); ?>
-    <?= Zend_Registry::get('BRANCH_COMMIT'); ?>
+    <?= Zend_Registry::get('BRANCH_COMMIT_SHORT'); ?>
     DB://<?= Zend_Registry::get('DB_HOST'); ?>:<?= Zend_Registry::get('DB_PORT'); ?>/<?= Zend_Registry::get('DB_NAME'); ?>
     </div>
 </DIV>

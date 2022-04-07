@@ -97,6 +97,7 @@ class Touren_TerminalController extends Zend_Controller_Action {
         $this->view->nextDay = date('Y-m-d', strtotime('+1 day', $tagTime));
         $this->view->prevDay = date('Y-m-d', strtotime('-1 day', $tagTime));
         $this->view->lager = $modelLG->fetchEntry($lager_id);
+        $this->view->lagerList = $modelLG->getList();
         $this->view->data  = $modelDV->getFullDayData($date, $lager_id);
 
         if ($dbg) {

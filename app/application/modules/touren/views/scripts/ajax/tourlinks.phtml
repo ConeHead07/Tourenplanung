@@ -3,6 +3,7 @@ $this->layout()->disableLayout();
 
 $status = $this->data->status;
 
+
 if ($this->data->tourlist) {
     $tourlist = &$this->data->tourlist->rows;
     //Zend_Debug::dump($tourlist, 'Tourlist', true);
@@ -19,8 +20,10 @@ if ($this->data->tourlist) {
 
         foreach($tourlist as $row) {
             echo '<li style="cursor:pointer;" onclick="if (Fb && Fb.addCalendar) Fb.addCalendar(\''
-               . $row['DatumVon'].'\');"><b>#' . $row['tagesnr'] . '</b> ' . date_de('D d.m.Y', $row['DatumVon']) . ' ' . substr($row['ZeitVon'],0,5) . ' ' 
-//               . $row['NumDP'] . '/' . $row['NumAP'] . ' FP:' . $row['NumDF'] . ' MA:' . $row['NumDM'] 
+                . $row['DatumVon'].'\', \'' . $row['lager_id'] . '\');"><b>#' . $row['tagesnr'] . '</b>'
+                . ' ' . date_de('D d.m.Y', $row['DatumVon'])
+                . ' ' . substr($row['ZeitVon'],0,5)
+                . ' ' . $row['lager_name']
                . PHP_EOL;
             if (!$auftragStatus && $row['tour_disponiert_user']) echo 'Disponiert am ' . substr($row['tour_disponiert_am'],0,10) . ' ' . $row['tour_disponiert_user'] . PHP_EOL;
         }
@@ -49,9 +52,9 @@ if ($this->data->tourlist) {
 //[ZeitBis] => 08:00:00
 //[Vorgangstitel] => SRV / Pflegevertrag Concept Office
 //[Kundennummer] => 14822
-//[LieferungName] => neueRäume GmbH
+//[LieferungName] => neueRï¿½ume GmbH
 //[LieferungPostleitzahl] => 51063
-//[LieferungOrt] => Köln
+//[LieferungOrt] => Kï¿½ln
 //[NumAP] => 6
 //[NumDP] => 0
 //[NumDF] => 0

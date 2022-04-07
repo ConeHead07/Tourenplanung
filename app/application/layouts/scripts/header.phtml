@@ -4,10 +4,12 @@ $userName = MyProject_Auth_Adapter::getUserName();
 $userRole = MyProject_Auth_Adapter::getUserRole();
 $acl = Zend_Registry::get('acl');
 
+$hdBgColor = (APPLICATION_ENV === 'production') ? '#fff' : '#b5f7a1';
+
 ?>
 <!-- start menu HTML -->
-<div id="menu" class="droplinebar" style="z-index:99999;display:block;">
-    <ul>
+<div id="menu" class="droplinebar" style="z-index:99999;display:block;background-color:<?= $hdBgColor ?>">
+    <ul style="background-color:<?= $hdBgColor ?>">
         <!-- li><a href="<?php echo $baseUrl; ?>">Home</a></li -->
         <?php if ($userRole !== 'guest'): ?>
         <?php if ($acl->isAllowed($userRole, 'touren_index')): ?>
@@ -54,8 +56,9 @@ $acl = Zend_Registry::get('acl');
         <?php else: ?>
         <li><a href="<?php echo $baseUrl; ?>/user/login">Login</a></li>
         <?php endif; ?>
-        <li style="border:0;background-color:transparent;margin:0 0 0 25px;padding:0;vertical-align: bottom;"><a 
-            style="font-size:30px;vertical-align: bottom; margin:0;display:inline;text-decoration:none;border:0;color:#000;background:none;">
+
+        <li style="border:0;background-color:<?= $hdBgColor ?>;margin:0 0 0 25px;padding:0;vertical-align: bottom;"><a
+                    style="font-size:30px;vertical-align: bottom; margin:0;display:inline;text-decoration:none;border:0;color:#000;background:<?= $hdBgColor ?>;">
                 merTens <span style="font-size:inherit;color:#85B5D9">Ressourcen Management</span></a>
         </li>
     </ul>
