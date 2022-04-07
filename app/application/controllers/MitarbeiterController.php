@@ -69,6 +69,9 @@ class MitarbeiterController extends MyProject_Controller_RestAbstract
                     if (isset($data['extern_id'])) {
                         $data['extern_id'] = (int)$data['extern_id'];
                     }
+                    if (isset($data['leistungs_id'])) {
+                        $data['leistungs_id'] = (int)$data['leistungs_id'];
+                    }
                     if (isset($data['menge'])) {
                         $data['menge'] = (int)$data['menge'];
                     }
@@ -81,10 +84,10 @@ class MitarbeiterController extends MyProject_Controller_RestAbstract
 
                 case 'add':
                     $return->post = $_POST;
-                    if (empty($data['extern_id'])) {
+                    if (empty($data['extern_id']) || !is_numeric($data['extern_id'])) {
                         $data['extern_id'] = 0;
                     }
-                    if (empty($data['extern_id'])) {
+                    if (empty($data['leistungs_id']) || !is_numeric($data['leistungs_id'])) {
                         $data['leistungs_id'] = 0;
                     }
                     if (empty($data['menge'])) {
@@ -167,8 +170,12 @@ class MitarbeiterController extends MyProject_Controller_RestAbstract
         
         $this->_helper->json($this->_rsp);
     }
+
+    public function listavaiablesAction() {
+        return $this->listavailablesAction();
+    }
     
-    public function listavaiablesAction() 
+    public function listavailablesAction() 
     {
         /* @var $request Zend_Controller_Request_Abstract */
         $rq = $this->getRequest();

@@ -61,6 +61,16 @@ class FuhrparkController extends MyProject_Controller_RestAbstract
         try {
             switch($op) {
                 case 'edit':
+                    // $this->sendJsonData($data);
+                    if (isset($data['extern_id'])) {
+                        $data['extern_id'] = (int)$data['extern_id'];
+                    }
+                    if (isset($data['leistungs_id'])) {
+                        $data['leistungs_id'] = (int)$data['leistungs_id'];
+                    }
+                    if (isset($data['menge'])) {
+                        $data['menge'] = (int)$data['menge'];
+                    }
                     if ($this->_model->update($data, $id)) {
                         $return->type = 'success';
                     } else {

@@ -20,14 +20,29 @@ $.extend(Fb.DispoCalendarEvents, {
 						var top25 = ( dbdata.topcustom ) ? dbdata.topcustom : '';
                         $self.fbDispoPortlet('setData', 'id', d.id);
                         
-                        $self.fbDispoPortlet('setTitle', 'Tournr <span class="p-tagesnr">' + dbdata.tagesnr + '</span> <span class="p-holiday">' + dbdata.holiday + '</span> <span class="p-top25">' + top25 + '</span> <span class="p-title">' + title + '</span>');
+                        $self.fbDispoPortlet(
+                            'setTitle',
+                            'Tournr <span class="p-tagesnr">' +
+                                dbdata.tagesnr + '</span> <span class="p-holiday">' +
+                                dbdata.holiday + '</span> <span class="p-top25">' +
+                                top25 + '</span> <span class="p-title">' +
+                                title + '</span>');
                     }
                 }
              );
         }
-        var title = ( dbdata.title ) ? dbdata.title : '';
-	var top25 = ( dbdata.topcustom ) ? dbdata.topcustom : '';
-        $self.fbDispoPortlet('setTitle', 'Tournr <span class="p-tagesnr">' + dbdata.tagesnr + '</span> <span class="p-holiday">' + dbdata.holiday + '</span> <span class="p-top25">' + top25 + '</span> <span class="p-title">' + title + "</span>");
+
+        if (1) {
+            var title = (dbdata.title) ? dbdata.title : '';
+            var top25 = (dbdata.topcustom) ? dbdata.topcustom : '';
+            $self.fbDispoPortlet(
+                'setTitle',
+                'Tournr <span class="p-tagesnr">' +
+                dbdata.tagesnr + '</span> <span class="p-holiday">' +
+                dbdata.holiday + '</span> <span class="p-top25">' +
+                top25 + '</span> <span class="p-title">' +
+                title + "</span>");
+        }
         return true;
     },
    'onUpdatePortletTitle': function(title) {
@@ -154,7 +169,7 @@ $.extend(Fb.DispoCalendarEvents, {
     'onMoveTimeline': function(event, ui) {        
         var targetPortletId = $( this ).fbDispoPortlet('getData','id');
         if (!targetPortletId) {
-            console.error('137 init_DispoCalendarEvents.dispo.js onMoveTimeline: Cannot retrieve targetPortletId by $(this).fbDispoPortlet(\'getData\', \'id\')');
+            console.error('137 init_DispoCalendarEvents.dispo.js onMoveTimeline: Cannot retrieve targetPortletId by $(this).fbDispoPortlet(\'getData\', \'id\')', 'this', this);
             return false;
         }
         if (!ui || !ui.item) {
@@ -463,7 +478,9 @@ $.extend(Fb.DispoCalendarEvents, {
                 }, {
                     defaultError: "Interner Fehler beim Anlegen der Standard-Ressourcen-Leiste!",
                     onsuccess: function(d){
-                        $self.fbDispoRouteDefaults('setData', 'id', d.id).fbDispoRouteDefaults('setData', 'tour_id', d.id);
+                        $self.fbDispoRouteDefaults('setData', 'id', d.id)
+                             .fbDispoRouteDefaults('setData', 'tour_id', d.id)
+                             .attr("id", "fbDispoRouteDefaults_" + d.id);
                     },
                     onerror: function(xhr){}
                 }
@@ -537,10 +554,9 @@ $.extend(Fb.DispoCalendarEvents, {
         var filterData = {};
         for(var i in data) if (typeof(i) !="object" && typeof(data[i])!="object") filterData[i] = data[i];
         var re = false;
-        
+
         if (data && data.route_id && data.id) {                
              var hasRoutes = $self.closest("div.fbDispoTimelineDropzone").find("div.fbDispoRoute").length;
-             
              var applyDefaults = hasRoutes && confirm(
                 'Soll die Resource fuer ' + hasRoutes + ' bereits gebuchte Vorgaenge in der Zeitleiste uebernommen werden?\n' +
                 'OK => Ja\nAbbrechen => Nein'

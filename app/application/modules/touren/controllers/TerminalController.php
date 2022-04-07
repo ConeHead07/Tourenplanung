@@ -14,7 +14,11 @@ class Touren_TerminalController extends Zend_Controller_Action {
         $iPlusDays = 0;
 
         if (empty($tag)) {
-            $tag = 'heute';
+            if (date('H:i') < '12:00') {
+                $tag = 'heute';
+            } else {
+                $tag = 'morgen';
+            }
         }
 
         $easterTime   = easter_date( date('Y') );
@@ -99,6 +103,24 @@ class Touren_TerminalController extends Zend_Controller_Action {
         $this->view->lager = $modelLG->fetchEntry($lager_id);
         $this->view->lagerList = $modelLG->getList();
         $this->view->data  = $modelDV->getFullDayData($date, $lager_id);
+
+        if ($lager_id == 1) {
+
+            $iLagerProduktion = 4;
+            $iLagerKundendienst = 9;
+            $this->view->weitereLager = [];
+            $_lgData = new stdClass();
+            $_lgData->lager = $modelLG->fetchEntry($iLagerProduktion);
+            $_lgData->data = $modelDV->getFullDayData($date, $iLagerProduktion);
+            $this->view->weitereLager[] = $_lgData;
+
+            $_lgData = new stdClass();
+            $_lgData->lager = $modelLG->fetchEntry($iLagerKundendienst);
+            $_lgData->data = $modelDV->getFullDayData($date, $iLagerKundendienst);
+            $this->view->weitereLager[] = $_lgData;
+
+
+        }
 
         if ($dbg) {
             die(print_r(['<pre>', __LINE__, __FILE__, $this->view],1));

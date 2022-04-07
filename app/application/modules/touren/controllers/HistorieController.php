@@ -15,75 +15,32 @@ class Touren_HistorieController extends Zend_Controller_Action
         // $this->_helper->viewRenderer->setNoRender(true);
 
         $rq = $this->getRequest();
-        $format   = $rq->getParam('format', 'html');
-        $aQueryParams = [
-            'offset' => (int)$rq->getParam('offset', 0),
-            'limit'  => (int)$rq->getParam('limit', 100),
-            'lastModifiedFrom' => $rq->getParam('lastModifiedFrom', ''),
-            'lastModifiedTo' => $rq->getParam('lastModifiedTo', ''),
-            'tourId' => $rq->getParam('tourId', ''),
-            'objectType' => $rq->getParam('objectType', ''),
-            'objectId'   => $rq->getParam('objectId', ''),
-            'objectName' => $rq->getParam('objectName', ''),
-            'actionType' => $rq->getParam('actionType', ''),
-        ];
+        $lager_id   = $rq->getParam('lager_id', 0);
+        $date   = $rq->getParam('date', '');
+        if ($date && is_string($date) && ($t = strtotime($date))) {
+            $datumVon = date('Y-m-d', $t);
+        } else {
+            $datumVon = date('Y-m-d');
+        }
+        $dateBis   = $rq->getParam('dateBis', '');
+        if ($dateBis && is_string($dateBis) && ($tb = strtotime($dateBis))) {
+            $datumBis = date('Y-m-d', $tb);
+        } else {
+            $datumBis = $datumVon;
+        }
 
         $this->view->disableLayout = true;
+        $this->view->lager_id = $lager_id;
+        $this->view->datumVon = $datumVon;
+        $this->view->datumBis = $datumBis;
 
         $this->_helper->viewRenderer->setRender('grid');
     }
 
-
-
-    public function listAction()
-    {
-        $rq = $this->getRequest();
-        $format   = $rq->getParam('format', 'html');
-        $aQueryParams = [
-            'offset' => (int)$rq->getParam('offset', 0),
-            'limit'  => (int)$rq->getParam('limit', 100),
-            'lastModifiedFrom' => $rq->getParam('lastModifiedFrom', ''),
-            'lastModifiedTo' => $rq->getParam('lastModifiedTo', ''),
-            'tourId' => $rq->getParam('tourId', ''),
-            'objectType' => $rq->getParam('objectType', ''),
-            'objectId'   => $rq->getParam('objectId', ''),
-            'objectName' => $rq->getParam('objectName', ''),
-            'actionType' => $rq->getParam('actionType', ''),
-        ];
-
-        $modelLogger = new Model_TourenDispoLog();
-
-        $gridConverter = new MyProject_Jqgrid_Converter();
-
-        $result = $modelLogger->getHistorie( $aQueryParams );
-
-        if ($format == 'json') {
-            if (!$result) {
-                $this->json->error('Historien-Einträge konnten nicht geladen werden!');
-            }
-
-            $numRows = count($result['rows']);
-
-            $gridResult = $gridConverter::rowsToGridResult(
-                $result['rows'],
-                $result['total'],
-                $result['offset'],
-                $result['limit']
-            );
-
-            $this->_helper->json($gridResult);
-        }
-
-        $this->_helper->viewRenderer->setRender('list');
-        $this->view->rows = $result['rows'];
-    }
-
-
-
     public function griddataAction()
     {
         $rq = $this->getRequest();
-        $format   = $rq->getParam('format', 'html');
+
         $aQueryParams = [
             'rows'  => (int)$rq->getParam('rows', 100),
             'page'  => (int)$rq->getParam('page', 100),
@@ -91,6 +48,9 @@ class Touren_HistorieController extends Zend_Controller_Action
             'sortdir'  => $rq->getParam('sord', 'DESC'),
             'lastModifiedFrom' => $rq->getParam('lastModifiedFrom', ''),
             'lastModifiedTo' => $rq->getParam('lastModifiedTo', ''),
+            'datumVon' => $rq->getParam('datumVon', date('Y-m-d')),
+            'datumBis' => $rq->getParam('datumBis', date('')),
+            'lager_id' => $rq->getParam('lager_id', ''),
         ];
         $aQueryParams['search'] = [];
 
@@ -119,6 +79,7 @@ class Touren_HistorieController extends Zend_Controller_Action
                 $aQueryParams['search'][$_fld] = $_qy;  break;
             }
         }
+        // die(print_r(compact([ 'gridFilters', 'aGridFilters', 'aQueryParams']), 1));
 
         $modelLogger = new Model_TourenDispoLog();
 

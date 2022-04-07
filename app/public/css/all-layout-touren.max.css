@@ -1877,7 +1877,7 @@ div.route-stat-dispo {
     background-color: #fbec88 !important;
 }
 div.route-stat-nodispo {r
-    background-color: mistyrose !important;
+    background-color: mistyrose;
 }
 
 .dispo-stat-beauftragt span.anr, .dispo-stat-rot   { background-color: mistyrose !important; }
@@ -1916,7 +1916,7 @@ td div.xVorgangStatusBox span.v-stat-icon {
  }
         
 /* states and images */
-.v-stat-icon { display:block; width: 30px; height: 30px; background-image: url(../touren/jquery.crm.css/<?php echo $this->baseUrl(); ?>/touren/img/round-icons-small.png); }
+.v-stat-icon { display:block; width: 30px; height: 30px; background-image: url(../touren/img/round-icons-small.png); }
 .v-stat-gruen { background-position: -29px 0; }
 .v-stat-beauftragt, .v-stat-rot   { background-position: 0 0; }
 .v-stat-fertig,     .v-stat-blau  { background-position: -58px 0; }

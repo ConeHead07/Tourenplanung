@@ -340,7 +340,7 @@ class Model_TourenTimelines extends MyProject_Model_Database
                     );
 
                     if (!$chckFree->free) {
-                        $returnObject->unfreeResources[$k] = array_merge($returnObject->unfreeResources[$k], $chckFree->data);
+                        $returnObject->unfreeResources[$k] = $chckFree->data;
                         $num_unfree+= count($chckFree->data);
                     }
                 }
@@ -352,7 +352,10 @@ class Model_TourenTimelines extends MyProject_Model_Database
                     if (!count($_resources)) continue;
                     $returnObject->message.= $k . ': ' . count($_resources) . PHP_EOL;
                     foreach($_resources as $_rsrc) 
-                        $returnObject->message.= $_rsrc['Auftragsnummer'] . ' / ' .$_rsrc['Resource'] . ' : ' . $_rsrc['DatumVon'] . ' ' . substr($_rsrc['ZeitVon'],0,5) . PHP_EOL;
+                        $returnObject->message.=
+                            $_rsrc['Auftragsnummer']
+                            . ' / ' .$_rsrc['Resource'] . ' : ' . $_rsrc['DatumVon']
+                            . ' ' . substr($_rsrc['ZeitVon'],0,5) . PHP_EOL;
                 }
                 return $returnObject;
             }
@@ -454,11 +457,27 @@ class Model_TourenTimelines extends MyProject_Model_Database
         $modelPortlets = new Model_TourenPortlets();
 
         $sql = 'SELECT p.Datum FROM ' . $this->_tbl . ' t '
-              .' LEFT JOIN ' . $modelPortlets->getTable() . ' p ON (t.portlet_id = p.portlet_id)'
-              .' WHERE ' . $this->key() . ' = ' . (int)$timelineId;
+            .' LEFT JOIN ' . $modelPortlets->getTable() . ' p ON (t.portlet_id = p.portlet_id)'
+            .' WHERE ' . $this->key() . ' = ' . (int)$timelineId;
 
         return $this->_db->fetchOne($sql, [], Zend_Db::FETCH_ASSOC);
+    }
 
+    /**
+     * @param int $timelineId
+     * @return string
+     * @throws Zend_Db_Table_Exception
+     */
+    public function getDataWithPortlet(int $timelineId)
+    {
+        $modelPortlets = new Model_TourenPortlets();
+
+        $sql = 'SELECT t.*, p.lager_id, p.datum, p.tagesnr, p.title portlet_title '
+            . ' FROM ' . $this->_tbl . ' t '
+            . ' LEFT JOIN ' . $modelPortlets->getTable() . ' p ON (t.portlet_id = p.portlet_id)'
+            . ' WHERE ' . $this->key() . ' = ' . (int)$timelineId;
+
+        return $this->_db->fetchRow($sql, [], Zend_Db::FETCH_ASSOC);
     }
     
     public function countVorgaenge($timeline_id, $withDefaults = false)

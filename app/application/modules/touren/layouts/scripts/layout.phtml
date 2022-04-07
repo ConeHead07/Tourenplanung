@@ -1,7 +1,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html>
 <head><?php
-    $qRefresh = '20190517b'; // -'.rand();
+    $qRefresh = '20190912_' . (Zend_Registry::get('BRANCH_COMMIT_SHORT') ?? ''); // -'.rand();
     $hdBgColor = (APPLICATION_ENV === 'production') ? 'inherit' : '#b5f7a1';
     ?>
     <title>UI-Tourenplaner</title>
@@ -20,7 +20,7 @@
         .fk-Anker,
         div.fk-Anker,
         div.fbDispoRoute.fk-Anker {
-            background-color: #ff665f !important;
+            background-color: #fee930 !important;
         }
         .fk-Auffueller,
         div.fk-Auffueller,
@@ -34,18 +34,35 @@
         }
         .fk-Gruen,
         div.fk-Gruen,
-        div.fbDispoRoute.fk-Gruen {
-            background-color: #96ff98 !important;
+        div.fbDispoRoute.fk-Gruen,
+        .fk-VIP,
+        div.fk-VIP,
+        div.fbDispoRoute.fk-VIP {
+            background-color: #27ca2a !important;
+            color:#fff;
         }
+
+        div.fbDispoRoute span.anr {
+            background-color: #fff !important;
+            color: #2e6e9e;
+            border-radius:5%;
+        }
+
         .fk-Gelb,
         div.fk-Gelb,
-        div.fbDispoRoute.fk-Gelb {
-            background-color: #fcff85 !important;
+        div.fbDispoRoute.fk-Gelb,
+        .fk-Anker,
+        div.fk-Anker,
+        div.fbDispoRoute.fk-Anker {
+            background-color: #fee930 !important;
         }
         .fk-Blau,
         div.fk-Blau,
-        div.fbDispoRoute.fk-Blau {
-            background-color: #00ffff !important;
+        div.fbDispoRoute.fk-Blau,
+        .fk-Fuell,
+        div.fk-Fuell,
+        div.fbDispoRoute.fk-Fuell {
+            background-color: #05b2ff !important;
         }
         .fk-Orange,
         div.fk-Orange,
@@ -61,6 +78,12 @@
         div.fk-Weiss,
         div.fbDispoRoute.fk-Weiss {
             background-color: #fdf6fb !important;
+        }
+        .fk-Projekt,
+        div.fk-Projekt,
+        dif.fbDispoRoute.fk-Projekt {
+            background-color: #f2850c !important;
+            color:#fff;
         }
         .fk-Grau,
         div.fk-Grau,

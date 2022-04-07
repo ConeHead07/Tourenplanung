@@ -415,13 +415,9 @@ implements MyProject_Model_TourenResourceInterface
         $returnObject->rsrcConflictData = array();
         $filter = array_merge( $dstTourEntry, array('ignoreTourIds' => $filterTourIds));
         $_chckFree = $this->checkResourceIsFree($rsrcId, $filter, $dstTourEntry['tour_id']);
-        if (!$_chckFree->free) $returnObject->rsrcConflictData = $_chckFree->data;
-        
-        if (count($returnObject->rsrcConflictData)) {
-            $returnObject->message = 'Konflikt: Resource ist f�r den Zielzeitraum bereits gebucht oder gesperrt!' . PHP_EOL;
-            foreach($returnObject->rsrcConflictData as $_tour) {
-                $returnObject->message.= '-' . $_tour['Auftragsnummer'] . ' '.$_tour['DatumVon'].' '.$_tour['ZeitVon'] . PHP_EOL;
-            }
+        if (!$_chckFree->free) {
+            $returnObject->rsrcConflictData = $_chckFree->data;
+            $returnObject->message = $_chckFree->message;
             return $returnObject;
         }
         
@@ -730,19 +726,21 @@ implements MyProject_Model_TourenResourceInterface
 
         $aReturnVars[] = 'aPossibleTouren';
 
-        $aRsrcBelegteZeiten = $this->getBelegteZeitenForRsrcByDatumZeit(
-            $iRsrcId,
-            $aTourenStat['datum'],
-            $aTourenStat['MinZeitVon'],
-            $aTourenStat['MaxZeitBis']
-        );
+        $aRsrcBelegteZeiten =
+            (!$aRsrcInfo['extern_id'])
+            ? $this->getBelegteZeitenForRsrcByDatumZeit(
+                $iRsrcId,
+                $aTourenStat['datum'],
+                $aTourenStat['MinZeitVon'],
+                $aTourenStat['MaxZeitBis']
+            )
+            : [];
         $aReturnVars[] = 'aRsrcBelegteZeiten';
 
 
 
         if (count($aRsrcBelegteZeiten) > 0) {
             // Touren mit Konflikt ausfiltern
-
 
             $aPossibleTouren = array_filter($aPossibleTouren, function($_t)
             use($aRsrcBelegteZeiten, &$aKonfliktTouren, &$aExistingTouren) {
@@ -1163,7 +1161,13 @@ implements MyProject_Model_TourenResourceInterface
      * Pr�ft, ob Resource f�r Ziel-Slot (siehe Param $filter) frei und gibt ergebnis-Objekt mit Details zur�ck
      * tourData enth�lt rows mit den Feldern ResourceId, Resource und allen tour-Feldern
      * @param int $rsrc_id
-     * @param array $filter assoc (DatumVon=>YYYY-MM-DD,DatumBis=>YYYY-MM-DD,ZeitVon=>HH:MM,ZeitBis=>HH:MM
+     * @param array $filter assoc (
+     *          DatumVon=>YYYY-MM-DD,
+     *          DatumBis=>YYYY-MM-DD,
+     *          ZeitVon=>HH:MM,
+     *          ZeitBis=>HH:MM,
+     *          ignoreTourIds=>[id,...]
+     * )
      * @param int $tour_id
      * @param int $timeline_id
      * @return stdClass with members: bool free (true if free), data: tourdata, where rsrc is booked, message
@@ -1174,6 +1178,7 @@ implements MyProject_Model_TourenResourceInterface
         $re->free = false;
         $re->data = array();
         $re->message = '';
+        $re->stackTrace = [];
         $re->sql = '';
         
         $szStorage = MyProject_Model_Database::loadStorage('resourcesSperrzeiten');
@@ -1209,83 +1214,114 @@ implements MyProject_Model_TourenResourceInterface
             $ignoreTourIds[] = $tour_id;
         }
         
-        $where = '';
+        $dzWhere = '';
         if ($ignoreTourIds) {
-            $where.= $this->tourKey.' NOT IN (' . implode(',', $ignoreTourIds) . ') ' . PHP_EOL;
+            $dzWhere.= $this->tourKey.' NOT IN (' . implode(',', $ignoreTourIds) . ') ' . PHP_EOL;
         }
         if ($timeline_id) {
-            $where.= 
-                ($where ? ' AND ' : '')
+            $dzWhere.=
+                ($dzWhere ? ' AND ' : '')
                .'(timeline_id != ' . (int)$timeline_id . ' OR IsDefault = 0)' . PHP_EOL;
         }
-        
+
+        // Bereits Disponierte
         if ($dVon || $dBis || $zVon || $zBis) {
-            $where.= ($where ? ' AND ' : '') . ' (';
+            $dzWhere.= ($dzWhere ? ' AND ' : '') . ' (';
             if ($dVon || $dBis ) {
-                $where.= ' (';
-                if ($dVon) {
-                    $where.= $db->quoteInto('(t.DatumVon <= ? AND t.DatumBis >= ?)', $dVon) . PHP_EOL;
+                $dzWhere.= ' (';
+                if ($dVon == $dBis || !$dVon || $dBis) {
+                    $dTag = $dVon ?: $dBis;
+                    $dzWhere.= $db->quoteInto('(t.DatumVon = ? OR (t.DatumVon <= ? AND t.DatumBis >= ?))', $dTag) . PHP_EOL;
+                } else {
+                    $dzWhere.= '(
+                        OR "' . $dVon . '" = t.DatumVon
+                        OR "' . $dVon . '" BETWEEN t.DatumVon AND t.DatumBis
+                        OR "' . $dBis . '" BETWEEN t.DatumVon AND t.DatumBis
+                        OR ("' . $dVon . '" >= t.DatumVon AND "' . $dBis . '" <= t.DatumBis)
+                        OR ("' . $dVon . '" <= t.DatumVon AND "' . $dBis . '" >= t.DatumBis)
+                    )';
                 }
-                if ($dBis && $dBis !== $dVon) {
-                    $where.= ($dVon ? ' OR ' :'')
-                           . $db->quoteInto('(t.DatumVon <= ? AND t.DatumBis >= ?)', $dBis) . PHP_EOL;
-                }
-                $where.= ')';
+                $dzWhere.= ')';
             }
 
             if ($zVon || $zBis) {
-                $where.= ' AND (';
+                $dzWhere.= ' AND (';
                 if ($zVon) {
-                    $where.= $db->quoteInto('(t.ZeitVon <= ? AND t.ZeitBis > ?)', $zVon) . PHP_EOL;
+                    $dzWhere.= $db->quoteInto('(t.ZeitVon <= ? AND t.ZeitBis > ?)', $zVon) . PHP_EOL;
                 }
                 if ($zBis && $zBis !== $zVon) {
-                    $where.= ($zVon ? ' OR ' :'')
+                    $dzWhere.= ($zVon ? ' OR ' :'')
                           .  $db->quoteInto('(t.ZeitVon < ? AND t.ZeitBis >= ?)', $zBis) . PHP_EOL;
                 }
-                $where.= ')';
+                $dzWhere.= ')';
             }
-            $where.= ')';
+            $dzWhere.= ')';
         }
-        
-        if ($dVon || $dBis ) {
+
+        // Sperrzeiten
+        $szWhere = '';
+        if ($dVon || $dBis) {
             $condRsrcTyp = $db->quoteInto('ressourcen_typ = ?', $this->_resourceType);
-            if ($dVon) {
-                $where.= ($where ? ' OR ' :'')
-                       . ' (' . $condRsrcTyp . ' AND '.$db->quoteInto('gesperrt_von <= ? AND gesperrt_bis >= ?', $dVon).') ' . PHP_EOL;
-            }
-            if ($dBis && $dBis !== $dVon) {
-                $where.= ($where ? ' OR ' :'')
-                       . ' (' . $condRsrcTyp . ' AND '.$db->quoteInto('gesperrt_von <= ? AND gesperrt_bis >= ?', $dBis).')' . PHP_EOL;
+            if ($dVon == $dBis || !$dVon || $dBis) {
+                $dTag = $dVon ?: $dBis;
+                $szWhere.= $db->quoteInto('(' . $condRsrcTyp . ' AND ? BETWEEN gesperrt_von AND gesperrt_bis)', $dTag) . PHP_EOL;
+            } else {
+                $szWhere.= '(' . $condRsrcTyp . ' AND ' . '(                        
+                        OR "' . $dVon . '" BETWEEN gesperrt_von AND gesperrt_bis
+                        OR "' . $dBis . '" BETWEEN gesperrt_von AND gesperrt_bis
+                        OR ("' . $dVon . '" >= gesperrt_von AND "' . $dBis . '" <= gesperrt_bis)
+                        OR ("' . $dVon . '" <= gesperrt_von AND "' . $dBis . '" >= gesperrt_bis)
+                    ))';
             }
         }
 
-        $re->sql = 
-             'SELECT '.$this->rsrcKey.' ResourceId, '.$this->_rsrcTitleField.' AS Resource, t.*, ' . PHP_EOL
-            .' s.gesperrt_von, s.gesperrt_bis ' . PHP_EOL
+        $re->sqlDZ =
+             'SELECT '.$this->rsrcKey.' ResourceId, '.$this->_rsrcTitleField.' AS Resource, t.* ' . PHP_EOL
             .'FROM '.$this->rsrcTbl.' r ' . PHP_EOL
             .'LEFT JOIN '.$this->rsrcLnkTbl.' ON('.$this->rsrcKey.'='.$this->rsrcLnkKey.') ' . PHP_EOL
             .'LEFT JOIN '.$this->tourTbl.' t USING('. $this->tourKey . ') ' . PHP_EOL
+            .'WHERE '. PHP_EOL
+            .$this->rsrcKey . ' = ' . (int)$rsrc_id . PHP_EOL
+           .' AND (' . $dzWhere . ')' . "\n";
+
+
+        $re->sqlSZ =
+            'SELECT '.$this->rsrcKey.' ResourceId, '.$this->_rsrcTitleField.' AS Resource, s.gesperrt_von, s.gesperrt_bis ' . PHP_EOL
+            .'FROM '.$this->rsrcTbl.' r ' . PHP_EOL
             .'LEFT JOIN '.$szTable.' s ON(' . PHP_EOL
             .'  s.ressourcen_typ = '.$db->quote($this->_resourceType) . ' ' . PHP_EOL
             .'  AND s.ressourcen_id = ' . $this->rsrcKey . ') ' . PHP_EOL
             .'WHERE '. PHP_EOL
             .$this->rsrcKey . ' = ' . (int)$rsrc_id . PHP_EOL
-           .' AND (' . $where . ')';
-        
-        $re->data = $db->fetchAll($re->sql);
-        $re->free = (!is_array($re->data) || count($re->data) == 0);
-        if (count($re->data)) {
-            $re->message = 'Konflikt: Resource ist f�r den Zielzeitraum nicht disponierbar!' . PHP_EOL;
+            .' AND (' . $szWhere . ')';
+
+        $re->sql = $re->sqlDZ . ";\n" . $re->sqlSZ;
+        $re->data = (array)$db->fetchAll($re->sqlDZ);
+        $re->dataSZ = (array)$db->fetchAll($re->sqlSZ);
+        $re->free = (count($re->data) == 0 && count($re->dataSZ) == 0);
+        if (count($re->data) > 0 || count($re->dataSZ) > 0) {
+            $re->message = 'Konflikt: Resource ist für den Zielzeitraum nicht disponierbar!' . PHP_EOL;
             foreach($re->data as $_d) {
-                if ($_d['tour_id']){
-                    $re->message.= '-Gebucht für [ANR:' . $_d['Auftragsnummer'] . ', DatumVon: '.$_d['DatumVon'].', ZeitVon: '.$_d['ZeitVon'] . ']' . PHP_EOL;
-                }
-                else{
-                    $re->message.= '-Gesperrt von '.$_d['gesperrt_von'].' bis '.$_d['gesperrt_bis'] . PHP_EOL;
-                }
+                $re->message.= '- Gebucht für ANR:' . $_d['Auftragsnummer']
+                    . ' am ' . date("d.m.Y", strtotime($_d['DatumVon']))
+                    . ' um ' . substr($_d['ZeitVon'], 0, 5) . '' . PHP_EOL;
             }
-            echo $re->sql;
-            try { throw new Exception('DEBUG Stacktrace');} catch(Exception $e) { echo $e->getTraceAsString(); }
+
+            foreach($re->dataSZ as $_d) {
+                $re->message.= '- Gesperrt '
+                    . ' von ' . date("d.m.", strtotime($_d['gesperrt_von']))
+                    . ' bis ' . date("d.m.Y", strtotime($_d['gesperrt_bis'])) . PHP_EOL;
+                $re->data[] = $_d + ['DatumVon' => $_d['gesperrt_von'], 'DatumBis' => $_d['gesperrt_bis'], 'tour_id' => null, 'Auftragsnummer' => 'Gesperrt', 'ZeitVon' => '00:00'];
+            }
+
+            try { throw new Exception('DEBUG Stacktrace');} catch(Exception $e) {
+                $re->stackTrace = $e->getTrace();
+            }
+        }
+        if (0) try { throw new Exception('DEBUG Stacktrace');} catch(Exception $e) {
+            ob_end_clean();
+            $re->stackTrace = $e->getTrace();
+            echo '<pre>' . print_r( (array)$re, 1) . '</pre>';
             exit;
         }
         return $re;
@@ -1428,9 +1464,6 @@ implements MyProject_Model_TourenResourceInterface
             ->addJoin( " LEFT JOIN $lstgTbl l ON(l.leistungs_id = $rsrcTbl.leistungs_id)", true)
             ;
 
-        $sqlInTouren = $this->getSqlSelectIdsInDisponiert($aDateTimeRange);
-        $oQueryOpts->andWhere($this->_tblRsrcKey . " NOT IN ($sqlInTouren)");
-
 
         if (!empty($aFilter['categoryTerm'])) {
             $sqlInCtg = $this->getSqlSelectIdsInCategorie($aFilter['categoryTerm']);
@@ -1440,6 +1473,9 @@ implements MyProject_Model_TourenResourceInterface
         }
 
         if ($sExternFilter == 'int') {
+            $sqlInTouren = $this->getSqlSelectIdsInDisponiert($aDateTimeRange);
+            $oQueryOpts->andWhere($this->_tblRsrcKey . " NOT IN ($sqlInTouren)");
+
             $sqlInSperre = $this->getSqlSelectIdsInSperrzeiten($aDateTimeRange['DatumVon'], $aDateTimeRange['DatumBis']);
 
             $oQueryOpts->andWhere(

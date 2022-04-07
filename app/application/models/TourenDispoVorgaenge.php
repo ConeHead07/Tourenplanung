@@ -644,7 +644,7 @@ if ($orderby) {
                                 'portlet_id', 'lager_id', 'date', 'datum',
                                 'position', 'tagesnr', 'topcustom', 'title']);
         $tlFields = array_flip([
-                                'portlet_id', 'timeline_id', 'start', 'end', 'interval', 'stepWidth']);
+                                'portlet_id', 'timeline_id', 'start', 'end', 'interval', 'stepWidth', 'tl_position']);
         $tFields = array_flip([
                                 'id','tour_id', 'Mandant', 'Auftragsnummer', 'DatumVon', 'DatumBis', 'ZeitVon', 'ZeitBis',
                                 'IsDefault', 'avisiert', 'farbklasse', 'locked', 'name', 'Vorgangstitel',
@@ -656,7 +656,7 @@ if ($orderby) {
               p.portlet_id, p.lager_id, p.datum date, p.datum, 
               p.position, p.tagesnr, p.topcustom, p.title,
               
-              tl.timeline_id, tl.start, tl.end, tl.interval, tl.title tl_title, tl.interval stepWidth,
+              tl.timeline_id, tl.position tl_position, tl.start, tl.end, tl.interval, tl.title tl_title, tl.interval stepWidth,
               
               t.tour_id id, t.tour_id, t.Mandant, t.Auftragsnummer, t.DatumVon, t.DatumBis, t.ZeitVon, t.ZeitBis,
               t.IsDefault, t.avisiert, t.farbklasse, t.locked,
@@ -710,7 +710,7 @@ if ($orderby) {
                 ON (t.created_uid = cu.user_id) 
               LEFT JOIN mr_user mu 
                 ON (t.modified_uid = mu.user_id) 
-              ORDER BY p.position, tl.position, t.ZeitVon";
+              ORDER BY p.position, p.portlet_id, tl_position, tl.timeline_id, t.ZeitVon";
 
         $sql = strtr($portletSql, [':datum'=>$db->quote($date), ':lager_id'=>(int)$lager_id]);
         $rows = $db->fetchAll($sql);
@@ -755,27 +755,47 @@ if ($orderby) {
 
         $rsrcSql = "
             SELECT 
-             tour_id, 'MA' resourceType, tm.id, $maLabelExp label, $maLabelExp name, 
-             mid resourceId, extern_id, leistungs_id, tmt.einsatz_ab
+             tm.tour_id, 'MA' resourceType, tm.id, $maLabelExp label, $maLabelExp name, 
+             m.mid resourceId, extern_id, leistungs_id, tmt.einsatz_ab,
+             m.name nachname, '' kennzeichen, '' fahrzeugart, '' modell, '' bezeichnung
             FROM $tourMaTbl tm JOIN $maTbl m ON (tm.mitarbeiter_id = m.mid)
             LEFT JOIN mr_touren_dispo_mitarbeiter_txt tmt ON(tm.id = tmt.id)
             WHERE tm.tour_id IN (:tour_ids)
             UNION SELECT 
-             tour_id, 'FP' resourceType, id, $fpLabelExp label, $fpLabelExp name, 
-             fid resourceId, extern_id, leistungs_id, '' einsatz_ab
+             tf.tour_id, 'FP' resourceType, tf.id, $fpLabelExp label, $fpLabelExp name, 
+             f.fid resourceId, f.extern_id, f.leistungs_id, '' einsatz_ab,
+            '' nachname, f.kennzeichen, f.fahrzeugart, f.modell, '' bezeichnung
             FROM $tourFpTbl tf JOIN $fpTbl f ON (tf.fuhrpark_id = f.fid)
             WHERE tf.tour_id IN (:tour_ids)
             UNION SELECT 
-             tour_id, 'WZ' resourceType, id, $wzLabelExp label, $wzLabelExp name, 
-             wid resourceId, extern_id, leistungs_id, '' einsatz_ab
+             tw.tour_id, 'WZ' resourceType, id, $wzLabelExp label, $wzLabelExp name, 
+             w.wid resourceId, w.extern_id, w.leistungs_id, '' einsatz_ab,
+            '' nachname, '' kennzeichen, '' fahrzeugart, '' modell, w.bezeichnung
             FROM $tourWzTbl tw JOIN $wzTbl w ON (tw.werkzeug_id = w.wid)
             WHERE tw.tour_id IN (:tour_ids)
             ORDER BY tour_id, resourceType, resourceId
         ";
 
-        $rows = $db->fetchAll( str_replace(':tour_ids', implode(',', array_keys($aTourId2Row)), $rsrcSql));
+        $rows = count($aTourId2Row)
+                ? $db->fetchAll( str_replace(':tour_ids', implode(',', array_keys($aTourId2Row)), $rsrcSql))
+                : [];
+
         foreach($rows as $row ) {
             $_tid = $row['tour_id'];
+            $_rid = $row['resourceId'];
+            switch($row['resourceType']) {
+                case 'MA':
+                    $row['mid'] = $_rid;
+                    $row['mitarbeiter_id'] = $_rid;
+                    break;
+                case 'FP':
+                    $row['fid'] = $_rid;
+                    $row['fuhrpark_id'] = $_rid;
+                    break;
+                case 'WZ':
+                    $row['wid'] = $_rid;
+                    $row['werkzeug_id'] = $_rid;
+            }
             $aTourId2Row[ $_tid ]['resources'][] = $row;
         }
 
@@ -923,7 +943,7 @@ if ($orderby) {
                  ." LEFT JOIN $tblUsr cu ON (DV.created_uid = cu.user_id) " . PHP_EOL
                  ." LEFT JOIN $tblUsr mu ON (DV.modified_uid = mu.user_id) " . PHP_EOL
                  ." WHERE p.datum = :date AND p.lager_id = :lager_id "
-                 ." ORDER BY p.position, tl.position, ZeitVon";
+                 ." ORDER BY p_position, p.portlet_id, tl_position, tl.timeline_id, ZeitVon";
             
 //            die('#'.__LINE__ . ' <pre>' . strtr($sql, array(':date'=>$date, ':lager_id'=>$lager_id)) . '</pre>' .PHP_EOL);
             $rows =  $db->fetchAll($sql, array(':date'=>$date, ':lager_id'=>$lager_id));
@@ -1183,9 +1203,11 @@ if ($orderby) {
             WHERE tw.tour_id IN(:tour_ids)
             ORDER BY tour_id, resourceType
         ";
-        $aResources = $this->_db->fetchAll(
-            str_replace(':tour_ids', implode(',', $aTourIds), $resourcenSql),
-            [], Zend_Db::FETCH_ASSOC);
+
+        $aResources = count($aTourIds)
+            ? $this->_db->fetchAll(str_replace(':tour_ids', implode(',', $aTourIds), $resourcenSql),
+                                    [], Zend_Db::FETCH_ASSOC)
+            : [];
 
         foreach($aResources as $_rsrc) {
             $_tid = $_rsrc['tour_id'];
@@ -1285,9 +1307,10 @@ if ($orderby) {
             WHERE tw.tour_id IN(:tour_ids)
             ORDER BY tour_id, resourceType
         ";
-        $aResources = $this->_db->fetchAll(
-            str_replace(':tour_ids', implode(',', $aTourIds), $resourcenSql),
-            [], Zend_Db::FETCH_ASSOC);
+        $aResources = count($aTourIds)
+            ? $this->_db->fetchAll( str_replace(':tour_ids', implode(',', $aTourIds), $resourcenSql),
+                [], Zend_Db::FETCH_ASSOC)
+            : [];
 
         $aReObj->tourResources = [];
 
@@ -1608,14 +1631,13 @@ if ($orderby) {
             foreach($rsrcKeys as $_rsrcKey) {
                 $r = $_model->checkResourceIsFree($_rsrcKey, $filter, $tour_id, $tourData['timeline_id']);
                 if (!$r->free) {
-                    foreach($r->data as $_data)
-                    $re->msg.= $_key . ' '. $_data['Resource'] . ' : ' 
-                            . $_data['Auftragsnummer'] . ' ' 
-                            . $_data['ZeitVon'] . ' - ' . $_data['ZeitBis'] . PHP_EOL;
+                    $re->msg.= $re->message;
                 }
             }
         }
-        if ( trim($re->msg) ) $re->ok = false;        
+        if ( trim($re->msg) ) {
+            $re->ok = false;
+        }
         return $re;        
     }
     
@@ -1656,12 +1678,7 @@ if ($orderby) {
             foreach($rsrcKeys as $_rsrcKey) {
                 $r = $_model->checkResourceIsFree($_rsrcKey, $filter);
                 if (!$r->free) {
-                    foreach($r->data as $_data)
-                    $re->conflicts.= 
-                                ' ' . print_r($filter,1) . ' ' 
-                              . $_data['Resource'] . ' : ' 
-                              . ($_data['IsDefault'] ? 'Standard-Resourcen' : $_data['Auftragsnummer']) . ' ' 
-                              . $_data['DatumVon'] . ' - ' . $_data['ZeitVon'] . PHP_EOL;
+                    $re->conflicts.= $r->message;
                 }
             }
         }

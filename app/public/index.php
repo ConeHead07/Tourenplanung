@@ -1,4 +1,6 @@
 <?php
+date_default_timezone_set('Europe/Berlin');
+ini_set('date.timezone', 'Europe/Berlin');
 set_time_limit(90);
 
 if (file_exists( dirname(__FILE__) . '/../etc/sysdef.local.php')) {

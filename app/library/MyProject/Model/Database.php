@@ -345,7 +345,7 @@ class MyProject_Model_Database extends MyProject_Model_Abstract
      * Einen Datensatz holen
      *
      * @param string ... $id Datensatzschluessel
-     * @return array
+     * @return null|array
      */
     public function fetchEntry($id)
     {

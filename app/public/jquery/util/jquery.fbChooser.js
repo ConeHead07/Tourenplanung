@@ -155,16 +155,19 @@
                         alert(e);
                     }
                 }
-            }        
+            }
             
-            /** Liste mit aktuellen Werten füllen */
-            if ( $(this).val())
-            $.each($( this ).val().split(","), function(index, addValue) {
-                if (!addValue) return;
-                var addLabel = (data.dataPairs && addValue in data.dataPairs) ? data.dataPairs[addValue] : null;
-                if (!addLabel && data.cacheValues && addValue in data.cacheValues) addLabel = data.cacheValues[addValue];
-                methods.addItem.apply(self, [addValue, addLabel]);
-            });
+            /** Liste mit aktuellen Werten fÃ¼llen */
+            if ( $(this).val()) {
+                var valueList = data.multiple ? $(this).val().split(",") : [ $(this).val() ];
+                // alert( JSON.stringify( valueList ));
+                $.each(valueList, function (index, addValue) {
+                    if (!addValue) return;
+                    var addLabel = (data.dataPairs && addValue in data.dataPairs) ? data.dataPairs[addValue] : null;
+                    if (!addLabel && data.cacheValues && addValue in data.cacheValues) addLabel = data.cacheValues[addValue];
+                    methods.addItem.apply(self, [addValue, addLabel]);
+                });
+            }
         },
         remValue: function(removeObj) {
             var data = $(this).data(dataKey);
@@ -250,13 +253,13 @@
             
             if (data && !data.multiple) methods.clearData.apply( this );
             
-            // chItem hinzufügen
+            // chItem hinzufÃ¼gen
             var newChItem = methods.addItem.apply(this, [addValue, addLabel]);
             methods.addCache.apply(this, [addValue, addLabel]); // Protected Method
             
             methods.refreshUserBox.apply( this );
 
-            // Neuen Wert dem Input-Feld hinzufügen
+            // Neuen Wert dem Input-Feld hinzufÃ¼gen
             if (!init) {
                 var newVal = $(this).val() + ($(this).val() ? ',' : '') + addValue;
                 $( this ).val( newVal );
@@ -554,11 +557,11 @@
         var argsLen = arguments.length;
         
         // Default-Routine: Getting Options from allready initialized Object
-        // Noch nicht initialisierte Routinen geben null zurück, wenn:
-        // als Argument nur 'options' übergeben wird, um gesetzte options abzufragen
-        // als Arg1 'option' und ein zweites Argument übergeben wird
+        // Noch nicht initialisierte Routinen geben null zurÃ¼ck, wenn:
+        // als Argument nur 'options' Ã¼bergeben wird, um gesetzte options abzufragen
+        // als Arg1 'option' und ein zweites Argument Ã¼bergeben wird
         // als Arg1 eine Getter-Funktion aufgerufen wird
-        // In diesem Fall bleiben uninitialisierte Objekte unberührt bzw. uninitialisiert
+        // In diesem Fall bleiben uninitialisierte Objekte unberÃ¼hrt bzw. uninitialisiert
         if (typeof(options) == 'string' && this.length ) {
             switch(options) {
                 case 'options':

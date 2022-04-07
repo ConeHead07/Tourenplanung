@@ -300,6 +300,7 @@ class Model_TourenDispoLog extends MyProject_Model_Database implements Model_Tou
 
     public function getHistorie(array $queryOptions = [])
     {
+        $db = $this->_db;
         $iPage = (int)($queryOptions['page'] ?? 1);
         $iRows  = (int)($queryOptions['rows'] ?? 100);
         
@@ -313,11 +314,22 @@ class Model_TourenDispoLog extends MyProject_Model_Database implements Model_Tou
         $sModifiedDateFrom = $aSearch['lastModifiedFrom'] ?? '';
         $sModifiedDateTo = $aSearch['lastModifiedTo'] ?? '';
         $sTourId     = $aSearch['tour_id'] ?? '';
+        $sTourAnr     = $aSearch['tour_anr'] ?? '';
+        $sTourDatum     = $aSearch['dispo_datum'] ?? '';
+        $sTourZeitVon     = $aSearch['dispo_zeit_von'] ?? '';
+        $sTourZeitBis     = $aSearch['dispo_zeit_bis'] ?? '';
+        $sLogBemerkung     = $aSearch['bemerkung'] ?? '';
+        $sLogTime = $aSearch['action_time'] ?? '';
         $sObjectType = $aSearch['object_type'] ?? '';
         $sObjectId   = $aSearch['object_id']   ?? '';
         $sObjectName = $aSearch['resource'] ?? '';
         $sActionType = $aSearch['action'] ?? '';
         $joinIsRequiredForCountQuery = true;
+
+        $dVon = $queryOptions['datumVon'] ?? '';
+        $dBis = $queryOptions['datumBis'] ?? '';
+        if ($dBis && !$dVon) $dVon = $dBis;
+        $lager_id = $queryOptions['lager_id'] ?? '';
 
         $qb = $this->buildQuery([]);
         $qb->setSelect(
@@ -338,9 +350,7 @@ class Model_TourenDispoLog extends MyProject_Model_Database implements Model_Tou
             .' if (m.mid is not null, m.mid, if (f.fid is not null,f.fid, \'\')) AS `Rsrc-ID`' . PHP_EOL)
             ->setFrom('mr_touren_dispo_log l')
             ->setJoin('LEFT JOIN mr_user u ON (l.user_id = u.user_id)' . PHP_EOL
-//                .' LEFT JOIN mr_touren_dispo_mitarbeiter dm ON (l.object_type = \'MA\' AND l.tour_id = dm.tour_id AND l.object_id = dm.id)' . PHP_EOL
                 .' LEFT JOIN mr_mitarbeiter m ON (l.object_type = \'MA\' AND l.object_id = m.mid )' . PHP_EOL
-//                .' LEFT JOIN mr_touren_dispo_fuhrpark df ON (l.object_type = \'FP\' AND l.tour_id = df.tour_id AND l.object_id = df.id)' . PHP_EOL
                 .' LEFT JOIN mr_fuhrpark f ON ( l.object_type = \'FP\' AND l.object_id = f.fid  )',
                 $joinIsRequiredForCountQuery);
 
@@ -352,7 +362,10 @@ class Model_TourenDispoLog extends MyProject_Model_Database implements Model_Tou
             $qb->andWhere('action_time <= ' . $this->_db->quote(date('Y-m-d H:i', strtotime($sModifiedDateTo))));
         }
         if ((int)$sTourId){
-            $qb->andWhere('tour_id = LIKE ' . (int)$sTourId);
+            $qb->andWhere('tour_id = ' . (int)$sTourId);
+        }
+        if ((int)$sTourAnr){
+            $qb->andWhere('tour_anr LIKE "' . (int)$sTourAnr . '%"');
         }
         if (!empty($sObjectType)){
             $qb->andWhere('object_type = ' . $this->_db->quote($sObjectType));
@@ -374,11 +387,40 @@ class Model_TourenDispoLog extends MyProject_Model_Database implements Model_Tou
             $qb->andWhere('l.user_id = ' . (int)$aSearch['user_id'] );
         }
 
+        if ($dVon) {
+            if ($dBis && $dVon < $dBis) {
+                $qb->andWhere(
+                    'dispo_datum BETWEEN ' . $db->quote($dVon) . ' AND ' . $db->quote($dBis)
+                    . 'OR action_time BETWEEN ' . $db->quote($dVon) . ' AND ' . $db->quote($dBis)
+                );
+            } else {
+                $qb->andWhere('dispo_datum = ' . $db->quote($dVon) . ' OR action_time = ' . $db->quote($dVon));
+            }
+        }
+        if ($sTourDatum){
+            $qb->andWhere('dispo_datum LIKE ' . $db->quote($sTourDatum . '%') );
+        }
+        if ($sTourZeitVon){
+            $qb->andWhere('dispo_zeit_von >= ' . $db->quote($sTourZeitVon ) );
+        }
+        if ($sTourZeitBis){
+            $qb->andWhere('dispo_zeit_bis <= ' . $db->quote($sTourZeitBis ) );
+        }
+        if ($sLogBemerkung){
+            $qb->andWhere('bemerkung LIKE ' . $db->quote( '%' . $sLogBemerkung . '%' ) );
+        }
+        if ($sLogTime) {
+            $qb->andWhere('date_format(action_time, "%Y-%m-%d %H:%i:%s") LIKE ' . $db->quote($sLogTime . '%') );
+        }
+
+
         $qb
             ->setOrder($sSortFld)
             ->setOrderDir($sSortDir)
             ->setOffset($iOffset)
             ->setLimit($iLimit);
+
+        // die($qb->assemble());
 
         return [
             'total' => $this->_db->fetchOne( $qb->assembleCount() ),

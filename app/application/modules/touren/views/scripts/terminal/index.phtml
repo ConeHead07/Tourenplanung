@@ -14,62 +14,104 @@ $i = 0;
 $touren = array();
 $hasVorOrtInfo = false;
 
-foreach ($this->data->data as $p) {
-    //die(print_r($p,1));
-    if (isset($p['timelines'])) foreach ($p['timelines'] as $tl) {
+function getViewFormattedTourData(array $data)
+{
+    $re = new stdClass();
+    $re->touren = [];
+    $re->hasVorOrtInfo = false;
 
-        $ma_lager = array();
-        $ma_baustelle = array();
-        $fp = array();
-        $vg = array();
-        $tourGroupTitle = ($p['title'] ? '#' . $p['title'] . ' ' : '');
-        foreach ($tl['touren'] as $t) {
-            $_knd = trim($t['LieferungName']);
-            $_vti = trim($t['Vorgangstitel']);
-            if (!$t['IsDefault']) {
-                $vg[] = '<span class="vg-zeit">' . (int)($t['ZeitVon']).'-'.(int)substr($t['ZeitBis'], 0, 5) . 'Uhr</span> '
-                    . ' ' . ($_knd ?? $_vti);
-            }
+    foreach ($data as $p) {
+        //die(print_r($p,1));
+        if (isset($p['timelines'])) foreach ($p['timelines'] as $tl) {
 
-            if (isset($t['resources'])) foreach ($t['resources'] as $r) {
-                switch ($r['resourceType']) {
-                    case 'MA':
-                        $_ma = trim($r['nachname']);
-                        if ($r['einsatz_ab'] == 'Baustelle') {
-                            if (!in_array( $_ma, $ma_baustelle)) $ma_baustelle[] = $_ma;
-                        }
-                        if (!in_array( $_ma,$ma_lager) && !in_array($_ma, $ma_baustelle))
-                            $ma_lager[] = $_ma;
-                        break;
-                    case 'FP':
-                        $fpInfo = implode('&middot;', preg_split('/[\s-]+/', trim($r['kennzeichen'])));
+            $ma_lager = array();
+            $ma_baustelle = array();
+            $fp = array();
+            $vg = array();
+            $tourGroupTitle = ($p['title'] ? '#' . $p['title'] . ' ' : '');
+            foreach ($tl['touren'] as $t) {
+                $_knd = trim($t['LieferungName']);
+                $_vti = trim($t['Vorgangstitel']);
+                if (!$t['IsDefault']) {
+                    $vg[] = '<span class="vg-zeit">' . (int)($t['ZeitVon']) . '-' . (int)substr($t['ZeitBis'], 0, 5) . 'Uhr</span> '
+                        . ' ' . ($_knd ?? $_vti);
+                }
 
-                        $fpInfo.= '<i><small><sup>';
-                        if ($r['fahrzeugart']) {
-                            $fpInfo.= '&nbsp;' . substr(trim($r['fahrzeugart']),0,15);
-                        }
-                        if ($r['modell']) {
-                            $fpInfo.= '&nbsp;' . substr(trim($r['modell']),0,8);
-                        }
-                        $fpInfo.= '</sup></small></i>';
-                        if (!in_array($fpInfo,$fp)) {
-                            $fp[] = $fpInfo;
-                        }
-                        break;
+                if (isset($t['resources'])) foreach ($t['resources'] as $r) {
+                    switch ($r['resourceType']) {
+                        case 'MA':
+                            $_ma = trim($r['nachname']);
+                            if ($r['einsatz_ab'] == 'Baustelle') {
+                                if (!in_array($_ma, $ma_baustelle)) $ma_baustelle[] = $_ma;
+                            }
+                            if (!in_array($_ma, $ma_lager) && !in_array($_ma, $ma_baustelle))
+                                $ma_lager[] = $_ma;
+                            break;
+                        case 'FP':
+                            $rsrcName = $r['name'];
+                            if (preg_match('/^([a-z]{1,3}[\s-]+[a-z]{1,3}[\s-][0-9]{1,6})\b(.*)$/i', $rsrcName, $m)) {
+                                $rsrcName = implode('&middot;', preg_split('/[\s-]+/', $m[1]))
+                                    . '<i><small><sup>' . $m[2] . '</sup></small></i>';
+                            }
+                            if (!in_array($rsrcName, $fp)) {
+                                $fp[] = $rsrcName;
+                            }
+                            break;
+                        case 'FP__':
+                            $fpInfo = implode('&middot;', preg_split('/[\s-]+/', trim($r['kennzeichen'])));
+
+                            $fpInfo .= '<i><small><sup>';
+                            if ($r['fahrzeugart']) {
+                                $fpInfo .= '&nbsp;' . substr(trim($r['fahrzeugart']), 0, 15);
+                            }
+                            if ($r['modell']) {
+                                $fpInfo .= '&nbsp;' . substr(trim($r['modell']), 0, 8);
+                            }
+                            $fpInfo .= '</sup></small></i>';
+                            if (!in_array($fpInfo, $fp)) {
+                                $fp[] = $fpInfo;
+                            }
+                            break;
+                    }
                 }
             }
+
+            $ma_lager = array_diff($ma_lager, $ma_baustelle);
+            $re->touren[] = array(
+                'tagesnr' => $p['tagesnr'],
+                'ma_lg' => implode(', ', $ma_lager),
+                'ma_bs' => implode(', ', $ma_baustelle),
+                'fp' => implode("<br>\n", $fp),
+                'vg' => $tourGroupTitle . implode('; ', $vg)
+            );
+
+            if (count($ma_baustelle)) {
+                $re->hasVorOrtInfo = true;
+            }
         }
+    }
 
-        $ma_lager = array_diff($ma_lager, $ma_baustelle);
-        $touren[] =  array(
-            'tagesnr' => $p['tagesnr'],
-            'ma_lg' => implode(', ',  $ma_lager),
-            'ma_bs' => implode(', ',  $ma_baustelle),
-            'fp' => implode("<br>\n",  $fp),
-            'vg' => $tourGroupTitle . implode('; ', $vg)
-        );
+    return $re;
+}
 
-        if (count($ma_baustelle)) {
+$viewData = [];
+$viewData[0] = getViewFormattedTourData($this->data->data);
+$viewData[0]->lager = $this->lager;
+$viewData[0]->lagerId = $this->lager['lager_id'];
+$hasVorOrtInfo = $viewData[0]->hasVorOrtInfo;
+$touren = $viewData[0]->touren;
+
+// Willich
+// Produktion: 4
+// Kundendienst: 9
+if (!empty($this->weitereLager)) {
+    foreach($this->weitereLager as $_lgData) {
+        $i = count($viewData);
+
+        $viewData[ $i ] = getViewFormattedTourData($_lgData->data->data);
+        $viewData[ $i ]->lager = $_lgData->lager;
+        $viewData[ $i ]->lagerId = $_lgData->lager['lager_id'];
+        if ($viewData[ $i ]->hasVorOrtInfo) {
             $hasVorOrtInfo = true;
         }
     }
@@ -189,6 +231,7 @@ foreach ($this->data->data as $p) {
             float:right;
         }
 
+        .row-header,
         .cal-nav .cal-nav-title {
             font-weight: bold;
             font-family:Arial,sans-serif;
@@ -399,17 +442,32 @@ foreach ($this->data->data as $p) {
         <tbody>
         <?php
 
-        foreach($touren as $_tour) {
-            echo '<tr>' . "\n"
-                .'  <td class="tagesnr">' . $_tour['tagesnr'] . '</td>' . "\n"
-                .'  <td style="min-width:160px;">' . $_tour['ma_lg'] . '</td>' . "\n"
-                .($hasVorOrtInfo ? '  <td>' . $_tour['ma_bs'] . '</td>' . "\n" : '')
-                .'  <td style="min-width:160px;">' . $_tour['fp'] . '</td>' . "\n"
-                .'  <td>' . $_tour['vg'] . '</td>' . "\n"
-                .'</tr>' . "\n"
-                .'<tr><td class="border" colspan=5></td></tr>' . "\n"
-            ;
+        $iNumCols = $hasVorOrtInfo ? 5 : 4;
+        $iLastLagerId = $viewData[0]->lagerId;
+        $iCountViewData = count($viewData);
+        for($i = 0; $i < $iCountViewData; $i++) {
+            if ($iLastLagerId !== $viewData[ $i ]->lagerId) {
+                echo '
+                    </tbody>
+                    <thead>
+                    <tr><th colspan="' . $iNumCols . '" class="__row-header">' . $viewData[ $i ]->lager['lager_name'] . '</th></tr>
+                    <tr><th colspan=' . $iNumCols . ' class="border"></th></tr>
+                    </thead>
+                    </tbody>';
+            }
+            foreach ($viewData[$i]->touren as $_tour) {
+                echo '<tr>' . "\n"
+                    . '  <td class="tagesnr">' . $_tour['tagesnr'] . '</td>' . "\n"
+                    . '  <td style="min-width:160px;">' . $_tour['ma_lg'] . '</td>' . "\n"
+                    . ($hasVorOrtInfo ? '  <td>' . $_tour['ma_bs'] . '</td>' . "\n" : '')
+                    . '  <td style="min-width:160px;">' . $_tour['fp'] . '</td>' . "\n"
+                    . '  <td>' . $_tour['vg'] . '</td>' . "\n"
+                    . '</tr>' . "\n"
+                    . '<tr><td class="border" colspan=5></td></tr>' . "\n";
+            }
+            $iLastLagerId = $viewData[ $i ]->lagerId;
         }
+
         ?>
         </tbody>
     </table>

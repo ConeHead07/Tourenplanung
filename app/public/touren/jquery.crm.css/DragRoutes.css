@@ -115,7 +115,7 @@ div.route-stat-dispo {
     background-color: #fbec88 !important;
 }
 div.route-stat-nodispo {
-    background-color: mistyrose !important;
+    background-color: mistyrose;
 }
 
 .dispo-stat-beauftragt span.anr, .dispo-stat-rot   { background-color: mistyrose !important; }
@@ -185,4 +185,4 @@ td div.xVorgangStatusBox span.v-stat-icon {
     top: 45%;
     width: auto;
     z-index: 101;
-}
+}Hi

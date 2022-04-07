@@ -11,7 +11,7 @@ if (!Zend_Registry::isRegistered('pageTitel')) { // empty($this->pageTitel)) {
 } else {
     $pageTitel = Zend_Registry::get('pageTitel');
 }
-$qRrefresh = '20140222';
+$qRrefresh = '20190912_' . (Zend_Registry::get('BRANCH_COMMIT_SHORT') ?? '');
 $hdBgColor = (APPLICATION_ENV === 'production') ? 'inherit' : '#b5f7a1';
 
 ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
