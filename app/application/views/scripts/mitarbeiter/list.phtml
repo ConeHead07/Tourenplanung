@@ -54,12 +54,9 @@ JqGridHeader::enable(true);
         var baseUrl = "<?=$baseUrlRsrcTouren; ?>";
         var url = baseUrl + (baseUrl.indexOf("?") == -1 ? '?' : '&') + "rsrcID="+id;
         var dialogDivId = 'DialogRsrcTourenMa'+id;
-        console.log({line:57,title,baseUrl,url,dialogDivId});
         if ( $("#" + dialogDivId).length === 0) {
             $("<div/>").attr('id', dialogDivId).insertAfter( $('#DialogsRsrcTouren') );
-            console.log('Create Dialog', 'success', $("#" + dialogDivId).length);
         }
-        console.log('Open Dialog RsrcTouren');
         $("#" + dialogDivId).dialog({title:title,autoOpen:true,height:'auto',width:'auto'}).dialog('open').load(url);
     }
 
@@ -187,14 +184,13 @@ if (!($appendGridScript = $cache->load($cacheID))) {
     $colModelList = $JqGrid->colModel();
 
     $JqGrid->enableInlineEditingDefaults(array('oneditfunc' => new JsFunction('function() {
-            // Input für Initialisierung leeren, Daten wurden zuvor von der
+            // Input fÃ¼r Initialisierung leeren, Daten wurden zuvor von der
             // CustomUnformatter-Funktion in td.dat(inputData) abgelegt
             // von wo sie zur Initialisierung des Chooser-Objekts ausgelesen werden
             var $input = $( "#"+id+"_categories" ).val( "" );
             
             // Chooser registrieren und an Input-Feld binden
-            if (0) jqChooser.register( $input, "' . APPLICATION_BASE_URL . '/macategories/autocomplete");
-            else jqChooser.registerUserBox( $input, "' . APPLICATION_BASE_URL . '/macategories/selectdialog", 
+            jqChooser.registerUserBox( $input, "' . APPLICATION_BASE_URL . '/macategories/selectdialog", 
                 function(searchInput) {            
                     $(searchInput).hide();
                     $("#treeSelectDialog").bind("selectTreeNode", function(event, data) {
@@ -203,7 +199,7 @@ if (!($appendGridScript = $cache->load($cacheID))) {
                     });
             });
             
-            // Chooser mit Werten befüllen
+            // Chooser mit Werten befÃ¼llen
             var data = $input.closest( "td" ).data("inputData");
             var chooserSearch = jqChooser.getSearchInputByOriginInput( $input );
             jqChooser.setData( chooserSearch, data );
@@ -295,7 +291,9 @@ if (!($appendGridScript = $cache->load($cacheID))) {
 
     $colModelList->getItem('leistungs_id')->getInstanceFormatterCustom(
         'function( cellvalue, opts, rowObject ) {
-                if (!parseInt(cellvalue) ) return "";
+                if (!parseInt(cellvalue) ) {
+                    return "";
+                }
                 var cellSelector = "tr#"+opts.rowId + " td[aria-describedby="+opts.gid+"_"+opts.colModel.index+"]";
                 var cell = $(cellSelector),
                     html = "";
@@ -306,13 +304,16 @@ if (!($appendGridScript = $cache->load($cacheID))) {
                           :(( typeof(LeistungsIdCache[ cellvalue ]) !== "undefined" && LeistungsIdCache[ cellvalue ] !== null  ) 
                             ? LeistungsIdCache[ cellvalue ] : cellvalue);
                 
-                return "<span rel-value=\'"+cellvalue+"\' rel-label=\'"+lbl+"\'>"+lbl+"</span>";                 
+                var re = "<span rel-value=\'"+cellvalue+"\' rel-label=\'"+lbl+"\'>"+lbl+"</span>";
+                return re;                 
             }'
     );
     $colModelList->getItem('leistungs_id')->getInstanceUnformatCustom(
         'function( cellvalue, options, cell ) {
                 var span = $("span", cell);
-                if (!span.length) return "";
+                if (!span.length) {
+                    return "";
+                }
                 var val = span.attr("rel-value");
                 LeistungsIdCache[ val ] = span.attr("rel-label");
                 return val;
@@ -360,7 +361,7 @@ if (!($appendGridScript = $cache->load($cacheID))) {
         'function(formid) {'
         .'//alert("#344");
                 
-            // Input für Initialisierung leeren, Daten wurden zuvor von der
+            // Input fÃ¼r Initialisierung leeren, Daten wurden zuvor von der
             // CustomUnformatter-Funktion in td.dat(inputData) abgelegt
             // von wo sie zur Initialisierung des Chooser-Objekts ausgelesen werden
             var $input = $( "#categories", formid ).val( "" );
@@ -375,7 +376,7 @@ if (!($appendGridScript = $cache->load($cacheID))) {
                     });
             });
             
-            // Chooser mit Werten befüllen
+            // Chooser mit Werten befÃ¼llen
             var data = $input.closest( "td" ).data("inputData");
             var chooserSearch = jqChooser.getSearchInputByOriginInput( $input );
             jqChooser.setData( chooserSearch, data );
@@ -420,7 +421,6 @@ if (!($appendGridScript = $cache->load($cacheID))) {
 
     $afterSubmit = <<<EOT
 function (response, postdata)  {
-    console.log({response:response, postdata:postdata});
     var re = $.parseJSON( response.responseText );
     if (re.type === 'error' && 'err' in re) {
         // alert(re.err);

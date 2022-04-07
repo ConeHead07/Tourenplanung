@@ -34,7 +34,9 @@ class Model_Fuhrpark extends MyProject_Model_Database implements Model_ResourceI
     
     public function update(array $data, $id) {
         if (!parent::update($data, $id)) return false;
-        
+        if (!isset($data['categories'])) {
+            return true;
+        }
         $oldCategoryIds = $this->fetchCategoryIds($id);
         $newCategoryIds = (trim($data['categories'])) ? explode(',', $data['categories']) : array();
         
