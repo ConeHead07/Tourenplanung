@@ -26,6 +26,52 @@ class MyProject_Db_Profiler extends Zend_Db_Profiler
             }
         }
     }
+
+    public static function getProfiledQueryList(Zend_Db_Adapter_Abstract $db = null): array
+    {
+        if (is_null($db)) {
+            /** @var Zend_Db_Adapter_Abstract $db */
+            $db = Zend_Registry::get('db');
+        }
+
+        $aQueryProfiles = $db->getProfiler()->getQueryProfiles();
+        $aList = [];
+        if (is_array($aQueryProfiles)) foreach($aQueryProfiles as $_qryProfile) {
+            /** @var Zend_Db_Profiler_Query $_p */
+            $_p = $_qryProfile;
+            $aList[] =
+                '['.date('Y-m-d H:i:s', (int)$_p->getStartedMicrotime()) . ', '
+                . round($_p->getElapsedSecs(), 3) . 's] '
+                . $_p->getQuery()
+                . ', params' .  json_encode($_p->getQueryParams())
+            ;
+        }
+        return $aList;
+    }
+
+    public static function logSiteQueries()
+    {
+
+        $aQueries = self::getProfiledQueryList();
+        $numQueries = count( $aQueries );
+
+        if (!$numQueries) {
+            return;
+        }
+
+        $uri = str_replace('/', '_', $_SERVER['REQUEST_URI']);
+        $sLogUri = substr(rawurlencode($uri), 0, 50);
+        $sLogDir = APPLICATION_PATH . "/log/queries/per-request/$numQueries";
+        $sLogFile = $sLogDir . '/' . $sLogUri . '.txt';
+
+        if (!is_dir($sLogDir)) {
+            if (!mkdir($sLogDir, 0777, true) && !is_dir($sLogDir)) {
+                return;
+            }
+        }
+
+        file_put_contents($sLogFile, print_r($aQueries,1));
+    }
 }
 
 

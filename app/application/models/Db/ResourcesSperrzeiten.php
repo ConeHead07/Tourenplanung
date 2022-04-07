@@ -10,7 +10,7 @@
  *
  * @author rybka
  */
-class Model_Db_ResourcesSperrzeiten extends Zend_Db_Table_Abstract 
+class Model_Db_ResourcesSperrzeiten extends Model_Db_Abstract
 {
     //put your code here
     // Vars fuer Zend_Db_Table    

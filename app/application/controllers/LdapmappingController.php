@@ -179,7 +179,7 @@ class LdapmappingController  extends RestAbstract
             }
         }
 
-        $this->sendJSONSuccess($aList);
+        $this->sendJsonData($aList);
     }
 
     public function updateAction()
@@ -320,7 +320,7 @@ class LdapmappingController  extends RestAbstract
             }
         }
 
-        $this->sendJSONSuccess($aList);
+        $this->sendJsonData($aList);
     }
 
     public function searchUser($query = '' ) {
@@ -359,7 +359,7 @@ class LdapmappingController  extends RestAbstract
         $count = $searchResult->count();
         $entries = $searchResult->entries();
 
-        $this->sendJSONSuccess([
+        $this->sendJsonData([
             'filter' => $searchResult->getFilter(),
             'count' => $count,
             'entriesFlatten' => $this->_ldap->flatten($entries),

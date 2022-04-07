@@ -80,6 +80,8 @@ $numDays = ((int)$interval->format("%a"))+1; // %a total amount of days e.g. 40,
 // http://www.php.net/manual/de/dateinterval.format.php
 
 $offsetTime = strtotime($DVon);
+$colDays = [];
+
 while( date('Y-m-d', $offsetTime) <= $DBis) {
     $colDays[] = $offsetTime;
     $offsetTime = $offsetTime + (24*3600);

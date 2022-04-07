@@ -1,0 +1,9 @@
+diff a/application/controllers/plugins/Auth.php b/application/controllers/plugins/Auth.php	(rejected hunks)
+@@ -7,6 +7,7 @@
+  */
+ class Plugin_Auth extends Zend_Controller_Plugin_Abstract 
+ {
++    protected $_debug = false;
+     
+     public function dispatchLoopStartup(Zend_Controller_Request_Abstract $request) 
+     {

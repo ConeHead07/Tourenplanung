@@ -1,0 +1,217 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: f.barthold
+ * Date: 19.08.2019
+ * Time: 16:07
+ */
+
+if ($this->disableLayout) {
+    $this->layout()->disableLayout();
+}
+
+$front = Zend_Controller_Front::getInstance();
+$request = $front->getRequest();
+$modul = $request->getModuleName();
+$controller = $request->getControllerName();
+
+// Get-TPL-Vars
+$rsrcType = $this->rsrcType;
+$rsrcID   = $this->rsrcID;
+$rsrcName = $this->rsrcName;
+$disableLayout  = $this->disableLayout;
+$GridIdBasename = 'gridDispoHistoryLst';
+
+// Cache id
+$cacheID = md5($this->module .'/'.$this->controller.'/'.$this->action);
+$cacheTL = 0; 3600 * 1;
+
+$aTplCacheVars = [
+    '{rsrcType}' => $rsrcType,
+    '{rsrcID}' => $rsrcID,
+    '{rsrcName}' => $rsrcName,
+    '{GridIdBasename}' => $GridIdBasename,
+];
+
+/** @var Zend_Cache_Core $cache */
+$cache = Zend_Registry::get( 'cache' );
+$appendGridScript = $cache->load($cacheID);
+
+if (1 || !$appendGridScript) {
+
+    require_once 'JqGridColModelFormatter.php';
+
+    /* @var $this Zend_View */
+    require_once 'JqGridHeader.php';
+    JqGridHeader::enable(true);
+
+    $GridId = '#{GridIdBasename}';
+    $GridIdPager = '#{GridIdBasename}_pager';
+    $JqGrid = new JqGrid($GridId);
+    // Grid-Options definieren
+    $JqGrid->height('auto')
+        ->sortname('action_time')
+        ->sortorder('asc')
+        ->jsonReader(array("repeatitems" => false, "id" => 0))
+        ->width(900)
+        ->rowList(array(10, 20, 30, 40, 50, 100))
+        ->rowNum(30)
+        ->rownumbers(true)
+        ->resizable(false)
+        ->sortable(true)
+        ->datatype('json')
+        ->url(APPLICATION_BASE_URL . '/touren/historie/griddata')
+        ->enableInlineEditingDefaults()
+        ->setNavGrid($GridIdPager, $properties = array())
+        ->caption("Gebuchte Touren fuer {rsrcName} ")
+        ->shrinkToFit(true)
+        ->pager($GridIdPager)
+        ->on_loadError(new JsFunction("function(xhr,status,error){ alert(status+'\\n'+error);}"))
+        ->addChainMethod('.jqGrid("filterToolbar",{stringResult: true,searchOnEnter : false})')
+//        ->addChainMethod( ".jqGrid('searchGrid', {sopt:['cn','bw','eq','ne','lt','gt','ew']} )")
+        ->colNames([
+            'id',
+            'tourID',
+            'Rsrc',
+            'Typ',
+            'object_id',
+            'action',
+            'user_id',
+            'user',
+            'tour_anr',
+            'dispo_datum',
+            'dispo_zeit_von',
+            'diispo_zeit_bis',
+            'bemerkung',
+            'action_time'
+        ])
+        ->colModel(array('addFieldsProperties' => array(
+            "id" => array('key' => true),
+            "tour_id" => array('label'=>'TourID','index'=>'tour_id','editable' => false, 'hide' => true, 'edittype' => 'text'),
+            "resource" => array('editable' => false, 'hide' => true, 'edittype' => 'text'),
+            "object_type" => array('editable' => false, 'hide' => true, 'edittype' => 'text'),
+            "object_id" => array('editable' => false, 'hide' => true, 'edittype' => 'text', 'editoptions' => null),
+            "action" => array('editable' => false, 'hide' => true, 'edittype' => 'text', 'editoptions' => null),
+            "user_id" => array('editable' => false, 'hide' => true, 'edittype' => 'text', 'editoptions' => null),
+            "user" => array('editable' => false, 'hide' => true, 'edittype' => 'text', 'editoptions' => null),
+            // "formatter":"date", "formatoptions":{"srcformat":"Y-m-d", "newformat":"m/d/Y"
+            "tour_anr" => [ 'editable' => false, 'hide' => true, 'edittype' => 'text', 'editoptions' => null ],
+            "dispo_datum" => ["formatter"=>"date", "formatoptions"=>["srcformat"=>"Y-m-d", "newformat"=>"d.m.Y"]],
+            "dispo_zeit_von" => ['editable' => false, 'hide' => true, 'edittype' => 'text'],
+            "dispo_zeit_bis" => ['editable' => false, 'hide' => true, 'edittype' => 'text'],
+            "bemerkung" => array('editable' => false, 'hide' => true, 'edittype' => 'text', 'editoptions' => null),
+            "action_time" => ["formatter"=>"date", "formatoptions"=>["srcformat"=>"Y-m-d H:i:s", "newformat"=>"d.m.Y H:i"]],
+
+        )));
+
+    $jqGridMethods = new JqGridMethods();
+    $JqGrid->addChainMethod(
+        $jqGridMethods->gridResize(array())
+    );
+
+    $editOpts = null;
+    $saveOpts = null;
+    if (0) $JqGrid->enableInlineEditingDefaults($editOpts, $saveOpts);
+
+    /* @var $colModelList JqGridColModelList */
+    $colModelList = $JqGrid->colModel();
+
+    $colModelList->getItem('id')->set_hidden(true);
+    $colModelList->getItem('tour_id')->set_hidden(true);
+    $colModelList->getItem('object_id')->set_hidden(true);
+    $colModelList->getItem('user_id')->set_hidden(true);
+    $colModelList->getItem('action_time')->getInstanceSearchOptions()->set_defaultValue(date('Y-m-d'));
+
+    $navGrid = $JqGrid->getInstanceNavGrid($GridIdPager);
+    $navGrid->set_add(false);
+    $navGrid->set_edit(false);
+    $navGrid->set_del(false);
+    // $navGrid->set_addicon('ui-icon-plus');
+    $navGrid->set_search(
+        new JsFunction(
+            '{'
+            . 'multipleSearch:true,'
+            . 'overlay:false,'
+            . 'beforeShowSearch:function() { '
+            . ' $("' . $GridId . '")[0].toggleToolbar(); },'
+            . 'onClose:function() {    	$("' . $GridId . '")[0].toggleToolbar();   }'
+            . '}'
+        ))        ->addNavButton(new JqGridNavGridButton(array(
+            'id' => 'btnTbarSearch',
+            'buttonicon' => 'ui-icon-pin-s',
+            'caption' => '',
+            'title' => 'Toggle Searching Toolbar',
+            'onclickButton' => 'function () { $("' . $GridId . '")[0].toggleToolbar(); }'
+        )));
+
+
+    /* @var $searchPrm JqGridNavGridSearchFormOptions */
+    $searchPrm = $navGrid->getInstanceSearchFormOptions();
+    $searchPrm->set_sopt(array('eq'));
+    $searchPrm->set_beforeShowSearch('function() { ' . ' $("' . $GridId . '")[0].toggleToolbar(); }');
+    $searchPrm->set_onClose('function() { $("' . $GridId . '")[0].toggleToolbar();   }');
+    $searchPrm->set_multipleSearch(true);
+
+    if (1) {
+        $colChooser = new JqGridColumnChooserOptions();
+        $navGrid->addNavButton(new JqGridNavGridButton(array(
+            'id' => 'btnColCh',
+            'caption' => 'Spalten',
+            'title' => 'Spalten',
+            'onclickButton' => new JsFunction('function(){' . $colChooser->renderMethod($GridId) . '}')
+        )));
+    }
+
+    $appendGridScript =
+        '/** ' . PHP_EOL
+        . 'Cached at ' . date('Y-m-d H:i:s') . PHP_EOL
+        . ' for ' . $cacheTL . ' Seconds. ' . PHP_EOL
+        . ' Expires at ' . date('Y-m-d H:i:s', strtotime('+ ' . $cacheTL . ' Seconds')) . PHP_EOL
+        . ' */' . PHP_EOL
+        .'jQuery(function() {' . PHP_EOL
+        . (string)$JqGrid->getJsCode()
+        . '});';
+
+    // end cache
+    $cache->save($appendGridScript, $cacheID, [], $cacheTL); // Cache fuer eine Stunde
+}
+
+$appendGridScript = strtr($appendGridScript, $aTplCacheVars);
+?>
+
+<style>
+    div.ui-jqgrid,
+    #gbox_treeSelectDialog {
+        border:2px #d2d2d2 solid;
+        padding:1px;
+    }
+</style>
+<?php
+/*
+<script xsrc="<?php echo APPLICATION_BASE_URL; ?>/jquery/jquery-1.7.2.min.js"></script>
+<script xsrc="<?php echo APPLICATION_BASE_URL; ?>/jquery/jquery-ui-1.9.2.min.js"></script>
+<script xsrc="http://trentrichardson.com/examples/timepicker/jquery-ui-timepicker-addon.js"></script>
+<script xsrc="<?php echo APPLICATION_BASE_URL; ?>/jquery/ui/jquery.ui.datetimepicker.js"></script>
+<script xsrc="http://trentrichardson.com/examples/timepicker/jquery-ui-sliderAccess.js"></script>
+ */
+?>
+<?php
+if (!$disableLayout) {
+    $this->headScript()->appendScript( $appendGridScript );
+} else {
+    echo '<script>'.PHP_EOL . $appendGridScript . PHP_EOL . '</script>'.PHP_EOL;
+}
+?>
+
+<div>
+    Zeitraum:
+    <input type="date" id="historieDFrom" name="dateRangeFrom"> bis <input type="date" id="historieDTo" name="dateRangeTo">
+</div>
+
+<table id="<?=$GridIdBasename?>"></table>
+<div id="<?=$GridIdBasename?>_pager"></div>
+
+<script>
+    $("#historieDFrom").datepicker();
+    $("#historieDTo").datepicker();
+</script>

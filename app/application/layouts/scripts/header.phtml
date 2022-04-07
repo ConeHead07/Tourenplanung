@@ -16,7 +16,8 @@ $hdBgColor = (APPLICATION_ENV === 'production') ? '#fff' : '#b5f7a1';
         <?php if ($acl->isAllowed($userRole, 'touren_index')): ?>
         <li><a href="<?php echo $baseUrl; ?>/touren/index">Touren</a>
           <ul style="padding-left:0px">
-          <li><a href="<?php echo $baseUrl; ?>/touren/index">Tagesdispo</a></li>
+              <li><a href="<?php echo $baseUrl; ?>/touren/index">Tagesdispo</a></li>
+              <li><a href="<?php echo $baseUrl; ?>/touren/historie">Historie</a></li>
           <li><a href="<?php echo $baseUrl; ?>/tourlist/index">Suche</a></li>
           </ul></li>
         <?php endif; ?>

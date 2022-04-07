@@ -100,7 +100,7 @@ class Model_TourenPortlets extends MyProject_Model_Database {
      */
     public function getMaxPos($datum, $lager_id) {
         return $this->_db->fetchOne(
-                        'SELECT count(1) FROM ' . $this->_db->quoteIdentifier($this->_tbl) . PHP_EOL
+                        'SELECT MAX(`position`) FROM ' . $this->_db->quoteIdentifier($this->_tbl) . PHP_EOL
                         . 'WHERE datum = :datum'
                         . ' AND lager_id = :lager_id', 
                         array(':datum' => $datum, ':lager_id' => $lager_id));
@@ -119,9 +119,12 @@ class Model_TourenPortlets extends MyProject_Model_Database {
         $rgxIsoDate = ':^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[0-2])$:';
         if (array_key_exists('datum', $data) && preg_match($rgxIsoDate, $data['datum'])) {
             $data['tagesnr'] = $this->getNewTagesnr($data['datum'], $data['lager_id']);
+            $data['position'] = 1 + (int)$this->getMaxPos($data['datum'], $data['lager_id']);
             $id = $this->insert($data);
+            /*
             $this->movePosition($id, $toPos);
             $this->updatepositions($data['datum']);
+            */
             $this->dispoLog($id, 'insert', ['DatumVon' => $data['datum'], 'bemerkunng' => json_encode($data)]);
             return $id;
         }

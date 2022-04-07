@@ -85,32 +85,21 @@
             if (!obj.attr('id') && ('id' in data.data) ) {
                 obj.attr('id', dataKey + '_'+data.data.id);                
             }
-            console.log("route Element-ID #" + obj.attr("id"), { obj, data } );
             
             if (!obj.attr('class') || !obj.attr('class').match(/\bDrag-Route\b/)) obj.addClass('Drag-Route');
             obj.removeClass(dataKey).addClass(dataKey);
             
             if (data.isDraggable) {
-                console.log("Make Route draggable");
                 obj.draggable( data.draggableOptions );
-            } else {
-                console.log("Make Route NOT draggable");
             }
 
 //              .fbDispoRouteDroppableOnClick()
             if (data.isDroppable) {
-                console.log("Make Route droppable");
                 obj.droppable( data.droppableOptions );
-            } else {
-                console.log("Make Route NOT droppable");
             }
 
             if (data.isResizable) {
-                console.log("Make Route resizeable");
-                console.log("#93", "data.resizableOptions", data.resizableOptions);
                 obj.resizable( data.resizableOptions );
-            } else {
-                console.log("Make Route NOT resizable");
             }
             
             obj.addClass("ui-corner-tr ui-corner-bottom")
@@ -222,9 +211,6 @@
                     methods.destroy.apply( self );
                 })
                 );
-            else {
-                console.log({"line":225, "file": "jquery.fbDispoRoute.js", data});
-            }
             
             // Avisiert-flag
             if (data.data.avisiert == 1)
@@ -397,7 +383,7 @@
                     'error':function(a,b,c) {
                         alert('#240 Reload-Resource-Error: a:'+a+'; b:'+b+'; c:'+c);
                     }
-                 });                
+                 });
             } else {
                 alert('#247 '+dataKey+'.reloadResourcesFromUrl Error missing rsrcUrl!');
             }
@@ -476,12 +462,9 @@
             var $self = $(this);
             var data = $self.data(dataKey);
 
-            console.log({'this':this, 'dataKey': dataKey, 'data': data});
-
             data.data.farbklasse = fk;
 
             var bCallbackOK = methods._trigger.apply( this, [this, 'setFarbklasse', fk]);
-            console.log("#465 jquery.fbDispoRoute setFarbklasse bCallbackOK", bCallbackOK);
 
             if (bCallbackOK) {
                 methods.renderFarbklasse.apply(this);
@@ -803,49 +786,23 @@
             if (!$( self ).data(dataKey)) {
                 if (Fb.DispoCalendarSettings && Fb.DispoCalendarSettings.route) {
                     presets = $.extend({}, defaults, Fb.DispoCalendarSettings.route);
-                    console.log(["806 if-true", "defaults", $.extend({},defaults),
-                        "Fb.DispoCalendarSettings.route",Fb.DispoCalendarSettings.route,
-                        "presets", presets]);
                 } else {
                     presets = defaults;
-                    console.log([
-                        "812 if-false",
-                        "presets = defaults",
-                        "defaults", $.extend({},defaults),
-                        "presets", presets
-                    ]);
                 }
 
                 var before = $.extend({}, $( self ).data(dataKey) );
                 if (!options) {
                     $( self ).data(dataKey, $.extend({}, presets));
                     var after = $.extend({}, $( self ).data(dataKey) );
-                    console.log({"line": "823", __FILE__, before, after});
                 }
                 else if (typeof(options) == "object") {
                     $( self ).data(dataKey, $.extend({}, presets, options) );
-                    var after = $.extend({}, $( self ).data(dataKey) )
-                    console.log({
-                        "line": "829", __FILE__,
-                        before,
-                        "presets": $.extend({}, presets),
-                        "options": $.extend({}, options),
-                        after});
+                    var after = $.extend({}, $( self ).data(dataKey) );
                 }
                 else {
                     $( self ).data(dataKey, $.extend({}, presets));
-                    var after = $.extend({}, $( self ).data(dataKey) )
-                    console.log({"line": "838", __FILE__, before, after});
+                    var after = $.extend({}, $( self ).data(dataKey) );
                 }
-                console.log({
-                    "line": 841,
-                    "file": __FILE__,
-                    "defaults": defaults,
-                    "Fb.DispoCalendarSettings.route": Fb.DispoCalendarSettings.route,
-                    "presets": $.extend({}, presets),
-                    "options": $.extend({}, options),
-                    "renderedData": $( {}, $( self ).data( dataKey ) )
-                });
                 _callInit = true;
             }
             var data = $( self ).data(dataKey);

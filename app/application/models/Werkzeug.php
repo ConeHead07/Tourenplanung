@@ -10,7 +10,7 @@
  *
  * @author rybka
  */
-class Model_Werkzeug extends MyProject_Model_Database
+class Model_Werkzeug extends MyProject_Model_Database implements Model_ResourceInterface
 {
     //put your code here
     protected $_storageName = 'werkzeug';
@@ -21,6 +21,7 @@ class Model_Werkzeug extends MyProject_Model_Database
     
     
     public function __construct() {
+        parent::__construct();
         $this->_storage = $this->getStorage();
         $this->_db = $this->_storage->getAdapter();
         $this->_tbl = $this->_storage->info(Zend_Db_Table::NAME);
@@ -30,6 +31,10 @@ class Model_Werkzeug extends MyProject_Model_Database
     public function getName(int $id)
     {
         return $this->_db->fetchOne("SELECT bezeichnung name FROM {$this->_tbl} WHERE {$this->_key} = $id");
+    }
+
+    public function getSqlSelectExprAsLabel(): string {
+        return 'bezeichnung';
     }
     
     public function update(array $data, $id) {
@@ -155,6 +160,37 @@ class Model_Werkzeug extends MyProject_Model_Database
         
         return $row->findManyToManyRowset('Model_Db_WerkzeugCategories', 'Model_Db_WerkzeugCategoriesLnk');
         
+    }
+
+
+    public function fetchCategoriesByRsrcIds(array $aRsrcIds): array {
+
+        $rsrcKey = Model_Db_WerkzeugCategoriesLnk::obj()->key();
+        $rsrcCtgLnkTbl = Model_Db_WerkzeugCategoriesLnk::obj()->tableName();
+        $rsrcCtgTbl = Model_Db_WerkzeugCategories::obj()->tableName();
+
+        $aRsrcIntIds = array_map(function($itm) { return (int)$itm; }, $aRsrcIds);
+        $sql = "SELECT l.$rsrcKey, c.* 
+                FROM $rsrcCtgLnkTbl l
+                JOIN $rsrcCtgTbl c ON (l.category_id = c.category_id)
+                WHERE l.$rsrcKey IN (" . implode(',', $aRsrcIntIds) . ") ORDER BY l.$rsrcKey";
+
+        $rows = $this->_db->fetchAll($sql, Zend_Db::FETCH_ASSOC);
+        $aRowsByRsrcId = [];
+        $lastRid = '';
+        $lastRsrc = null;
+
+        foreach($rows as $_row) {
+            $_rid = $_row[ $rsrcKey ];
+            if ($lastRid != $_rid) {
+                $lastRid = $_rid;
+                $aRowsByRsrcId[$lastRid] = [];
+                $lastRsrc = &$aRowsByRsrcId[$lastRid];
+            }
+            $lastRsrc[] = $_row;
+        }
+
+        return $aRowsByRsrcId;
     }
     
 }

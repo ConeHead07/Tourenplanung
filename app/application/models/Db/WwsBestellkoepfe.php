@@ -1,6 +1,6 @@
 <?php
 
-class Model_Db_WwsBestellkoepfe extends Zend_Db_Table_Abstract 
+class Model_Db_WwsBestellkoepfe extends Model_Db_Abstract
 {
     protected $_name    = 'wws_bestellkoepfe';
     protected $_primary = array('Mandant','Bestellnummer');

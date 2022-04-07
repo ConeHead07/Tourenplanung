@@ -164,7 +164,6 @@
             // var m="Portlet Data:\n";for(var i in d ) m+=i+":"+d[i]+"\n";alert(m);
             
             if ('timelines' in $(this).data(dataKey).data) {
-                // console.log('#155 ' + dataKey + ' timelines.length: ' + $(this).data(dataKey).data.timelines.length);
                 methods.addTimelines.apply(self, [$(this).data(dataKey).data.timelines] );
                 delete $(this).data(dataKey).data.timelines;
             } else {
@@ -203,12 +202,6 @@
                         '_parent': $self,
               '_parentJqFunction': dataKey
             });
-
-            if (!t.parent().length) {
-                // console.log("#196 " + dataKey + " remove added Timeline, since it returned with false");
-            } else {
-                // console.log("#198 " + dataKey + " added Timeline");
-            }
         },
         'getDataKey': function() {
             return dataKey;

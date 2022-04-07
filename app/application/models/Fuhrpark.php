@@ -1,6 +1,6 @@
 <?php
 
-class Model_Fuhrpark extends MyProject_Model_Database
+class Model_Fuhrpark extends MyProject_Model_Database implements Model_ResourceInterface
 {
     protected $_storageName = 'fuhrpark';
     
@@ -10,6 +10,7 @@ class Model_Fuhrpark extends MyProject_Model_Database
     
     
     public function __construct() {
+        parent::__construct();
         $this->_storage = $this->getStorage();
         $this->_db = $this->_storage->getAdapter();
         $this->_tbl = $this->_storage->info(Zend_Db_Table::NAME);
@@ -19,6 +20,16 @@ class Model_Fuhrpark extends MyProject_Model_Database
     public function getName(int $id)
     {
         return $this->_db->fetchOne("SELECT kennzeichen name FROM {$this->_tbl} WHERE {$this->_key} = $id");
+    }
+
+    public function getSqlSelectExprAsLabel(): string {
+        return 'CONCAT('
+                . ' kennzeichen,'
+                . ' IF(LENGTH(fahrzeugart)>1,'
+                . '  CONCAT(" ", fahrzeugart),'
+                . '  IF (LENGTH(modell)>1, CONCAT(" ", modell),"")'
+                . ' )'
+                . ')';
     }
     
     public function update(array $data, $id) {
@@ -140,6 +151,41 @@ class Model_Fuhrpark extends MyProject_Model_Database
         
         return $row->findManyToManyRowset('Model_Db_FuhrparkCategories', 'Model_Db_FuhrparkCategoriesLnk');
         
+    }
+
+
+
+    public function fetchCategoriesByRsrcIds(array $aRsrcIds): array {
+        if (empty($aRsrcIds)) {
+            return [];
+        }
+
+        $rsrcKey = Model_Db_FuhrparkCategoriesLnk::obj()->key();
+        $rsrcCtgLnkTbl = Model_Db_FuhrparkCategoriesLnk::obj()->tableName();
+        $rsrcCtgTbl = Model_Db_FuhrparkCategories::obj()->tableName();
+
+        $aRsrcIntIds = array_map(function($itm) { return (int)$itm; }, $aRsrcIds);
+        $sql = "SELECT l.$rsrcKey, c.* 
+                FROM $rsrcCtgLnkTbl l
+                JOIN $rsrcCtgTbl c ON (l.category_id = c.category_id)
+                WHERE l.$rsrcKey IN (" . implode(',', $aRsrcIntIds) . ") ORDER BY l.$rsrcKey";
+
+        $rows = $this->_db->fetchAll($sql, Zend_Db::FETCH_ASSOC);
+        $aRowsByRsrcId = [];
+        $lastRid = '';
+        $lastRsrc = null;
+
+        foreach($rows as $_row) {
+            $_rid = $_row[ $rsrcKey ];
+            if ($lastRid != $_rid) {
+                $lastRid = $_rid;
+                $aRowsByRsrcId[$lastRid] = [];
+                $lastRsrc = &$aRowsByRsrcId[$lastRid];
+            }
+            $lastRsrc[] = $_row;
+        }
+
+        return $aRowsByRsrcId;
     }
     
 }

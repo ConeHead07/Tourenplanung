@@ -68,7 +68,6 @@ $.extend(Fb.DispoCalendarEvents, {
 
     // 'onPrintPortlet': defined in ....base.js
     'onCreateTimeline': function() {
-        // console.log('#53 js_init/init_DispoCalendarEvents.innendienst.js; onCreateTimeline');
         var $self = $(this);
         var data = $self.fbDispoTimelineDropzone('getData');
         var s = $self.fbDispoTimelineDropzone('getTimelineSettings');
@@ -91,10 +90,8 @@ $.extend(Fb.DispoCalendarEvents, {
                     }
                 }
              );
-            // console.log('#75 js_init/init_DispoCalendarEvents.innendienst.js; onCreateTimeline re:', re);
             return re;
         }
-        // console.log('#78 js_init/init_DispoCalendarEvents.innendienst.js; onCreateTimeline re:', re);
         return re;
     },
     // Keine Ahnung, wann und ob diese Funktion aufgerufen wird!!

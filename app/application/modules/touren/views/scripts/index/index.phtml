@@ -20,6 +20,8 @@ Fb.LagerOptions = <?php echo json_encode( $this->lagerHtmlOptions ); ?>;
         <li><a href="#tabs-einsatz" name="tabs-einsatz" rel="<?php echo $this->baseUrl(); ?>/touren/ajax/tageseinsatzliste" onclick="pageLayout.close('west')">Tageseinsatzliste</a></li>
         <li><a href="#tabs-woche" name="tabs-woche" rel="<?php echo $this->baseUrl(); ?>/touren/ajax/calendarweekdata" onclick="pageLayout.close('west')">Wochenansicht</a></li>
         <li><a href="#tabs-monat" name="tabs-monat" rel="<?php echo $this->baseUrl(); ?>/touren/ajax/calendarmonthdata" onclick="pageLayout.close('west')">Monatsansicht</a></li>
+        <li><a href="#tabs-historie" name="tabs-historie" rel="<?php echo $this->baseUrl(); ?>/touren/historie/grid" onclick="pageLayout.close('west')">Historie (grid)</a></li>
+        <li><a href="#tabs-historie" name="tabs-historielist" rel="<?php echo $this->baseUrl(); ?>/touren/historie/list" onclick="pageLayout.close('west')">Historie (list)</a></li>
     </ul>
 
     <div id="tabs-tag">
@@ -50,9 +52,13 @@ Fb.LagerOptions = <?php echo json_encode( $this->lagerHtmlOptions ); ?>;
     <div id="tabs-woche">        
         <div id="tabs-woche-content"></div>
     </div>
-    
-    <div id="tabs-monat">        
+
+    <div id="tabs-monat">
         <div id="tabs-monat-content"></div>
+    </div>
+
+    <div id="tabs-historie">
+        <div id="tabs-historie-content"></div>
     </div>
     <!-- Tabs Week and Month will be loaded by ajax -->
 </div>

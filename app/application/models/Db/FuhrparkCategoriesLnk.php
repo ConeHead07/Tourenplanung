@@ -4,7 +4,7 @@
  * Description of user
  * @author rybka
  */
-class Model_Db_FuhrparkCategoriesLnk extends Zend_Db_Table_Abstract 
+class Model_Db_FuhrparkCategoriesLnk extends Model_Db_Abstract
 {
     //put your code here
     protected $_name = 'mr_fuhrpark_categories_lnk';

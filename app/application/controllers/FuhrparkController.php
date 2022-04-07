@@ -4,7 +4,7 @@
  * Description of userController
  * @author rybka
  */
-class FuhrparkController extends Zend_Controller_Action 
+class FuhrparkController extends MyProject_Controller_RestAbstract
 {
     /** @var $_model MyProject_Model_Database */
     protected $_storage = null;
@@ -26,7 +26,7 @@ class FuhrparkController extends Zend_Controller_Action
         /* @var $this->_tourStorage Model_Db_TourenDispoVorgaenge */
         $this->_tourStorage = $this->_tourModel->getStorage();
 
-        // response-Objekt für den View
+        // response-Objekt fï¿½r den View
         $this->_rsp = new stdClass();
 
         /* @var $request Zend_Controller_Request_Abstract */
@@ -141,80 +141,215 @@ class FuhrparkController extends Zend_Controller_Action
     }
     
     public function listavaiablesAction() 
-    {        
+    {
+        /* @var $request Zend_Controller_Request_Abstract */
         $rq = $this->getRequest();
-        $sord    = $rq->getParam('sord', 'ASC');
-        $filters = $rq->getParam('filters', '');
-        
-        $extFilter = $rq->getParam('extFilter', 'all');
-        $tourId  = (int) $rq->getParam('tour', '');
-        
-        if ($tourId) {
-            $modelTDV = new Model_TourenDispoVorgaenge();
-            $tourData = (object)$modelTDV->fetchEntry($tourId);
-            if ($tourData && $tourData->DatumVon) {
-                $dVon = $tourData->DatumVon;
-                $dBis = $tourData->DatumBis;
-                $zVon = $tourData->ZeitVon;
-                $zBis = $tourData->ZeitBis;
-            }
+        $oQueryOpts = new MyProject_Model_QueryBuilder();
+
+        $toDateOrNull = function(string $date) {
+            $t = strtotime($date);
+            return ($t === false || !preg_match('#^\d{4}-\d\d-\d\d$#', $date)) ? null : new DateTime( $date );
+        };
+
+        $listPage = (int) $rq->getParam('page', 1);
+        $listSize = (int) $rq->getParam('rows', 100);
+
+        $iTourId = $rq->getParam('tour_id', 0);
+        if ($iTourId) {
+            $aDateTimeRangeByTour = Model_Db_TourenDispoVorgaenge::get($iTourId);
+            $this->_require(!empy($aDateTimeRangeByTour), 'No Tour-Record found for given TourId ' . $iTourId, 'json');
+
+            $aDateTimeRange = $aDateTimeRangeByTour;
+
         } else {
-            $dVon    = $rq->getParam('DatumVon') || $rq->getParam('date');
-            $dBis    = $rq->getParam('DatumBis');
-            $zVon    = $rq->getParam('ZeitVon');
-            $zBis    = $rq->getParam('ZeitBis');
+
+            $datumVon = $rq->getParam('DatumVon', '');
+            if (!$datumVon) {
+                $datumVon = $rq->getParam('date', '');
+            }
+            $dateVon = $toDateOrNull($datumVon);
+
+            $this->_require(
+                !is_null($dateVon),
+                'Missing valid Filter-Value [DatumVon]. Expected Format YYYY-DD-MM, Given: ' . $datumVon,
+                'json');
+
+            $aDateTimeRange = [
+                'DatumVon' => $dateVon,
+                'DatumBis' => $toDateOrNull($rq->getParam('DatumBis', '')),
+                'ZeitVon' => $rq->getParam('ZeitVon', ''),
+                'ZeitBis' => $rq->getParam('ZeitBis', ''),
+            ];
         }
-                
-        if (!in_array(strtoupper($sord), array('ASC', 'DESC'))) {
-            $sord = 'ASC';
-        }
-        
-        $listOptions = array(
-            'page' => (int) $rq->getParam('page', 1),
-            'rows' => (int) $rq->getParam('rows', 100),
-            'sidx' => $rq->getParam('sidx', null),
-            'sord' => $sord,
-        );
-        
-        
-        $categoryTerm = '';
+
+        $aFilter = [
+            'extFilter' => $rq->getParam('extFilter', 'all'),
+            'tour_id' => $rq->getParam('tour_id', 0),
+        ];
+
+        $oQueryOpts
+            ->setOrder($rq->getParam('sidx', 'name'))
+            ->setOrderDir($rq->getParam('sord', 'ASC'))
+            ->setOffset(max(0,$listPage-1) * $listSize)
+            ->setLimit($listSize);
+
+        $filters = $rq->getParam('filters', '');
+        $objFilters = null;
+
+        $TblCnf = include APPLICATION_PATH . '/configs/dbtables/fuhrpark.inc.php';
+        $TblCnfParser = MyProject_Parser_TableConf::getInstance();
+        $TblCnfParser->parse_conf($TblCnf);
+
+        $mainTbl = Model_Db_Fuhrpark::obj()->tableName();
+
         if ( $filters ) {
             $objFilters = json_decode($filters);
             foreach($objFilters->rules as $_i => &$_r) {
-                if ($_r->field == "extern_id") {
-                    $_r->field = (is_numeric($_r->data) ? $_r->field  : "extern_firma");
+                switch($_r->field) {
+                    case 'extern_id':
+                        $_r->field = (is_numeric($_r->data) ? $mainTbl .'.' . $_r->field  : "extern_firma");
+                        break;
+
+                    case 'leistungs_id':
+                        $_r->field = (is_numeric($_r->data) ? $mainTbl .'.' . $_r->field  : "leistungs_name");
+                        break;
+
+                    case 'categories':
+                    case 'kategorie':
+                        $aFilter['categoryTerm'] = $_r->data;
+                        break;
+
                 }
-                if ($_r->field == "leistungs_id") {
-                    $_r->field = (is_numeric($_r->data) ? $_r->field  : "leistungs_name");
-                }
-                
-                if (preg_match('/^(categories|kategorie)$/', $_r->field)) { $categoryTerm = $_r->data; }
-            }            
+            }
             $rq->setParam('filters', $objFilters );
-        } else {
-            $objFilters = (object)array('groupOp'=>'AND', 'rules'=>array());
         }
-        
-        if ($extFilter && preg_match('/^(int|ext)$/', $extFilter) ) {
-            $objFilters->rules[] = (object)array(
-                'field' => 'extern_id',
-                'op' =>  $extFilter == 'int' ? 'nn' : 'nu',
-                'data' => '',
-            );
-        }
-//        echo '<pre>' . print_r(array('dVon'=>$dVon, 'zVon' => $zVon, 'dBis' => $dBis, 'zBis' => $zBis),1) . '</pre>' . PHP_EOL;
-//        echo strtotime($dVon.' '.$zVon) . ' => ' . date('Y-m-d H:i:s', strtotime($dVon.' '.$zVon)) . '<br>' . PHP_EOL;
-        $modelTDF = new Model_TourenDispoFuhrpark();
-        $re = $modelTDF->listFreeResources(
-                new DateTime(date('Y-m-d H:i:s', strtotime($dVon.' '.$zVon))),
-                new DateTime(date('Y-m-d H:i:s', strtotime($dBis.' '.$zBis))),
-                $objFilters, 
-                $listOptions);
-        
-        $this->_helper->json($re);
+
+        $opt = array("additionalFields" => array($mainTbl.'.extern_id', 'extern_firma',$mainTbl.'.leistungs_id', 'leistungs_name') ); //
+
+        $oQueryOpts->setWhere(
+            JqGridSearch::getSqlBySearch($TblCnf, $opt)
+        );
+
+        $oResultOptions = (new Model_TourenDispoFuhrpark())->getListOfAvailableItems(
+            $aDateTimeRange, $aFilter, $oQueryOpts
+        );
+
+        $this->sendRawJson([
+            'page' => $oResultOptions->getPage(),
+            'total' => $oResultOptions->getTotalPages(),
+            'rows' => $oResultOptions->getRows(),
+            'records' => $oResultOptions->getTotal(),
+            'sql' => $oResultOptions->getSql(),
+            'logs' => $oResultOptions->getLogs(),
+        ]);
     }
 
-    public function gridresponsedataAction() 
+
+    public function gridresponsedata_NEU_ONLY_AVAIABLES_Action()
+    {
+        /* @var $request Zend_Controller_Request_Abstract */
+        $rq = $this->getRequest();
+        $oQueryOpts = new MyProject_Model_QueryBuilder();
+
+        $toDateOrNull = function(string $date) {
+            $t = strtotime($date);
+            return ($t === false || !preg_match('#^\d{4}-\d\d-\d\d$#', $date)) ? null : new DateTime( $date );
+        };
+
+        $listPage = (int) $rq->getParam('page', 1);
+        $listSize = (int) $rq->getParam('rows', 100);
+
+        $iTourId = $rq->getParam('tour_id', 0);
+        if ($iTourId) {
+            $aDateTimeRangeByTour = Model_Db_TourenDispoVorgaenge::get($iTourId);
+            $this->_require(!empy($aDateTimeRangeByTour), 'No Tour-Record found for given TourId ' . $iTourId, 'json');
+
+            $aDateTimeRange = $aDateTimeRangeByTour;
+
+        } else {
+
+            $datumVon = $rq->getParam('DatumVon', '');
+            if (!$datumVon) {
+                $datumVon = $rq->getParam('date', '');
+            }
+            $dateVon = $toDateOrNull($datumVon);
+
+            $this->_require(
+                !is_null($dateVon),
+                'Missing valid Filter-Value [DatumVon]. Expected Format YYYY-DD-MM, Given: ' . $datumVon,
+                'json');
+
+            $aDateTimeRange = [
+                'DatumVon' => $dateVon,
+                'DatumBis' => $toDateOrNull($rq->getParam('DatumBis', '')),
+                'ZeitVon' => $rq->getParam('ZeitVon', ''),
+                'ZeitBis' => $rq->getParam('ZeitBis', ''),
+            ];
+        }
+
+        $aFilter = [
+            'extFilter' => $rq->getParam('extFilter', 'all'),
+            'tour_id' => $rq->getParam('tour_id', 0),
+        ];
+
+        $oQueryOpts
+            ->setOrder($rq->getParam('sidx', 'name'))
+            ->setOrderDir($rq->getParam('sord', 'ASC'))
+            ->setOffset(max(0,$listPage-1) * $listSize)
+            ->setLimit($listSize);
+
+        $filters = $rq->getParam('filters', '');
+        $objFilters = null;
+
+        $TblCnf = include APPLICATION_PATH . '/configs/dbtables/fuhrpark.inc.php';
+        $TblCnfParser = MyProject_Parser_TableConf::getInstance();
+        $TblCnfParser->parse_conf($TblCnf);
+
+        $mainTbl = Model_Db_Fuhrpark::obj()->tableName();
+
+        if ( $filters ) {
+            $objFilters = json_decode($filters);
+            foreach($objFilters->rules as $_i => &$_r) {
+                switch($_r->field) {
+                    case 'extern_id':
+                        $_r->field = (is_numeric($_r->data) ? $mainTbl .'.' . $_r->field  : "extern_firma");
+                        break;
+
+                    case 'leistungs_id':
+                        $_r->field = (is_numeric($_r->data) ? $mainTbl .'.' . $_r->field  : "leistungs_name");
+                        break;
+
+                    case 'categories':
+                    case 'kategorie':
+                        $aFilter['categoryTerm'] = $_r->data;
+                        break;
+
+                }
+            }
+            $rq->setParam('filters', $objFilters );
+        }
+
+        $opt = array("additionalFields" => array($mainTbl.'.extern_id', 'extern_firma',$mainTbl.'.leistungs_id', 'leistungs_name') ); //
+
+        $oQueryOpts->setWhere(
+            JqGridSearch::getSqlBySearch($TblCnf, $opt)
+        );
+
+        $oResultOptions = (new Model_TourenDispoFuhrpark())->getListOfAvailableItems(
+            $aDateTimeRange, $aFilter, $oQueryOpts
+        );
+
+        $this->sendRawJson([
+            'page' => $oResultOptions->getPage(),
+            'total' => $oResultOptions->getTotalPages(),
+            'rows' => $oResultOptions->getRows(),
+            'records' => $oResultOptions->getTotal(),
+            'sql' => $oResultOptions->getSql(),
+            'logs' => $oResultOptions->getLogs(),
+        ]);
+    }
+
+    public function gridresponsedataAction()
     {
         /* @var $db Zend_Db_Adapter_Abstract */
         $db = $this->_db;
@@ -286,7 +421,8 @@ class FuhrparkController extends Zend_Controller_Action
         }        
         
         $rsrcModel = new Model_TourenDispoFuhrpark();
-        $subSql = $rsrcModel->getTourResourceFilterSql($filter);
+        //$subSql = $rsrcModel->getTourResourceFilterSql($filter);
+        $subSql = $rsrcModel->getTourResourceFilterSql0($filter);
         
         $this->_rsp->subSqlNew = $subSql;
         

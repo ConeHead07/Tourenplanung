@@ -14,6 +14,20 @@ class Model_TourenDispoFuhrpark extends Model_TourenDispoResourceAbstract
     protected $_rsrcLnkKey    = 'fuhrpark_id';
     
     protected $_rsrcTitleField = 'CONCAT(kennzeichen, " ", fahrzeugart)';
+    protected $_tblCtgName = 'mr_fuhrpark_categories';
+
+    protected $_tblCtgLnkName = 'mr_fuhrpark_categories_lnk';
+    protected $_tblCtgLnkRsrcKey = 'fuhrpark_id'; // mitarbeiter_id | fuhrpark_id | werkzeug_id
+
+    public function getSqlSelectExprAsLabel(): string {
+        return 'CONCAT('
+            . ' kennzeichen,'
+            . ' IF(LENGTH(fahrzeugart)>1,'
+            . '  CONCAT(" ", fahrzeugart),'
+            . '  IF (LENGTH(modell)>1, CONCAT(" ", modell),"")'
+            . ' )'
+            . ')';
+    }
     
     public function updateAufwand($rows)
     {        
@@ -219,6 +233,7 @@ class Model_TourenDispoFuhrpark extends Model_TourenDispoResourceAbstract
         }  
         
         $rsrcModel = new Model_TourenDispoFuhrpark();
+        // $subSql = $rsrcModel->getTourResourceFilterSql0($filter);
         $subSql = $rsrcModel->getTourResourceFilterSql($filter);
         $return->subSqlNew = $subSql;
         
@@ -259,10 +274,16 @@ class Model_TourenDispoFuhrpark extends Model_TourenDispoResourceAbstract
         $return->total = $total_pages;
         $return->records = $count;
         $return->rows = $result->fetchAll(Zend_Db::FETCH_ASSOC);
-        
-        $modelRsrc = MyProject_Model_Database::loadModel($tblRsrcModelName);
+        $aRsrcIds = array_column($return->rows, $this->_tblRsrcKey);
+        // die('<pre>'. $return->sql . '<br/>'.PHP_EOL . print_r([$this->rsrcKey, $aRsrcIds, $return->rows],1) . '</pre>');
+
+        /** @var Model_Fuhrpark $modelRsrc */
+        $modelRsrc = Model_Fuhrpark::getSingleton();
+        $aCategoriesByRsrcId = $modelRsrc->fetchCategoriesByRsrcIds($aRsrcIds);
         foreach($return->rows as $i => $row ) {
-            $return->rows[$i]['categories'] = $modelRsrc->fetchCategoriesByRow( $row )->toArray();
+            // $return->rows[$i]['categories'] = $modelRsrc->fetchCategoriesByRow( $row )->toArray();
+            $_rsrcId = $row[ $this->_tblRsrcKey ];
+            $return->rows[$i]['categories'] = $aCategoriesByRsrcId[$_rsrcId] ?? [];
         }
         
         return $return;

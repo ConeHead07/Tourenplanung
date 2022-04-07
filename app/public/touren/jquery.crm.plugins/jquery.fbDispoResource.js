@@ -59,10 +59,14 @@
                 data.data.ondrop();
                 delete data.data.ondrop;
             }
-            
-            
-            var resourceTypeClass = "RsrcType-"+('resourceType' in data.data ? data.data.resourceType : data.resourceType);
+
+            var resourceType = ('resourceType' in data.data ? data.data.resourceType : (data.resourceType || ''));
+            var resourceId = ('id' in data.data ? data.data.id : (data.id || ''));
+            var resourceTypeClass = "RsrcType-" + resourceType;
+            var elmId = dataKey + "_" + resourceType + "" + resourceId;
+
             $self.addClass(dataKey + " Drag-Rsrc " + resourceTypeClass );
+            $self.attr({"id": elmId, "data-type": resourceType, "data-id": resourceId});
             
 //            data.draggableOptions = $.extend({}, ($self.is('.Is-Template') ? Fb.DragRsrcTemplateSettings :  Fb.DragRsrcInstanceSettings)); 
             if (data.isDraggable) {

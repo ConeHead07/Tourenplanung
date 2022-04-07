@@ -16,6 +16,7 @@ class MyProject_Model_Database extends MyProject_Model_Abstract
     protected $_db = null;
     protected $_tbl = null;
     protected $_key = null;
+    private static $_instances = [];
     static protected $_tourDispoLogger = null;
 
     public function __construct()
@@ -30,6 +31,19 @@ class MyProject_Model_Database extends MyProject_Model_Abstract
         } elseif (is_string($a)) {
             $this->_key = $a;
         }
+    }
+
+    public static function getSingleton(): self {
+        $class = static::class;
+        if (empty(self::$_instances[$class])) {
+            self::$_instances[$class] = new $class();
+        }
+        return self::$_instances[$class];
+    }
+
+    public static function getInstance(): self {
+        $class = static::class;
+        return new $class();
     }
 
     public function getTourDispoLogger() : Model_TourenDispoLog {

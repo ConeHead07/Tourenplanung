@@ -10,7 +10,7 @@
  *
  * @author rybka
  */
-class Model_Db_Werkzeug extends Zend_Db_Table_Abstract 
+class Model_Db_Werkzeug extends Model_Db_Abstract
 {  
     protected $_name    = 'mr_werkzeug';
     protected $_primary = 'wid';

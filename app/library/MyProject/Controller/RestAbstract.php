@@ -9,18 +9,18 @@
 class MyProject_Controller_RestAbstract extends Zend_Controller_Action
 {
 
-
-    protected function sendJSON(bool $success, string $error, array $aData = [], string $message = '')
+    protected function sendJson(bool $success, string $error, array $aData = [], string $message = '')
     {
 
         $responseData = [
+            'type' => $success ? 'success' : 'error',
             'success' => $success,
             'error' => $error,
             'data'=> $aData,
         ];
 
         if ($message) {
-            $responseData['message'] = $message;
+            $responseData['msg'] = $message;
         }
 
         $json = json_encode( $responseData, JSON_PRETTY_PRINT);
@@ -32,14 +32,61 @@ class MyProject_Controller_RestAbstract extends Zend_Controller_Action
         exit;
     }
 
-    protected function sendJSONSuccess(array $aData = [], string $message = '')
+    protected function sendRawJson($anyData)
     {
-        $this->sendJSON(true, '', $aData);
+        $json = json_encode( $anyData, JSON_PRETTY_PRINT);
+
+        header('Content-Type: application/json; charset=UTF-8');
+        header("Content-Length: ". strlen($json));
+        echo $json;
+
+        exit;
     }
 
-    protected function sendJSONError(string $error, array $aData = [])
+    protected function sendJsonData(array $data, string $msg = '') {
+        $this->sendJson(true, '', $data, $msg);
+    }
+
+    protected function sendJsonSuccess(string $msg, array $data = []) {
+        $this->sendJson(true, '', $data, $msg);
+    }
+
+    protected function sendJsonSuccessID($id, string $msg = '', array $data = [])
     {
-        $this->sendJSON(false, $error, $aData);
+        $this->sendRawJson([
+            'type' => 'success',
+            'success' => true,
+            'msg' => $msg,
+            'id' => $id,
+            'data' => $data,
+        ]);
+    }
+
+    protected function sendJsonError(string $error, array $data = []) {
+        $this->sendJson(false, $error, $data, '');
+    }
+
+    protected function _require( $mixedExpression, string $messageOnFalse, string $response = 'Exception') {
+        $isCallable = is_callable($mixedExpression);
+        $bResultOk = (bool)($isCallable ? $mixedExpression() : !empty($mixedExpression));
+
+        if (!$bResultOk) {
+            // No Break required
+            switch ($response) {
+                case 'Exception':
+                    throw new Exception($messageOnFalse);
+
+                case 'json':
+                    ob_end_clean();
+                    $this->sendJsonError($messageOnFalse);
+
+                default:
+                    ob_end_clean();
+                    echo $messageOnFalse;
+                    flush();
+                    exit;
+            }
+        }
     }
 
 }

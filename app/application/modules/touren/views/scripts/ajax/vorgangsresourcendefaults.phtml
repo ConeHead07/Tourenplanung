@@ -3,14 +3,14 @@ $this->layout()->disableLayout();
 $r = Zend_Controller_Front::getInstance()->getResponse();
 $r->setHeader('Content-Type', 'text/html; charset=UTF-8', true);
 
-$this->data->default;
-$this->data->timeline;
-$defResources = &$this->data->defaultResources;
+$this->data['default'];
+$this->data['timeline'];
+$defResources = &$this->data['defaultResources'];
 
 $vorgaenge = array();
-foreach($this->data->vorgaenge as $_vg) if (!$_vg['IsDefault']) $vorgaenge[] = $_vg;
+foreach($this->data['vorgaenge'] as $_vg) if (!$_vg['IsDefault']) $vorgaenge[] = $_vg;
 
-$tour_id = $this->data->default['tour_id'];
+$tour_id = $this->data['default']['tour_id'];
 $IdList = array('FP'=>array(), 'MA' => array(), 'WZ' => array() );
 $Keys = array('FP' => 'fid', 'MA' => 'mid', 'WZ' => 'wid');
 $Names = array('FP' => 'Fuhrpark', 'MA' => 'Mitarbeiter', 'WZ' => 'Werkzeug');
@@ -132,8 +132,9 @@ echo <<<EOT
                 if ($(this).fbDispoRouteDefaults('getData', 'id') == $tour_id) {
                     
                     if ($(this).fbDispoRouteDefaults('_trigger', this, 'removeResource', data) !== false) {
-                        $(self).closest("tr").remove();
                         
+                        $(self).closest("tr").remove();
+                        /*
                         if (Fb.timerReloadRoutes) {
                             clearTimeout(Fb.timerReloadRoutes);
                             Fb.timerReloadRoutes = 0;
@@ -146,7 +147,7 @@ echo <<<EOT
                             },
                             800
                         );
-                        
+                        */
                     }
                 }
             });

@@ -37,7 +37,7 @@ class UserController extends Zend_Controller_Action
             $form = new Form_User_Login();
             Zend_Registry::set('pageTitel', 'Login');
 
-            $form->getElement( 'user_name')->setValue('*');
+            $form->getElement( 'user_name')->setValue('');
 
             $this->view->pageTitel = 'Login';
             $rq = Zend_Controller_Front::getInstance()->getRequest();

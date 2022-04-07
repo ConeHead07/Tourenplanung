@@ -10,6 +10,15 @@ class Model_TourenDispoMitarbeiter extends Model_TourenDispoResourceAbstract
     protected $_rsrcLnkKey    = 'mitarbeiter_id';
     
     protected $_rsrcTitleField = 'CONCAT(vorname, " ", name)';
+
+    protected $_tblCtgName = 'mr_mitarbeiter_categories';
+
+    protected $_tblCtgLnkName = 'mr_mitarbeiter_categories_lnk';
+    protected $_tblCtgLnkRsrcKey = 'mitarbeiter_id'; // mitarbeiter_id | fuhrpark_id | werkzeug_id
+
+    public function getSqlSelectExprAsLabel(): string {
+        return "CONCAT( SUBSTR(vorname, 1, 1), '.', name, IF(eingestellt_als NOT BETWEEN '0' AND '999999',CONCAT(',', eingestellt_als), '') )";
+    }
         
     public function updateAufwand($rows)
     {        
@@ -37,9 +46,6 @@ class Model_TourenDispoMitarbeiter extends Model_TourenDispoResourceAbstract
     {
         $return = new stdClass;
         
-        $tblLinkModelName = 'mitarbeiterCategoriesLnk';
-        $tblRsrcModelName = 'mitarbeiter';
-        
         $filterDefaults = array(
             'tour_id'  => '',
             'DatumVon' => '',
@@ -63,8 +69,8 @@ class Model_TourenDispoMitarbeiter extends Model_TourenDispoResourceAbstract
         
         /* @var $db Zend_Db_Adapter_Abstract */
         $db = Zend_Registry::get('db');
-        
-        $storage = MyProject_Model_Database::loadStorage($tblRsrcModelName);
+
+        $storage = Model_Db_Mitarbeiter::obj();
         
         $mainTbl = $storage->info(Zend_Db_Table::NAME);
         $mainKey = current($storage->info(Zend_Db_Table::PRIMARY));
@@ -80,7 +86,7 @@ class Model_TourenDispoMitarbeiter extends Model_TourenDispoResourceAbstract
         
         if ($categoryTerm) {
             /* @var $ctgLink Model_FuhrparkCategoriesLnk */
-            $ctgLink = MyProject_Model_Database::loadModel($tblLinkModelName);
+            $ctgLink = Model_MitarbeiterCategoriesLnk::getSingleton();
             $categorieSubSql = $ctgLink->getCategorySubSql($categoryTerm);
         }  
         
@@ -126,12 +132,18 @@ class Model_TourenDispoMitarbeiter extends Model_TourenDispoResourceAbstract
         $return->total = $total_pages;
         $return->records = $count;
         $return->rows = $result->fetchAll(Zend_Db::FETCH_ASSOC);
+        $aRsrcIds = array_column($return->rows, $this->_tblRsrcKey);
+
         
-//        die('<pre>'. $return->sql . '<br/>'.PHP_EOL . print_r($return->rows,1) . '</pre>');
-        
-        $modelRsrc = MyProject_Model_Database::loadModel($tblRsrcModelName);
+        // die('<pre>'. $return->sql . '<br/>'.PHP_EOL . print_r($return->rows,1) . '</pre>');
+
+        /** @var Model_Mitarbeiter $modelRsrc */
+        $modelRsrc = Model_Mitarbeiter::getSingleton();
+        $aCategoriesByRsrcId = $modelRsrc->fetchCategoriesByRsrcIds($aRsrcIds);
         foreach($return->rows as $i => $row ) {
-            $return->rows[$i]['categories'] = $modelRsrc->fetchCategoriesByRow( $row )->toArray();
+            // $return->rows[$i]['categories'] = $modelRsrc->fetchCategoriesByRow( $row )->toArray();
+            $_rsrcId = $row[ $this->_tblRsrcKey ];
+            $return->rows[$i]['categories'] = $aCategoriesByRsrcId[$_rsrcId] ?? [];
         }
         
         return $return;

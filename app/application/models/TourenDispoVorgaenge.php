@@ -600,8 +600,192 @@ if ($orderby) {
         }
         return $re;
     }
-    
-    public function getFullDayData($date, $lager_id)
+
+    public function getFullDayData($date, $lager_id) {
+        return $this->getFullDayData3($date, $lager_id);
+    }
+
+    public function getFullDayData3($date, $lager_id)
+    {
+        $db = $this->_db;
+
+        $return = (object)[ 'data' => null, 'error' => null];
+
+        $portletTbl = Model_Db_TourenPortlets::obj()->tableName();
+        $timelineTbl = Model_Db_TourenTimelines::obj()->tableName();
+        $tourenTbl = Model_Db_TourenDispoVorgaenge::obj()->tableName();
+        $tourMaTbl = Model_Db_TourenDispoMitarbeiter::obj()->tableName();
+        $tourFpTbl = Model_Db_TourenDispoFuhrpark::obj()->tableName();
+        $tourWzTbl = Model_Db_TourenDispoWerkzeug::obj()->tableName();
+        $tourAuftTbl = Model_Db_TourenDispoAuftraege::obj()->tableName();
+        $akTbl = Model_Db_Vorgaenge::obj()->tableName();
+        $maTbl = Model_Db_Mitarbeiter::obj()->tableName();
+        $fpTbl = Model_Db_Fuhrpark::obj()->tableName();
+        $wzTbl = Model_Db_Werkzeug::obj()->tableName();
+
+        $maLabelExp = (new Model_Mitarbeiter())->getSqlSelectExprAsLabel();
+        $fpLabelExp = (new Model_Fuhrpark())->getSqlSelectExprAsLabel();
+        $wzLabelExp = (new Model_Werkzeug())->getSqlSelectExprAsLabel();
+
+        $_hday = MyProject_Date_Holidays::getHolidayByDate($date);
+        if ( !$_hday ) {
+            $aHDay['holiday'] = '';
+            $aHDay['holiday_frei'] = 0;
+            $aHDay['holiday_halb'] = 0;
+            $aHDay['holiday_only'] = '';
+        } else {
+            $aHDay['holiday'] = $_hday['name'];
+            $aHDay['holiday_frei'] = $_hday['frei'];
+            $aHDay['holiday_halb'] = $_hday['halb'];
+            $aHDay['holiday_only'] = $_hday['only'];
+        }
+
+        $pFields = array_flip([
+                                'portlet_id', 'lager_id', 'date', 'datum',
+                                'position', 'tagesnr', 'topcustom', 'title']);
+        $tlFields = array_flip([
+                                'portlet_id', 'timeline_id', 'start', 'end', 'interval', 'stepWidth']);
+        $tFields = array_flip([
+                                'id','tour_id', 'Mandant', 'Auftragsnummer', 'DatumVon', 'DatumBis', 'ZeitVon', 'ZeitBis',
+                                'IsDefault', 'avisiert', 'farbklasse', 'locked', 'name', 'Vorgangstitel',
+                                'LieferungName', 'LieferungOrt', 'dispoStatus',
+                                'created_uid', 'modified_uid', 'created_role', 'modified_role'
+        ]);
+
+        $portletSql = "SELECT 
+              p.portlet_id, p.lager_id, p.datum date, p.datum, 
+              p.position, p.tagesnr, p.topcustom, p.title,
+              
+              tl.timeline_id, tl.start, tl.end, tl.interval, tl.title tl_title, tl.interval stepWidth,
+              
+              t.tour_id id, t.tour_id, t.Mandant, t.Auftragsnummer, t.DatumVon, t.DatumBis, t.ZeitVon, t.ZeitBis,
+              t.IsDefault, t.avisiert, t.farbklasse, t.locked,
+              
+              CONCAT(ak.Auftragsnummer,', ',ak.LieferungOrt) name, 
+              ak.Vorgangstitel, ak.LieferungName, ak.LieferungOrt,
+              
+              CASE 
+                WHEN t.DatumVon is null 
+                THEN 'neu' 
+                
+                WHEN t.DatumVon is not null  
+                    AND ta.auftrag_disponiert_am IS NULL  
+                    AND (ta.tour_dispo_count IS NULL OR ta.tour_dispo_count = 0)
+                THEN 'beauftragt'
+                
+                WHEN t.zeiten_erfasst_am IS NOT NULL 
+                THEN 'fertig'
+                
+                WHEN ta.auftrag_abgeschlossen_am IS NULL 
+                    AND ta.tour_neulieferungen_count > 0
+                THEN 'neulieferung'
+                
+                WHEN ta.auftrag_disponiert_am IS NULL  
+                    AND ta.tour_dispo_count IS NOT NULL 
+                    AND ta.tour_dispo_count > 0
+                THEN 'teil'
+                
+                WHEN ta.auftrag_disponiert_am IS NOT NULL
+                THEN 'teil'
+                
+                ELSE
+                   -- nicht bestimmbar
+                   NULL
+              END AS dispoStatus,
+              t.created_uid,
+              t.modified_uid,
+              cu.user_role created_role,
+              mu.user_role modified_role
+              
+              FROM $portletTbl p
+              JOIN $timelineTbl tl 
+                ON (datum=:datum AND lager_id=:lager_id AND p.portlet_id = tl.portlet_id)
+              JOIN $tourenTbl t 
+                ON (tl.timeline_id = t.timeline_id)
+              LEFT JOIN $akTbl ak 
+                ON (t.Mandant = ak.Mandant AND t.Auftragsnummer = ak.Auftragsnummer)
+              LEFT JOIN $tourAuftTbl ta
+                ON (t.Mandant = ta.Mandant AND t.Auftragsnummer = ta.Auftragsnummer)
+              LEFT JOIN mr_user cu 
+                ON (t.created_uid = cu.user_id) 
+              LEFT JOIN mr_user mu 
+                ON (t.modified_uid = mu.user_id) 
+              ORDER BY p.position, tl.position, t.ZeitVon";
+
+        $sql = strtr($portletSql, [':datum'=>$db->quote($date), ':lager_id'=>(int)$lager_id]);
+        $rows = $db->fetchAll($sql);
+        $aData = [];
+        $lastPId = 0;
+        $lastTLId = 0;
+        $lastP = null;
+        $lastTL = null;
+        $lastT = null;
+        $_pix = -1;
+        $_tlix = -1;
+        $_tix = -1;
+        $aTourId2Row = [];
+        foreach($rows as $row) {
+            if ($lastPId != $row['portlet_id']) {
+                $lastPId = $row['portlet_id'];
+                ++$_pix;
+                $_tlix = -1;
+                $aData[$_pix] = ['id'=>$lastPId] + $aHDay + array_intersect_key($row, $pFields);
+                $lastP = &$aData[$_pix];
+
+            }
+            if ($lastTLId != $row['timeline_id']) {
+                $lastTLId = $row['timeline_id'];
+                ++$_tlix;
+                $_tix = -1;
+                $lastP['timelines'][$_tlix] = ['id'=>$lastTLId, 'title'=>$row['tl_title']] + array_intersect_key($row, $tlFields);
+                $lastTL = &$lastP['timelines'][$_tlix];
+            }
+            ++$_tix;
+            $_id = $row['tour_id'];
+            $lastTL['touren'][$_tix] = array_intersect_key($row, $tFields);
+            $aTourId2Row[ $_id ] = &$lastTL['touren'][$_tix];
+
+        }
+
+        if (0) MyProject_Response_Json::send([
+                'sql' => $sql,
+                'rows' => $rows,
+                'aData' => $aData,
+            ]);
+
+        $rsrcSql = "
+            SELECT 
+             tour_id, 'MA' resourceType, tm.id, $maLabelExp label, $maLabelExp name, 
+             mid resourceId, extern_id, leistungs_id, tmt.einsatz_ab
+            FROM $tourMaTbl tm JOIN $maTbl m ON (tm.mitarbeiter_id = m.mid)
+            LEFT JOIN mr_touren_dispo_mitarbeiter_txt tmt ON(tm.id = tmt.id)
+            WHERE tm.tour_id IN (:tour_ids)
+            UNION SELECT 
+             tour_id, 'FP' resourceType, id, $fpLabelExp label, $fpLabelExp name, 
+             fid resourceId, extern_id, leistungs_id, '' einsatz_ab
+            FROM $tourFpTbl tf JOIN $fpTbl f ON (tf.fuhrpark_id = f.fid)
+            WHERE tf.tour_id IN (:tour_ids)
+            UNION SELECT 
+             tour_id, 'WZ' resourceType, id, $wzLabelExp label, $wzLabelExp name, 
+             wid resourceId, extern_id, leistungs_id, '' einsatz_ab
+            FROM $tourWzTbl tw JOIN $wzTbl w ON (tw.werkzeug_id = w.wid)
+            WHERE tw.tour_id IN (:tour_ids)
+            ORDER BY tour_id, resourceType, resourceId
+        ";
+
+        $rows = $db->fetchAll( str_replace(':tour_ids', implode(',', array_keys($aTourId2Row)), $rsrcSql));
+        foreach($rows as $row ) {
+            $_tid = $row['tour_id'];
+            $aTourId2Row[ $_tid ]['resources'][] = $row;
+        }
+
+        // return MyProject_Response_Json::send( ['sql'=>$sql, 'data'=>$aData] );
+
+        $return->data = $aData;
+        return $return;
+    }
+
+    public function getFullDayData0($date, $lager_id)
     {
         $return = new stdClass();
         $return->data  = null;
@@ -925,6 +1109,241 @@ if ($orderby) {
             $return->error->traceAsString = $e->getTraceAsString();
             return $return;
         }
+    }
+
+
+    public function getVorgangsResourcenDefaults(int $tour_id)
+    {
+        $tourenTbl = Model_Db_TourenDispoVorgaenge::obj()->tableName();
+        $tourMaTbl = Model_Db_TourenDispoMitarbeiter::obj()->tableName();
+        $tourFpTbl = Model_Db_TourenDispoFuhrpark::obj()->tableName();
+        $tourWzTbl = Model_Db_TourenDispoWerkzeug::obj()->tableName();
+        $maTbl = Model_Db_Mitarbeiter::obj()->tableName();
+        $fpTbl = Model_Db_Fuhrpark::obj()->tableName();
+        $wzTbl = Model_Db_Werkzeug::obj()->tableName();
+
+        $vorgaengeSql = "
+            SELECT t2.*
+            FROM $tourenTbl t1
+            JOIN $tourenTbl t2 ON (t1.tour_id = $tour_id AND t1.IsDefault = 1 AND t1.timeline_id = t2.timeline_id)
+            ORDER BY t2.IsDefault DESC, t2.ZeitVon
+        ";
+
+        $aReData = [
+            'default' => [],
+            'defaultResources' => [ 'FP' => [], 'MA' => [], 'WZ' => []],
+            'timeline' => [],
+            'vorgaenge' => [],
+        ];
+
+        $aRows = $this->_db->fetchAll($vorgaengeSql, [], Zend_Db::FETCH_ASSOC);
+
+        if (empty($aRows)) {
+            return $aReData;
+        }
+
+        $fpLabelExp = Model_Fuhrpark::getSingleton()->getSqlSelectExprAsLabel();
+        $maLabelExp = Model_Mitarbeiter::getSingleton()->getSqlSelectExprAsLabel();
+        $wzLabelExp = Model_Werkzeug::getSingleton()->getSqlSelectExprAsLabel();
+
+        $aTourIds = array_map('intval', array_column($aRows, 'tour_id'));
+        $defaultTourId = $aRows[0]['tour_id'];
+        $aReData['default'] = $aRows[0];
+        $aReData['vorgaenge'] = array_slice($aRows, 1);
+        $aReData['timeline'] = Model_Db_TourenTimelines::get($aRows[0]['timeline_id']);
+
+        $aTourId2Row = [];
+        foreach($aReData['vorgaenge'] as &$_row) {
+            $_row['resources'] = [];
+            $aTourId2Row[ $_row['tour_id'] ] = &$_row;
+        }
+
+
+        $resourcenSql = "
+            SELECT tm.tour_id, 'MA' resourceType, id, mid resourceId, 
+            $maLabelExp label, 
+            $maLabelExp name,
+            vorname, anrede, eingestellt_als, '' kennzeichen, '' fahrzeugart, '' modell, '' bezeichnung
+            FROM $tourMaTbl tm 
+            JOIN $maTbl m ON (tm.mitarbeiter_id = m.mid)
+            WHERE tm.tour_id IN(:tour_ids)
+            UNION 
+            SELECT tf.tour_id, 'FP' resourceType, id, fid resourceId, 
+            $fpLabelExp label, 
+            $fpLabelExp name,
+            '' vorname, '' anrede, '' eingestellt_als, kennzeichen, fahrzeugart, modell, '' bezeichnung
+            FROM $tourFpTbl tf 
+            JOIN $fpTbl f ON (tf.fuhrpark_id = f.fid)
+            WHERE tf.tour_id IN(:tour_ids)
+            UNION 
+            SELECT tw.tour_id, 'WZ' resourceType, id, wid resourceId, $wzLabelExp label, $wzLabelExp name,
+            '' vorname, '' anrede, '' eingestellt_als, '' kennzeichen, '' fahrzeugart, '' modell, bezeichnung
+            FROM $tourWzTbl tw 
+            JOIN $wzTbl w ON (tw.werkzeug_id = w.wid)
+            WHERE tw.tour_id IN(:tour_ids)
+            ORDER BY tour_id, resourceType
+        ";
+        $aResources = $this->_db->fetchAll(
+            str_replace(':tour_ids', implode(',', $aTourIds), $resourcenSql),
+            [], Zend_Db::FETCH_ASSOC);
+
+        foreach($aResources as $_rsrc) {
+            $_tid = $_rsrc['tour_id'];
+            $_typ = $_rsrc['resourceType'];
+
+            switch($_typ) {
+                case 'MA':
+                    $_rsrc['mid'] = $_rsrc['resourceId'];
+                    $_rsrc['mitarbeiter_id'] = $_rsrc['resourceId'];
+                    break;
+                case 'FP':
+                    $_rsrc['fid'] = $_rsrc['resourceId'];
+                    $_rsrc['fuhrpark_id'] = $_rsrc['resourceId'];
+                    break;
+                case 'WZ':
+                    $_rsrc['wid'] = $_rsrc['resourceId'];
+                    $_rsrc['werkzeug_id'] = $_rsrc['resourceId'];
+                    break;
+            }
+
+            if ($_tid == $defaultTourId) {
+                $aReData['defaultResources'][ $_typ ][] = $_rsrc;
+            } else {
+                $aTourId2Row[$_tid]['resources'][$_typ][] = $_rsrc;
+            }
+        }
+
+        return $aReData;
+    }
+
+    public function getCalendarweekdata(int $lager_id, $dateVon, $dateBis)
+    {
+        $tourenTbl = Model_Db_TourenDispoVorgaenge::obj()->tableName();
+        $tourMaTbl = Model_Db_TourenDispoMitarbeiter::obj()->tableName();
+        $tourFpTbl = Model_Db_TourenDispoFuhrpark::obj()->tableName();
+        $tourWzTbl = Model_Db_TourenDispoWerkzeug::obj()->tableName();
+        $maTbl = Model_Db_Mitarbeiter::obj()->tableName();
+        $fpTbl = Model_Db_Fuhrpark::obj()->tableName();
+        $wzTbl = Model_Db_Werkzeug::obj()->tableName();
+
+        $aReObj = (object)[
+            'touren' => [],
+            'resources' => [],
+        ];
+
+
+        $fpLabelExp = Model_Fuhrpark::getSingleton()->getSqlSelectExprAsLabel();
+        $maLabelExp = Model_Mitarbeiter::getSingleton()->getSqlSelectExprAsLabel();
+        $wzLabelExp = Model_Werkzeug::getSingleton()->getSqlSelectExprAsLabel();
+
+        $tblPT = Model_Db_TourenPortlets::obj()->tableName();
+        $tblTL = Model_Db_TourenTimelines::obj()->tableName();
+        $tblDV = Model_Db_TourenDispoVorgaenge::obj()->tableName();
+        $tblAK = Model_Db_Vorgaenge::obj()->tableName();
+
+        $sqlTouren =
+            "SELECT DV.*, PT.*, PT.topcustom PortletTopCustom, PT.title PortletTitle, TL.*, TL.title TimelineTitle, A.* " . PHP_EOL
+            ."FROM " . $tblPT . " PT " . PHP_EOL
+            ."LEFT JOIN " . $tblTL . " TL ON PT.portlet_id  = TL.portlet_id " . PHP_EOL
+            ."LEFT JOIN " . $tblDV . " DV ON TL.timeline_id = DV.timeline_id " . PHP_EOL
+            ."LEFT JOIN " . $tblAK . " A  ON (DV.Mandant = A.Mandant AND DV.Auftragsnummer = A.Auftragsnummer) " . PHP_EOL
+
+            ." WHERE " . PHP_EOL
+            ." PT.lager_id = :lager_id AND PT.datum BETWEEN :DatumVon AND :DatumBis " . PHP_EOL
+            ." AND (PT.title IS NOT NULL OR DV.IsDefault = 0) "  . PHP_EOL
+            ."ORDER BY DV.timeline_id, ZeitVon";
+
+        $aReObj->touren = $this->_db->fetchAll($sqlTouren, [
+            'lager_id' => $lager_id,
+            'DatumVon'=> $dateVon,
+            'DatumBis'=> $dateBis
+        ]);
+
+        $aTourIds = array_map( 'intval', array_column($aReObj->touren, 'tour_id'));
+
+        $resourcenSql = "
+            SELECT tm.tour_id, 'MA' resourceType, id, mid resourceId, 
+            $maLabelExp label, 
+            $maLabelExp name,
+            vorname, anrede, eingestellt_als, '' kennzeichen, '' fahrzeugart, '' modell, '' bezeichnung
+            FROM $tourMaTbl tm 
+            JOIN $maTbl m ON (tm.mitarbeiter_id = m.mid)
+            WHERE tm.tour_id IN(:tour_ids)
+            UNION 
+            SELECT tf.tour_id, 'FP' resourceType, id, fid resourceId, 
+            $fpLabelExp label, 
+            $fpLabelExp name,
+            '' vorname, '' anrede, '' eingestellt_als, kennzeichen, fahrzeugart, modell, '' bezeichnung
+            FROM $tourFpTbl tf 
+            JOIN $fpTbl f ON (tf.fuhrpark_id = f.fid)
+            WHERE tf.tour_id IN(:tour_ids)
+            UNION 
+            SELECT tw.tour_id, 'WZ' resourceType, id, wid resourceId, $wzLabelExp label, $wzLabelExp name,
+            '' vorname, '' anrede, '' eingestellt_als, '' kennzeichen, '' fahrzeugart, '' modell, bezeichnung
+            FROM $tourWzTbl tw 
+            JOIN $wzTbl w ON (tw.werkzeug_id = w.wid)
+            WHERE tw.tour_id IN(:tour_ids)
+            ORDER BY tour_id, resourceType
+        ";
+        $aResources = $this->_db->fetchAll(
+            str_replace(':tour_ids', implode(',', $aTourIds), $resourcenSql),
+            [], Zend_Db::FETCH_ASSOC);
+
+        $aReObj->tourResources = [];
+
+        $lastTId = '';
+        foreach($aResources as $_rsrc) {
+            $_tid = $_rsrc['tour_id'];
+            if ($_tid != $lastTId) {
+                $aReObj->tourResources[$_tid] = ['MA' => [], 'FP' => [], 'WZ' => []];
+                $lastTId = $_tid;
+            }
+            $_typ = $_rsrc['resourceType'];
+            $aReObj->tourResources[ $_tid ][$_typ][] = $_rsrc;
+        }
+
+        return $aReObj;
+    }
+
+
+    public function getCalendarmonthdata(int $lager_id, DateTime $datumVon, DateTime $datumBis)
+    {
+        $db = $this->_db;
+        
+        $vorgaengeTbl = Model_Db_Vorgaenge::obj()->tableName();
+        $tourTbl = Model_Db_TourenDispoVorgaenge::obj()->tableName();
+        $timelineTbl = Model_Db_TourenTimelines::obj()->tableName();
+        $portletTbl = Model_Db_TourenPortlets::obj()->tableName();
+
+        $dateRange = [
+            'Von' => new DateTime($datumVon->format('Y-m-d')),
+            'Bis' => new DateTime($datumBis->format('Y-m-d')),
+        ];
+
+        $oRe = (object)['data' => []];
+
+        $sqlTouren =
+            "SELECT t.*, p.*, p.title PortletTitle, tl.*, tl.title TimelineTitle, v.* " . PHP_EOL
+            ."FROM " . $portletTbl . " p " . PHP_EOL
+            ."LEFT JOIN " . $timelineTbl . " tl ON p.portlet_id  = tl.portlet_id " . PHP_EOL
+            ."LEFT JOIN " . $tourTbl . " t ON tl.timeline_id = t.timeline_id " . PHP_EOL
+            ."LEFT JOIN " . $vorgaengeTbl . " v  ON (t.Mandant = v.Mandant AND t.Auftragsnummer = v.Auftragsnummer) " . PHP_EOL
+            ." WHERE " . PHP_EOL
+            ." p.lager_id = :lager_id " . PHP_EOL
+            ." AND (" . PHP_EOL
+            ." (p.title IS NOT NULL AND p.datum BETWEEN :DatumVon AND :DatumBis) "  . PHP_EOL
+            ." OR (t.IsDefault = 0  "  . PHP_EOL
+            ." AND t.DatumVon BETWEEN :DatumVon AND :DatumBis) "  . PHP_EOL
+            ." )" . PHP_EOL
+            ."ORDER BY t.timeline_id, ZeitVon";
+
+        $oRe->data = $db->fetchAll($sqlTouren, [
+            ':lager_id' => $lager_id,
+            ':DatumVon' => $dateRange['Von']->format('Y-m-d'),
+            ':DatumBis' => $dateRange['Bis']->format('Y-m-d'),
+        ]);
+
+        return $oRe;
     }
     
     /**
@@ -1255,6 +1674,13 @@ if ($orderby) {
     
     public function addDefaultResources($id)
     {
+        "SELECT tf.fuhrpark_id, tm.mitarbeiter_id, tw.werkzeug_id FROM mr_touren_dispo_vorgaenge t 
+        JOIN mr_touren_dispo_vorgaenge t2 ON(t.tour_id = $id AND t2.IsDefault=1 AND t.timeline_id = t2.timeline_id)
+        JOIN mr_touren_dispo_fuhrpark tf ON(t2.tour_id = tf.tour_id)
+        JOIN mr_touren_dispo_mitarbeiter tm ON(t2.tour_id = tm.tour_id)
+        JOIN mr_touren_dispo_werkzeug tw ON(t2.tour_id = tw.tour_id) 
+        LIMIT 1
+";
         $tourData = $this->fetchEntry($id);
         
         $fp = new Model_TourenDispoFuhrpark();

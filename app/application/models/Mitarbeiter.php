@@ -1,6 +1,6 @@
 <?php
 
-class Model_Mitarbeiter extends MyProject_Model_Database
+class Model_Mitarbeiter extends MyProject_Model_Database implements Model_ResourceInterface
 {
     protected $_storageName = 'mitarbeiter';
     
@@ -153,6 +153,40 @@ class Model_Mitarbeiter extends MyProject_Model_Database
         
         return $row->findManyToManyRowset('Model_Db_MitarbeiterCategories', 'Model_Db_MitarbeiterCategoriesLnk');
         
+    }
+
+    public function fetchCategoriesByRsrcIds(array $aRsrcIds): array {
+
+        $rsrcKey = Model_Db_MitarbeiterCategoriesLnk::obj()->key();
+        $rsrcCtgLnkTbl = Model_Db_MitarbeiterCategoriesLnk::obj()->tableName();
+        $rsrcCtgTbl = Model_Db_MitarbeiterCategories::obj()->tableName();
+
+        $aRsrcIntIds = array_map(function($itm) { return (int)$itm; }, $aRsrcIds);
+        $sql = "SELECT l.$rsrcKey, c.* 
+                FROM $rsrcCtgLnkTbl l
+                JOIN $rsrcCtgTbl c ON (l.category_id = c.category_id)
+                WHERE l.$rsrcKey IN (" . implode(',', $aRsrcIntIds) . ") ORDER BY l.$rsrcKey";
+
+        $rows = $this->_db->fetchAll($sql, Zend_Db::FETCH_ASSOC);
+        $aRowsByRsrcId = [];
+        $lastRid = '';
+        $lastRsrc = null;
+
+        foreach($rows as $_row) {
+            $_rid = $_row[ $rsrcKey ];
+            if ($lastRid != $_rid) {
+                $lastRid = $_rid;
+                $aRowsByRsrcId[$lastRid] = [];
+                $lastRsrc = &$aRowsByRsrcId[$lastRid];
+            }
+            $lastRsrc[] = $_row;
+        }
+
+        return $aRowsByRsrcId;
+    }
+
+    public function getSqlSelectExprAsLabel(): string {
+        return "CONCAT( SUBSTR(vorname, 1, 1), '.', name, IF(eingestellt_als NOT BETWEEN '0' AND '999999',CONCAT(',', eingestellt_als), '') )";
     }
     
 }

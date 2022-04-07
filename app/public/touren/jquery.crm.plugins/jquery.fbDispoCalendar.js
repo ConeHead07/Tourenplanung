@@ -42,7 +42,6 @@ $( function() {
             "icon": d.success ? "info" : "error"
         };
 
-        // console.log("#54 jquery.fbDispoCalendar.js opened Toast", {toastData});
         $.toast(toastData);
     });
 
@@ -112,7 +111,6 @@ Fb.DispoLoading = function(on) {
                 if ($(this).css("top") !== 5 && $(this).css("top") !== "5px")
                     $(this).css({top:"5px",right:"25px"});
                 else {
-                    console.log('#68 Hide Loading', $("#fbDispo_loading").length);
                     $(this).hide();
                 }
             })
@@ -125,7 +123,6 @@ Fb.DispoLoading = function(on) {
         }
 
         var d = new Date(), t = d.toLocaleTimeString() + '.' + d.getMilliseconds() + ' ', action = (on ? 'SHOW' : 'HIDE');
-        console.log('#76 ' + t + action + ' Loading-Bar exists:', loader.length, ' is visible:', loader.is(':visible'), loader.offset());
     }
 
     if (arguments.length && !on) {
@@ -135,10 +132,6 @@ Fb.DispoLoading = function(on) {
                 $("#fbDispo_loading").hide();
             }
         }, 950);
-
-        if (debug) {
-            console.log('hide loading delayed by 950ms');
-        }
 
     } else {
         loader.show().data().tasknr++;
@@ -196,16 +189,16 @@ Fb.AjaxTourRequest = function(requestOpts, responseOpts) {
             if (Fb.AjaxSuccessCheck(data, textStatus, jqXHR, {"defaultError":responseOpts.defaultError})) {
                 returnVal = true;
                 if (responseOpts.onsuccess && typeof responseOpts.onsuccess === "function") {
-                    console.log("#213 responseOpts.onsuccess", responseOpts.onsuccess.toString() );
                     try {
-                        responseOpts.onsuccess.apply(null, [data, textStatus, jqXHR]);
+                        if (false === responseOpts.onsuccess.apply(null, [data, textStatus, jqXHR])) {
+                            returnVal = false;
+                        }
                     } catch(e) {
                         console.log(e);
                     }
                 }
             } else {
                 if (responseOpts.onerror && typeof responseOpts.onerror === "function") {
-                    console.log("#213 responseOpts.onsuccess", responseOpts.onerror.toString() );
                     try {
                         responseOpts.onerror.apply(null, [jqXHR, textStatus]);
                     } catch(e) {
@@ -217,7 +210,7 @@ Fb.AjaxTourRequest = function(requestOpts, responseOpts) {
             // $(document).trigger("ajaxSuccess", [jqXHR, requestOpts, data]);
         },
         error: function(jqXHR, textStatus, errorThrown) {
-            console.log('#231 AjaxTourRequest jquery.fbDispoCalendar error.js return', returnVal, textStatus, errorThrown);
+            console.error('#231 AjaxTourRequest jquery.fbDispoCalendar error.js return', returnVal, textStatus, errorThrown);
             Fb.AjaxErrorShow(jqXHR, textStatus, errorThrown, responseOpts.defaultError);
             if (responseOpts.onerror) {
                 try {

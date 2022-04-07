@@ -65,10 +65,13 @@ jQuery(function() { jQuery("#gridDispoResourceMALst").jqGrid(
             // onInit gridParam.datatype:  local
             // onInit gridParam.search: false
             // onInit gridParam.url:  empty String
+            var defaultSearchUrl = "/mitarbeiter/gridresponsedata?extFilter=int";
+            var extraSearchUrl = $(this).data('searchUrl');
+            var searchUrl = (extraSearchUrl) ? extraSearchUrl : defaultSearchUrl;
             $(this).jqGrid('setGridParam', {
                 "datatype":"json",
                 "search": true,
-                "url":APP_BASE_URL + "/mitarbeiter/gridresponsedata?extFilter=int"
+                "url":APP_BASE_URL + searchUrl
 //                "url":APP_BASE_URL + "/mitarbeiter/listavaiables?extFilter=int"
             });
         }

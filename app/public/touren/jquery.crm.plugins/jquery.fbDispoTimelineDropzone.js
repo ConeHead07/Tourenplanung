@@ -93,14 +93,10 @@
             }
            
             var d=$(this).data(dataKey).data;
-            
-//            alert('#74 fbDispoTimelineDropzone data.touren.length: '+ $(this).data(dataKey).data.touren.length);
+
             if ($(this).data(dataKey).data.touren) {
-                // console.log('#103 ' + dataKey + ' _init addRoutes');
                 methods.addRoutes.apply(self, [$(this).data(dataKey).data.touren] );
                 delete $(this).data(dataKey).data.touren;
-            } else {
-                // console.log('#107 ' + dataKey + ' _init no routes addded!');
             }
             $("div.fbDispoRouteDefaults", this).show();
         },

@@ -37,6 +37,14 @@ implements MyProject_Model_TourenResourceInterface
     protected $_tblRsrcName = '';
     protected $_tblTourName = '';
 
+    protected $_tblCtgName = '';
+    protected $_tblCtgKey = 'category_id';
+
+    protected $_tblCtgLnkName = '';
+    protected $_tblCtgLnkKey = 'category_id';
+    protected $_tblCtgLnkRsrcKey = ''; // mitarbeiter_id | fuhrpark_id | werkzeug_id
+
+
     public function __construct() {
         parent::__construct();
         $this->_storage = $this->getStorage();
@@ -68,8 +76,13 @@ implements MyProject_Model_TourenResourceInterface
         $this->rsrcLnkKey = $this->_db->quoteIdentifier( $this->_tblRsrcLnkKey );
 //        echo $this->rsrcKey . ';' . $this->rsrcLnkKey . '<br>' . PHP_EOL;
         $this->tourTbl    = $this->_db->quoteIdentifier( $this->_tblTourName );
-        $this->tourKey    = $this->_db->quoteIdentifier( $this->_tblTourKey );        
+        $this->tourKey    = $this->_db->quoteIdentifier( $this->_tblTourKey );
+
+        $this->categoryTbl= $this->_db->quoteIdentifier( $this->_tblCtgName );
+        $this->categoryLnkTbl= $this->_db->quoteIdentifier( $this->_tblCtgLnkName );
     }
+
+    abstract public function getSqlSelectExprAsLabel(): string;
 
 
     public function dispoLog(int $rsrc_id, string $action, int $tour_id, array $aDetails = []) {
@@ -475,6 +488,370 @@ implements MyProject_Model_TourenResourceInterface
             ));
         }        
     }
+
+    /**
+     * @param int $iTourId
+     * @param int $iRsrcId
+     * @return array
+     */
+    public function getTourenStatForApplyDefaultRsrc(int $iTourId, int $iRsrcId): array
+    {
+        $db = $this->_db;
+        $tourRsrcTbl = $this->rsrcLnkTbl;
+        $tourRsrcKey = $this->rsrcLnkKey;
+
+        $tourTbl = $this->tourTbl;
+        $tlTbl = Model_Db_TourenTimelines::obj()->tableName();
+        $ptlTbl = Model_Db_TourenPortlets::obj()->tableName();
+
+        $sqlTourenStat = "SELECT MIN(pt.datum) datum, MIN(dv2.ZeitVon) MinZeitVon,  Max(dv2.ZeitVon) MaxZeitBis, 
+                 count(1) num_touren, dv.IsDefault, dv.timeline_id,
+                 group_concat(DISTINCT dv2.tour_id) all_tour_ids,
+                 group_concat(distinct if(dv2.locked = 1, dv2.tour_id, null)) locked_tour_ids,
+                 group_concat(distinct if(dr.$tourRsrcKey IS NOT NULL, dv2.tour_id, null)) rsrc_in_tour_ids,
+                 group_concat(distinct if(dr.$tourRsrcKey IS NULL && dv2.locked = 0, dv2.tour_id, null)) possible_tour_ids                 
+             FROM $tourTbl dv
+             JOIN $tlTbl tl ON(dv.timeline_id = tl.timeline_id)
+             JOIN $ptlTbl pt ON(tl.portlet_id = pt.portlet_id)
+             JOIN $tourTbl dv2 ON (dv.tour_id = dv2.tour_id OR (dv.IsDefault = 1 AND tl.timeline_id = dv2.timeline_id))
+             LEFT JOIN $tourRsrcTbl dr ON (dv2.tour_id = dr.tour_id AND dr.$tourRsrcKey = :rid)
+             WHERE dv.tour_id = :tour_id";
+        $aTourenStat = $db->fetchRow(
+            $sqlTourenStat,
+            [
+                'rid' => $iRsrcId,
+                'tour_id' => $iTourId
+            ],
+            Zend_Db::FETCH_ASSOC);
+
+        $aTourenStat['all_tour_ids'] = explode(',', $aTourenStat['all_tour_ids']);
+        $aTourenStat['locked_tour_ids'] = explode(',', $aTourenStat['locked_tour_ids']);
+        $aTourenStat['rsrc_in_tour_ids'] = explode(',', $aTourenStat['rsrc_in_tour_ids']);
+        $aTourenStat['possible_tour_ids'] = explode(',', $aTourenStat['possible_tour_ids']);
+
+        return $aTourenStat;
+    }
+
+    public function getPossibleTourenListForApplyDefaultRsrc(int $iTourId, $iRsrcId): array
+    {
+        $db = $this->_db;
+        $tourRsrcTbl = $this->rsrcLnkTbl;
+        $tourRsrcKey = $this->rsrcLnkKey;
+
+        $tourTbl = $this->tourTbl;
+        $tlTbl = Model_Db_TourenTimelines::obj()->tableName();
+        $ptlTbl = Model_Db_TourenPortlets::obj()->tableName();
+
+        $sqlTourenList = "SELECT 
+             pt.datum, 
+             dv2.timeline_id, dv2.IsDefault, dv2.tour_id, dv2.ZeitVon, dv2.ZeitBis, dv2.locked, dv2.Auftragsnummer
+             FROM $tourTbl dv
+             JOIN $tlTbl tl ON(dv.timeline_id = tl.timeline_id)
+             JOIN $ptlTbl pt ON(tl.portlet_id = pt.portlet_id)
+             JOIN $tourTbl dv2 
+                  ON (dv.tour_id = dv2.tour_id OR (dv.IsDefault = 1 AND tl.timeline_id = dv2.timeline_id))
+             LEFT JOIN $tourRsrcTbl dr 
+                  ON (dv2.tour_id = dr.tour_id AND dr.$tourRsrcKey = :rid)
+             WHERE dv.tour_id = :tour_id AND dv.locked = 0 AND dr.$tourRsrcKey IS NULL";
+
+        return $db->fetchAll(
+            $sqlTourenList,
+            [
+                'rid' => $iRsrcId,
+                'tour_id' => $iTourId
+            ],
+            Zend_Db::FETCH_ASSOC);
+    }
+
+    /**
+     * @param int $iRsrcId
+     * @param string $datum
+     * @param string $zeitVon
+     * @param string $zeitBis
+     * @return array
+     */
+    public function getKannzeitenForExternRsrc(int $iRsrcId, string $datum, string $zeitVon, string $zeitBis): array
+    {
+        $db = $this->_db;
+        $dispoTbl = Model_Db_ResourcesDispozeiten::obj()->tableName();
+
+        $sqlRsrcExternKannzeiten = "
+            SELECT rz.gebucht_von, rz.gebucht_bis, rz.gebucht_zeit_von, rz.gebucht_zeit_bis 
+            FROM $dispoTbl rz 
+            WHERE 
+                rz.ressourcen_id = :rid
+                AND rz.ressourcen_typ = :rsrcType
+                AND :datum BETWEEN rz.gebucht_von AND rz.gebucht_bis
+                AND (rz.gebucht_zeit_von is null or rz.gebucht_zeit_von <= :zeitVon)
+                AND (rz.gebucht_zeit_bis is null or rz.gebucht_zeit_bis >= :zeitBis)
+          
+            LIMIT 1";
+
+        return $db->fetchAll(
+            $sqlRsrcExternKannzeiten,
+            [
+                'rid' => $iRsrcId,
+                'rsrcType' => $this->_resourceType,
+                'datum' => $datum,
+                'zeitVon' => $zeitVon,
+                'zeitBis' => $zeitBis,
+            ],
+            Zend_Db::FETCH_ASSOC);
+    }
+
+    /**
+     * @param int $iRsrcId
+     * @param string $datum
+     * @return array
+     */
+    public function getSperrzeitenForRsrcByDatum(int $iRsrcId, string $datum): array
+    {
+        $db = $this->_db;
+        $sperrTbl = Model_Db_ResourcesSperrzeiten::obj()->tableName();
+
+        $sqlRsrcSperrzeiten = "
+            SELECT sz.ressourcen_typ, sz.gesperrt_von, sz.gesperrt_bis 
+            FROM $sperrTbl sz 
+            WHERE
+                sz.ressourcen_id = :rid
+                AND sz.ressourcen_typ = :rsrcType
+                AND :datum BETWEEN sz.gesperrt_von AND sz.gesperrt_bis
+            LIMIT 1";
+
+        return $db->fetchAll(
+            $sqlRsrcSperrzeiten,
+            [ 'rid' => $iRsrcId, 'rsrcType' => $this->_resourceType, 'datum' => $datum ],
+            Zend_Db::FETCH_ASSOC
+        );
+    }
+
+    public function getBelegteZeitenForRsrcByDatumZeit(int $iRsrcId, string $datum, string $zeitVon, string $zeitBis): array
+    {
+        $db = $this->_db;
+
+        $tourenRsrcTbl = $this->rsrcLnkTbl;
+        $tourenRsrcKey = $this->rsrcLnkKey;
+        $tourTbl = $this->tourTbl;
+        $ptlTbl = Model_Db_TourenPortlets::obj()->tableName();
+        $tlTbl = Model_Db_TourenTimelines::obj()->tableName();
+
+        $sqlRsrcBelegteZeiten = " 
+            SELECT pt.datum, dv.timeline_id, dv.IsDefault, dv.tour_id, dv.ZeitVon, dv.ZeitBis
+             FROM $ptlTbl pt 
+             JOIN $tlTbl tl ON (pt.datum = :datum AND pt.portlet_id = tl.portlet_id)
+             JOIN $tourTbl dv ON(tl.timeline_id = dv.timeline_id)
+             JOIN $tourenRsrcTbl dr ON(dv.tour_id = dr.tour_id AND dr.$tourenRsrcKey = :rid)
+             WHERE 
+              dv.ZeitVon BETWEEN :zeitVon AND :zeitBis
+              OR dv.ZeitBis BETWEEN :zeitVon AND :zeitBis
+              OR :zeitVon BETWEEN dv.ZeitVon AND dv.ZeitBis ";
+
+        return $db->fetchAll(
+            $sqlRsrcBelegteZeiten,
+            [
+                'rid' => $iRsrcId,
+                'datum' => $datum,
+                'zeitVon' => $zeitVon,
+                'zeitBis' => $zeitBis,
+            ],
+            Zend_Db::FETCH_ASSOC);
+    }
+
+    public function dropQuick(int $iTourId, int $iRsrcId, string $sRsrcType)
+    {
+        $startMicrotime = microtime(true);
+        $tlog = function() use($startMicrotime) {
+            return round(microtime(true) - $startMicrotime, 3) . 's: ';
+        };
+
+        $db = $this->_db;
+        $tourTbl = $this->tourTbl;
+        $rsrcTbl = $this->rsrcTbl;
+        $rsrcKey = $this->rsrcKey;
+        $rsrcType = $this->_resourceType;
+        $tourRsrcTbl = $this->rsrcLnkTbl;
+        $tourRsrcKey = $this->rsrcLnkKey;
+        $rsrcLblExpr = $this->getSqlSelectExprAsLabel();
+
+        $aExistingTouren = [];
+        $aKonfliktTouren = [];
+
+        $sqlRsrcInfo = "SELECT '$rsrcType' AS resourceType, r.$rsrcKey AS rid, r.$rsrcKey, r.extern_id, 
+                $rsrcLblExpr AS label, $rsrcLblExpr AS name 
+              FROM $rsrcTbl r 
+              WHERE r.$rsrcKey = " . $iRsrcId;
+
+        $aRsrcInfo = $db->fetchRow($sqlRsrcInfo, [], Zend_Db::FETCH_ASSOC);
+
+        $aReturnVars = [ 'error', 'iTourId', 'iRsrcId', 'sqlRsrcInfo', 'aRsrcInfo' ];
+
+        if (!$aRsrcInfo) {
+            return MyProject_Response_Json::sendError($tlog() . 'Rsrc not found!', compact($aReturnVars));
+        }
+
+        $sqlTourInfo = "SELECT t.* FROM $tourTbl t WHERE t.tour_id = " . $iTourId;
+        $aTourInfo = $db->fetchRow($sqlTourInfo, [], Zend_Db::FETCH_ASSOC);
+        array_push($aReturnVars, 'sqlTourInfo', 'aTourInfo');
+
+        if (!$aTourInfo) {
+            return MyProject_Response_Json::sendError($tlog() . 'Tour not found!', compact($aReturnVars));
+        }
+
+        $aTourenStat = $this->getTourenStatForApplyDefaultRsrc($iTourId, $iRsrcId);
+
+        $aReturnVars[] = 'aTourenStat';
+        if (!$aTourenStat['possible_tour_ids']) {
+            return MyProject_Response_Json::sendError($tlog() . 'NO POSSIBLE Tour found, Tours locked or having allready booked the resource!', compact($aReturnVars));
+        }
+
+        if ($aRsrcInfo['extern_id']) {
+            $aRsrcExternKannzeiten = $this->getKannzeitenForExternRsrc($iRsrcId, $aTourenStat['datum'], $aTourenStat['MinZeitVon'], $aTourenStat['MaxZeitBis']);
+
+            $aReturnVars[] = 'aRsrcExternKannzeiten';
+
+            if (!count($aRsrcExternKannzeiten)) {
+                return MyProject_Response_Json::sendError($tlog() . 'Externe Resource ist für den Zeitraum nicht gebucht!', compact($aReturnVars));
+            }
+        }
+
+        $aRsrcSperrzeiten = $this->getSperrzeitenForRsrcByDatum($iRsrcId, $aTourenStat['datum']);
+
+        $aReturnVars[] = 'aRsrcSperrzeiten';
+
+        if (is_array($aRsrcSperrzeiten) && count($aRsrcSperrzeiten)) {
+            return MyProject_Response_Json::sendError(
+                $tlog() . 'Resource ist gesperrt von ' . $aRsrcSperrzeiten['gesperrt_von'] . ' bis ' .$aRsrcSperrzeiten['gesperrt_von'] . '!',
+                compact($aReturnVars)
+            );
+        }
+
+        $aPossibleTouren = $this->getPossibleTourenListForApplyDefaultRsrc($iTourId, $iRsrcId);
+
+
+        $aReturnVars[] = 'aPossibleTouren';
+
+        $aRsrcBelegteZeiten = $this->getBelegteZeitenForRsrcByDatumZeit(
+            $iRsrcId,
+            $aTourenStat['datum'],
+            $aTourenStat['MinZeitVon'],
+            $aTourenStat['MaxZeitBis']
+        );
+        $aReturnVars[] = 'aRsrcBelegteZeiten';
+
+
+
+        if (count($aRsrcBelegteZeiten) > 0) {
+            // Touren mit Konflikt ausfiltern
+
+
+            $aPossibleTouren = array_filter($aPossibleTouren, function($_t)
+            use($aRsrcBelegteZeiten, &$aKonfliktTouren, &$aExistingTouren) {
+                foreach($aRsrcBelegteZeiten as $_b) {
+                    // Belegt . . . . . . [ - - - - - - - ] . . . . .
+                    // TOUR   . . . . [ - - - ] . . . . . . . . . . . => R1: bv between tv AND tb
+                    // TOUR   . . . . . . . . . . . . [ - - - ] . . . => R2: bz BETWEEN tv AND tb
+                    // TOUR   . . . . . . . . [ - - - ] . . . . . . . => R3: tv BETWEEN bv AND bb
+                    if ($_b['tour_id'] == $_t['tour_id']) {
+                        $aExistingTouren[] = $_t;
+                        return false;
+                    }
+                    if ($_b['timeline_id'] == $_t['timeline_id'] && $_b['IsDefault']) {
+                        continue;
+                    }
+                    if ($_b['ZeitVon'] >= $_t['ZeitVon'] && $_b['ZeitVon'] < $_t['ZeitBis'] ) {
+                        $aKonfliktTouren[] = ['Plan' => $_t, 'Belegt' => $_b, 'Rule-Conflict' => 'R1'];
+                        return false;
+                    }
+
+                    if ($_b['ZeitBis'] > $_t['ZeitVon'] && $_b['ZeitBis'] <= $_t['ZeitBis'] ) {
+                        $aKonfliktTouren[] = ['Plan' => $_t, 'Belegt' => $_b, 'Rule-Conflict' => 'R2' ];
+                        return false;
+                    }
+                    if ($_b['ZeitVon'] <= $_t['ZeitVon'] && $_b['ZeitBis'] >= $_t['ZeitBis'] ) {
+                        $aKonfliktTouren[] = ['Plan' => $_t, 'Belegt' => $_b, 'Rule-Conflict' => 'R3'];
+                        return false;
+                    }
+                }
+                return true;
+            });
+            $aReturnVars[] = 'aKonfliktTouren';
+        }
+        $aInsertTouren = $aPossibleTouren;
+
+        if (!count($aInsertTouren)) {
+            MyProject_Response_Json::sendError( $tlog() . 'Resource couldnt be added to any Tour!', compact($aReturnVars));
+        }
+
+        $insertValues = implode('),(', array_map(function($_t) use($iRsrcId){
+            return (int)$_t['tour_id'] . ', ' . (int)$iRsrcId;
+        }, $aInsertTouren));
+
+        $sqlInsert = 'INSERT IGNORE INTO'
+            . "$tourRsrcTbl( tour_id, $tourRsrcKey)\n"
+            . ' VALUES (' . $insertValues . ')';
+        $stmt = $db->query($sqlInsert);
+        // $stmt = $db->query('SELECT 1');
+        $errorCode = $stmt->errorCode();
+        $errorInfo = $stmt->errorInfo();
+        $affectedRows = $stmt->rowCount();
+
+        $aTourIds = array_column($aInsertTouren, 'tour_id');
+        $sTourIds = implode(',', $aTourIds);
+
+        array_push($aReturnVars,
+            'errorCode', 'errorInfo','affectedRows', 'aPossibleTouren',
+            'sqlInsert',  'aTourIds', 'sTourIds');
+
+        $sqlSelectInsertIds = "SELECT id, tour_id, $tourRsrcKey, $tourRsrcKey as rsrc_id, $tourRsrcKey as $rsrcKey FROM $tourRsrcTbl WHERE $tourRsrcKey = :rid AND tour_id IN($sTourIds)";
+
+        $aLastInserts = $this->_db->fetchAll($sqlSelectInsertIds, [ 'rid' => $iRsrcId]);
+        $aInsertedTourIds = array_column($aLastInserts, 'tour_id');
+        $aInsertTouren = array_filter($aInsertTouren, function($itm) use($aInsertedTourIds) { return in_array($itm['tour_id'], $aInsertedTourIds); });
+
+        array_push($aReturnVars,
+            'errorCode', 'errorInfo','affectedRows', 'aPossibleTouren',
+            'sqlInsert',  'aTourIds', 'sTourIds', 'sqlSelectInsertIds', 'aLastInserts');
+
+        $iTourInsertedRsrcId = 0;
+        $aRsrcInsertedValues = array_map(
+            function($_ins) use($aInsertTouren, $aTourInfo, $aRsrcInfo, &$iTourInsertedRsrcId) {
+                foreach($aInsertTouren as $_tour) {
+                    if ($_ins['tour_id'] == $aTourInfo['tour_id']) {
+                        $iTourInsertedRsrcId = $_ins['id'];
+                    }
+                    if ($_ins['tour_id'] == $_tour['tour_id']) {
+                        return [
+                            'tour' => $_tour,
+                            'rsrc' => array_merge( $aRsrcInfo, [ 'id' => $_ins['id'] ] )
+                        ];
+                    }
+                }
+            },
+            $aLastInserts
+        );
+
+        (new Model_TourenDispoLog())->logAddDefaultResource($aTourenStat['datum'], $aInsertTouren, $this->_resourceType, $iRsrcId, $aRsrcInfo);
+
+        $dropExecutionTime = $tlog();
+        array_push($aReturnVars,
+                'aLastInserts', 'aRsrcInsertedValues',
+                'dropExecutionTime');
+        // return MyProject_Response_Json::send(compact($aReturnVars));
+
+        return [
+            'iTourInsertedRsrcId' => $iTourInsertedRsrcId,
+            'aRsrcInfo' => $aRsrcInfo,
+            'aTourInfo' => $aTourInfo,
+            'aInsertTouren' => $aInsertTouren,
+            'aRsrcInsertedValues' => $aRsrcInsertedValues,
+            'aLastInserts' => $aLastInserts,
+            'aExistingTouren' => $aExistingTouren,
+            'aConflictTouren' => $aKonfliktTouren,
+            'affectedRows' => $affectedRows,
+            'aLog' => compact($aReturnVars),
+        ];
+        MyProject_Response_Json::send(compact($aReturnVars));
+    }
     
     /**
      * @param array $data ResourceData
@@ -532,6 +909,15 @@ implements MyProject_Model_TourenResourceInterface
                     'timeline_id' => $tid,
                 ), $_tourData);
 
+                if (0) {
+                    $json = json_encode(['line'=>__LINE__, 'file'=>__FILE__, 'queries' => MyProject_Db_Profiler::getProfiledQueryList()]);
+
+                    header('Content-Type: application/json; charset=UTF-8');
+                    header("Content-Length: ". strlen($json));
+                    echo $json;
+                    exit;
+                }
+
                 if ($id) {
                     $this->dispoLog(
                         $rid, 'apply-defaults', $_tour_id,
@@ -547,11 +933,126 @@ implements MyProject_Model_TourenResourceInterface
 
         return $aAppliedTourIDs;
     }
+
+    public function removeDefault($id) {
+        return $this->removeQuick($id);
+    }
+
+    public function removeQuick($id)
+    {
+        $id = (int)$id;
+
+        $tourTbl = $this->tourTbl;
+        $tourRsrcTbl = $this->rsrcLnkTbl;
+        $tourRsrcKey = $this->rsrcLnkKey;
+        $rsrcKey = $this->rsrcKey;
+        $rsrcType = $this->_db->quote($this->_resourceType);
+        $rsrcTbl = $this->rsrcTbl;
+
+        $aRemoveResult = [];
+
+        $sqlDeleteStat = "
+            SELECT 
+                t.tour_id base_tour_id, t.IsDefault base_tour_IsDefault, t.DatumVon, tr.id base_lnk_id, t.timeline_id, 
+                $rsrcType AS type,  tr.$tourRsrcKey, tr.$tourRsrcKey $rsrcKey, tr.$tourRsrcKey rid,
+                t2.tour_id, t2.IsDefault, t2.ZeitVon, t2.ZeitBis, t2.locked, t2.Auftragsnummer,
+                tr2.id
+               FROM $tourRsrcTbl tr
+               JOIN $tourTbl t ON (tr.tour_id = t.tour_id)
+               JOIN $tourTbl t2 
+                 ON(
+                   t.timeline_id = t2.timeline_id
+                   AND (t.tour_id = t2.tour_id OR t.IsDefault = 1)
+                 )
+               JOIN $tourRsrcTbl tr2 
+                 ON(
+                   t2.tour_id = tr2.tour_id 
+                   AND tr.$tourRsrcKey = tr2.$tourRsrcKey
+                 )
+               WHERE tr.id = :linkId
+               ORDER BY t2.IsDefault DESC, t2.ZeitVon
+        ";
+
+        $aDeleteStat = $this->_db->fetchAll($sqlDeleteStat, [ 'linkId' => $id], Zend_Db::FETCH_ASSOC);
+        $aRemoveResult['sqlDeleteStat'] = $sqlDeleteStat;
+        $aRemoveResult['aDeleteStat'] = $aDeleteStat;
+
+        if (!count($aDeleteStat)) {
+            return ['error' => "No Tours Found with this resource!!"]
+                + $aRemoveResult;
+        }
+
+        $rsrcLblExpr = $this->getSqlSelectExprAsLabel();
+        $iRsrcId = $aDeleteStat[0]['rid'];
+        $sqlRsrcInfo = "SELECT '{$this->_resourceType}' AS resourceType, r.$rsrcKey AS rid, r.$rsrcKey, r.extern_id, 
+                $rsrcLblExpr AS label, $rsrcLblExpr AS name 
+              FROM $rsrcTbl r 
+              WHERE r.$rsrcKey = " . $iRsrcId;
+
+        $aRsrcInfo = $this->_db->fetchRow($sqlRsrcInfo, [], Zend_Db::FETCH_ASSOC);
+
+        $aLinkIds = array_map(function($itm){ return (int)$itm['id'];}, $aDeleteStat);
+        $sLinkIds = implode(',', $aLinkIds);
+        $numLinksFound = count($aLinkIds);
+
+        $sqlFromWhereDelIds = "FROM $tourRsrcTbl WHERE id IN($sLinkIds)";
+        $sqlDeleteLinks = "DELETE $sqlFromWhereDelIds LIMIT ". count($aLinkIds);
+        $stmt = $this->_db->query($sqlDeleteLinks);
+        $numLinksDeleted = $stmt->rowCount();
+
+        $sqlRemainingLinks = 'SELECT id ' . $sqlFromWhereDelIds;
+        $aStillExistingLinks = $this->_db->fetchCol($sqlRemainingLinks);
+
+        $aDeletedLinks = [];
+        $aUndeletedLinks = [];
+
+        if (!count($aStillExistingLinks)) {
+            $aDeletedLinks = $aDeleteStat;
+        } else {
+            foreach ($aDeleteStat as $_itm) {
+                if (in_array($_itm['tour_id'], $aStillExistingLinks)) {
+                    $aUndeletedLinks[] = $_itm;
+                } else {
+                    $aDeletedLinks[] = $_itm;
+                }
+            }
+        }
+        $numLinksRemain = count($aStillExistingLinks);
+
+        $aRemoveResult['aLinkIds'] = $aLinkIds;
+        $aRemoveResult['aDeletedLinks'] = $aDeletedLinks;
+        $aRemoveResult['aUndeletedLinks'] = $aUndeletedLinks;
+        $aRemoveResult['aStillExistingLinks'] = $aStillExistingLinks;
+        $aRemoveResult['numLinksFound'] = $numLinksFound;
+        $aRemoveResult['numLinksDeleted'] = $numLinksDeleted;
+        $aRemoveResult['numLinksRemain'] = $numLinksRemain;
+
+        $datum = $aDeleteStat[0]['DatumVon'];
+        $isDefault = $aDeleteStat[0]['base_tour_IsDefault'];
+        if ($isDefault || $numLinksDeleted > 1) {
+            (new Model_TourenDispoLog())->logRemoveDefaultResource($datum, $aDeletedLinks, $this->_resourceType, $iRsrcId, $aRsrcInfo);
+        } else {
+            $aTourInfo = $aDeletedLinks[0];
+            $tourId = $aTourInfo['tour_id'];
+            (new Model_TourenDispoLog())->logResource(
+                $this->_resourceType, $iRsrcId, 'remove-rsrc', $tourId, null, null,
+                $aTourInfo + [ 'bemerkung' => $aRsrcInfo['label']]);
+        }
+
+        if ($numLinksRemain) {
+            return ['error' =>
+                "$numLinksRemain von $numLinksFound ermittelten Einträgen konnten nicht gelöscht werden!"]
+                + $aRemoveResult;
+        }
+
+        return $aRemoveResult;
+
+    }
     
     /**
      * @param int $id ResourceLnkId
      */
-    public function removeDefault($id)
+    public function removeDefault0($id)
     {     
         //die('#' . __LINE__  . ' ' . __METHOD__ . ' data: ' . print_r($data,1));
         $rows = $this->getStorage()->find($id);
@@ -599,17 +1100,26 @@ implements MyProject_Model_TourenResourceInterface
      */
     public function getResourcesByTourId($tour_id, $keysOnly = false) 
     {
-        $modelLstg = new Model_Db_Leistung();
-        $tblLstg   = $modelLstg->info(Zend_Db_Table::NAME);
+
+        $iTourId = (int)$tour_id;
+        $tourKey = $this->tourKey;
+        $tourRsrcTbl = $this->rsrcLnkTbl;
+        $tourRsrcKey = $this->rsrcLnkKey;
+        $rsrcTbl = $this->rsrcTbl;
+        $rsrcKey = $this->rsrcKey;
+        $lstgTbl = Model_Db_Leistung::obj()->tableName();
+        $labelExpr = $this->getSqlSelectExprAsLabel();
+
+        $columns = ($keysOnly) ? $rsrcKey : $labelExpr . ' AS label, tr.*, r.*, l.*';
+
+        $sql = "SELECT $columns
+                FROM $tourRsrcTbl tr
+                JOIN $rsrcTbl r ON(tr.$tourKey = $iTourId AND tr.$tourRsrcKey = r.$rsrcKey)
+                LEFT JOIN $lstgTbl l ON(r.leistungs_id=l.leistungs_id)";
         
-        $sql =
-        'SELECT ' . ($keysOnly ? $this->rsrcKey : 'id, r.*, l.*, lg.*') . ' FROM '.$this->rsrcTbl.' r '
-        .'LEFT JOIN '.$this->rsrcLnkTbl.' l ON(r.'.$this->rsrcKey.'=l.'.$this->rsrcLnkKey.')'
-        .'LEFT JOIN '.$tblLstg.' lg ON(r.leistungs_id=lg.leistungs_id)'
-        .'WHERE ' . $this->tourKey . ' = ' . (int)$tour_id;
-        
-        if ($keysOnly) return $this->_db->fetchCol ($sql);
-        else return $this->_db->fetchAll($sql, Zend_Db::FETCH_ASSOC);
+        return ($keysOnly)
+                ? $this->_db->fetchCol($sql)
+                : $this->_db->fetchAll($sql, Zend_Db::FETCH_ASSOC);
     }
     
     public function getResourceKey() {
@@ -627,20 +1137,25 @@ implements MyProject_Model_TourenResourceInterface
      */
     public function getResourcesByTimelineId($timeline_id, $keysOnly = false) 
     {
-        $tlStorage = MyProject_Model_Database::loadStorage('tourenTimelines');
-        $tlTbl = $tlStorage->info(Zend_Db_Table::NAME);
+        $tourTbl = Model_Db_TourenDispoVorgaenge::obj()->tableName();
+        $rsrcTbl = $this->rsrcTbl;
+        $rsrcKey = $this->rsrcKey;
+        $tourRsrcTbl = $this->rsrcLnkTbl;
+        $tourRsrcKey = $this->rsrcLnkKey;
+        $labelExpr = $this->getSqlSelectExprAsLabel();
+
+        $columns = ($keysOnly) ? $rsrcKey : $labelExpr . ' AS label, t.DatumVon, t.DatumBis, t.ZeitVon, t.ZeitBis, r.*, dr.* ';
+
+        $sql = "SELECT $columns
+            FROM $tourTbl t
+            JOIN $tourRsrcTbl tr ON (t.tour_id = tr.tour_id)
+            JOIN $rsrcTbl r ON(tr.$tourRsrcKey = r.$rsrcKey) 
+            WHERE dv.timeline_id = {(int)$timeline_id}"
+        ;
         
-        $tourStorage = MyProject_Model_Database::loadStorage('tourenDispoVorgaenge');
-        $tourTbl = $tourStorage->info(Zend_Db_Table::NAME);
-        
-        $sql =
-        'SELECT ' . ($keysOnly ? $this->rsrcKey : 'id, r.*, l.*, t.DatumVon,t.DatumBis,t.ZeitVon,t.ZeitBis') . ' FROM '.$this->rsrcTbl.' r '
-        .'LEFT JOIN '.$this->rsrcLnkTbl.' l ON(r.'.$this->rsrcKey.'=l.'.$this->rsrcLnkKey.')'
-        .'LEFT JOIN '.$tourTbl.' t ON(l.'.$this->tourKey.'=t.'.$this->tourKey.')'
-        .'WHERE t.timeline_id = ' . (int)$timeline_id;
-        
-        if ($keysOnly) return $this->_db->fetchCol ($sql);
-        else return $this->_db->fetchAll($sql, Zend_Db::FETCH_ASSOC);
+        return ($keysOnly)
+                ? $this->_db->fetchCol ($sql)
+                : $this->_db->fetchAll($sql, Zend_Db::FETCH_ASSOC);
     }
     
     /**
@@ -762,11 +1277,16 @@ implements MyProject_Model_TourenResourceInterface
         if (count($re->data)) {
             $re->message = 'Konflikt: Resource ist f�r den Zielzeitraum nicht disponierbar!' . PHP_EOL;
             foreach($re->data as $_d) {
-                if ($_d['tour_id'])
-                    $re->message.= '-Gebucht f�r' . $_d['Auftragsnummer'] . ' '.$_d['DatumVon'].' '.$_d['ZeitVon'] . PHP_EOL;
-                else
+                if ($_d['tour_id']){
+                    $re->message.= '-Gebucht für [ANR:' . $_d['Auftragsnummer'] . ', DatumVon: '.$_d['DatumVon'].', ZeitVon: '.$_d['ZeitVon'] . ']' . PHP_EOL;
+                }
+                else{
                     $re->message.= '-Gesperrt von '.$_d['gesperrt_von'].' bis '.$_d['gesperrt_bis'] . PHP_EOL;
+                }
             }
+            echo $re->sql;
+            try { throw new Exception('DEBUG Stacktrace');} catch(Exception $e) { echo $e->getTraceAsString(); }
+            exit;
         }
         return $re;
     }
@@ -778,7 +1298,7 @@ implements MyProject_Model_TourenResourceInterface
      * @param array $filter
      * @return string sql 
      */
-    public function getTourResourceFilterSql($filter) 
+    public function getTourResourceFilterSql0($filter)
     {
         /* @var $db Zend_Db_Adapter_Abstract */
         $db = $this->_db;
@@ -880,6 +1400,452 @@ implements MyProject_Model_TourenResourceInterface
             .'WHERE '. $subSqlWhere;
         // ENDE Tour-Filter        
         
+        return $subSql;
+    }
+
+    public function getListOfAvailableItems(array $aDateTimeRange, array $aFilter, MyProject_Model_QueryBuilder $oQueryOpts = null): MyProject_Model_QueryResult
+    {
+        $db = $this->_db;
+        $rsrcType = $this->_resourceType;
+        $rsrcKey = $this->_tblRsrcKey;
+        $sExternFilter = $aFilter['extFilter'];
+        $aTimeIn['Model'] = microtime(true);
+
+        if (is_null($oQueryOpts)) {
+            $oQueryOpts = new MyProject_Model_QueryBuilder();
+        }
+
+        $result = new MyProject_Model_QueryResult();
+
+        $extrnTbl = Model_Db_Extern::obj()->tableName();
+        $lstgTbl = Model_Db_Leistung::obj()->tableName();
+        $rsrcTbl = $this->rsrcTbl;
+        $rsrcLblExpr = $this->getSqlSelectExprAsLabel();
+
+        $oQueryOpts->setSelect($rsrcLblExpr . " AS label, $rsrcTbl.*, e.*, l.*")
+            ->setFrom($rsrcTbl)
+            ->setJoin("LEFT JOIN $extrnTbl e ON (e.extern_id = $rsrcTbl.extern_id)", true)
+            ->addJoin( " LEFT JOIN $lstgTbl l ON(l.leistungs_id = $rsrcTbl.leistungs_id)", true)
+            ;
+
+        $sqlInTouren = $this->getSqlSelectIdsInDisponiert($aDateTimeRange);
+        $oQueryOpts->andWhere($this->_tblRsrcKey . " NOT IN ($sqlInTouren)");
+
+
+        if (!empty($aFilter['categoryTerm'])) {
+            $sqlInCtg = $this->getSqlSelectIdsInCategorie($aFilter['categoryTerm']);
+            $oQueryOpts->andWhere(
+                $this->rsrcKey. ' IN(' . $sqlInCtg . ')'
+            );
+        }
+
+        if ($sExternFilter == 'int') {
+            $sqlInSperre = $this->getSqlSelectIdsInSperrzeiten($aDateTimeRange['DatumVon'], $aDateTimeRange['DatumBis']);
+
+            $oQueryOpts->andWhere(
+                $this->rsrcKey. ' NOT IN(' . $sqlInSperre . ')');
+
+            $oQueryOpts->andWhere(
+                '('.$this->rsrcTbl. '.extern_id IS NULL OR ' . $this->rsrcTbl . '.extern_id = 0)'
+            );
+
+        } elseif ($sExternFilter == 'ext') {
+            $tblDz   = Model_Db_ResourcesDispozeiten::obj()->tableName();
+            $sqlInExtern = $this->getSqlSelectIdsInDispozeiten($aDateTimeRange);
+            $oQueryOpts->addJoin(
+                "LEFT JOIN $tblDz dz ON( dz.ressourcen_typ = '$rsrcType' AND $rsrcKey = dz.ressourcen_id)", true
+            );
+            $oQueryOpts->andWhere(
+                'IFNULL(' . $this->rsrcTbl . '.extern_id, 0) > 0'
+            );
+            $oQueryOpts->andWhere(
+                $this->rsrcKey. ' IN(' . $sqlInExtern . ')'
+            );
+        }
+
+        $aTimeIn['SqlCountQuery'] = microtime(true);
+        $iTotal = (int)$db->fetchOne( $oQueryOpts->assembleCount() );
+        $aTimeOut['SqlCountQuery'] = microtime(true);
+
+        if ($oQueryOpts->getOrder()) {
+            $result->setOrder( "{$oQueryOpts->getOrder()} {$oQueryOpts->getOrderDir()}" );
+        }
+        // die( $oQueryOpts->assemble() );
+        $result->setSql( $oQueryOpts->assemble() );
+        $result->setOffset( (int)$oQueryOpts->getOffset() );
+        $result->setLimit( (int)$oQueryOpts->getLimit() );
+        $result->setTotal($iTotal);
+
+
+        if ($iTotal > $oQueryOpts->getOffset()) {
+            $aTimeIn['SqlRowsQuery'] = microtime(true);
+            $result->setRows( $db->fetchAll( $oQueryOpts->assemble(), Zend_Db::FETCH_ASSOC));
+            $aTimeOut['SqlRowsQuery'] = microtime(true);
+        }
+        $aTimeOut['Model'] = microtime(true);
+        foreach($aTimeIn as $_what => $_timeIn) {
+            $result->addLog("Time for $_what: " . ($aTimeOut[$_what] - $_timeIn), 3);
+        }
+        return $result;
+
+    }
+
+    public function getSqlSelectIdsInDisponiert(array $aTimeRange, int $iTourId = 0)
+    {
+        $db = $this->_db;
+        $dVon = $aTimeRange['DatumVon'] ?? '';
+        $dBis = $aTimeRange['DatumVon'] ?? '';
+        $zVon = $aTimeRange['ZeitVon'] ?? '';
+        $zBis = $aTimeRange['ZeitBis'] ?? '';
+
+        if ($iTourId) {
+            $aRowTour = Model_Db_TourenDispoVorgaenge::get($iTourId);
+            $tlId = $aRowTour['timeline_id'];
+            $isDef = $aRowTour['IsDefault'];
+            $dVon = new DateTime($aRowTour['DatumVon']);
+            $dBis = new DateTime($aRowTour['DatumBis']);
+            $zVon = $aRowTour['ZeitVon'];
+            $zBis = $aRowTour['ZeitBis'];
+        }
+
+        if ($dVon instanceof DateTime) {
+            $dVon = $dVon->format('Y-m-d');
+        }
+        if ($dBis instanceof DateTime) {
+            $dBis = $dBis->format('Y-m-d');
+        }
+
+        $this->_require(strtotime($dVon),
+            'Missing valid Paramter: DatumFilter. Given: ' . $dVon . '!');
+
+        $this->_require(empty($dBis) || strtotime($dBis),
+            'Invalid optional Parameter DatumBis: ' . $dBis);
+
+        $this->_require(empty($zVon) || preg_match('#^\d\d:\d\d(:\d\d)?$#', $zVon),
+            'Invalid optional Parameter ZeitVon: '. $zVon);
+
+        $this->_require(empty($zBis) || preg_match('#^\d\d:\d\d(:\d\d)?$#', $zBis),
+            'Invalid optional Parameter ZeitBis: '. $zBis);
+
+        $portletTbl  = Model_Db_TourenPortlets::obj()->tableName();
+        $timelineTbl = Model_Db_TourenTimelines::obj()->tableName();
+        $tourTbl     = Model_Db_TourenDispoVorgaenge::obj()->tableName();
+        $tourRsrcTbl = $this->rsrcLnkTbl;
+        $tourRsrcKey = $this->rsrcLnkKey;
+
+        $dateWhere = (!$dBis || $dBis == $dVon)
+                    ? 'pt.datum = ' . $db->quote($dVon)
+                    : 'pt.datum BETWEEN ' . $db->quote($dVon) . ' AND ' . $db->quote($dBis);
+
+        if ($zVon && $zBis) {
+            $dateWhere.= '   AND ' . PHP_EOL
+                .'   ( ' . PHP_EOL
+                ."      dv.ZeitVon BETWEEN '$zVon' AND '$zBis' " . PHP_EOL
+                ."      OR dv.ZeitBis BETWEEN '$zVon' AND '$zBis' " . PHP_EOL
+                .'   )';
+        }
+
+
+        $sqlSelectIds = 'SELECT DISTINCT(dm.' . $tourRsrcKey . ') ' . PHP_EOL
+	                    .' FROM ' . $portletTbl . ' pt ' . PHP_EOL
+                        .' JOIN ' . $timelineTbl . ' tl ON (pt.portlet_id = tl.portlet_id) ' . PHP_EOL
+                        .' JOIN ' . $tourTbl . ' dv ON (tl.timeline_id = dv.timeline_id)  ' . PHP_EOL
+                        .' JOIN ' . $tourRsrcTbl . ' dm ON (dv.tour_id = dm.tour_id) ' . PHP_EOL
+                        .' WHERE ' . PHP_EOL
+                        . $dateWhere;
+
+        return $sqlSelectIds;
+    }
+
+    public function getSqlSelectIdsInSperrzeiten(DateTime $dVon, DateTime $dBis = null) {
+
+        $db = $this->_db;
+        $szTbl = Model_Db_ResourcesSperrzeiten::obj()->tableName();
+        $rsrcType = $this->_resourceType;
+        $rsrcTypeQuoted = $db->quote($rsrcType);
+        $dVonFormatted = $dVon->format('Y-m-d');
+        $dBisFormatted = (is_null($dBis)) ? '' : $dBis->format('Y-m-d');
+
+        $dateWhere = (is_null($dBis) || $dVonFormatted === $dBisFormatted)
+                    ? $db->quoteInto( ' (gesperrt_von <= ? AND gesperrt_bis >= ?) ', $dVonFormatted) . PHP_EOL
+                    : $db->quoteInto( ' (gesperrt_von BETWEEN ? AND ', $dVonFormatted)
+                        . $db->quote($dBisFormatted) . PHP_EOL
+                        . $db->quoteInto( ' OR (gesperrt_bis BETWEEN ? AND ', $dVonFormatted)
+                        . $db->quote($dBisFormatted) . PHP_EOL;
+
+        $sqlSelectIds = 'SELECT ressourcen_id ' . PHP_EOL
+                       .' FROM ' . $szTbl . PHP_EOL
+                       .' WHERE ressourcen_typ = ' . $rsrcTypeQuoted . ' AND ' . $dateWhere . ' ';
+
+        return $sqlSelectIds;
+    }
+
+    public function getSqlSelectIdsInDispozeiten(array $aDateTimeRange)
+    {
+
+        $db = $this->_db;
+
+        $dVon = $aDateTimeRange['DatumVon'];
+        $dBis = $aDateTimeRange['DatumBis'];
+        $zVon = $aDateTimeRange['ZeitVon'];
+        $zBis = $aDateTimeRange['ZeitBis'];
+
+        $dzTbl = Model_Db_ResourcesDispozeiten::obj()->tableName();
+        $rsrcType = $this->_resourceType;
+        $rsrcTypeQuoted = $db->quote($rsrcType);
+        $dVonFormatted = $dVon->format('Y-m-d');
+        $dBisFormatted = is_null($dBis) ? '' : $dBis->format('Y-m-d');
+
+        $dateWhere = (is_null($dBis) || $dVonFormatted === $dBisFormatted)
+                    ? $db->quoteInto( ' gebucht_von <= ? AND gebucht_bis >= ? ', $dVonFormatted) . PHP_EOL
+                    : $db->quoteInto( ' (gebucht_von BETWEEN ? AND ', $dVonFormatted)
+                        . $db->quote($dBisFormatted) . PHP_EOL
+                        . $db->quoteInto( ' OR gebucht_bis BETWEEN ? AND ', $dVonFormatted)
+                        . $db->quote($dBisFormatted) . ')' . PHP_EOL;
+
+        $timeFormat = '#^\d\d:\d\d\$#';
+
+        if ($zVon && $zBis && preg_match($timeFormat, $zVon) && preg_match($timeFormat, $zVon)) {
+            $dateWhere.= ' AND IFNULL(gebucht_von,"00:00") <= ' . $db->quote($zVon)
+                        .' AND IFNULL(gebucht_bis, "24:00") >= ' . $db->quote($zBis);
+        }
+
+        $sqlSelectIds = 'SELECT ressourcen_id ' . PHP_EOL
+            .' FROM ' . $dzTbl . PHP_EOL
+            .' WHERE ressourcen_typ = ' . $rsrcTypeQuoted . ' AND ' . $dateWhere . ' ';
+
+        return $sqlSelectIds;
+    }
+
+    public function getSqlSelectIdsInCategorie($term) {
+        $db = $this->_db;
+
+        $ctgTbl = $this->_tblCtgName;
+        $ctgKey = $this->_tblCtgKey;
+        $ctgLnkTbl = $this->_tblCtgLnkName;
+        $ctgLnkKey = $this->_tblCtgLnkKey;
+
+        $ctgLnkRsrcKey = $this->_tblCtgLnkRsrcKey;
+
+        $parentWhere = is_numeric($term) ? 'category_id='.(int)$term : 'name LIKE ' . $db->quote("$term%");
+
+        $sqlSelectIds = 'SELECT lnk.' . $ctgLnkRsrcKey .' ' . PHP_EOL
+                        .' FROM ' . $ctgTbl . ' AS parent ' . PHP_EOL
+                        .' JOIN ' . $ctgTbl . ' AS node ON (parent.'.$parentWhere.' AND node.lft BETWEEN parent.lft AND parent.rgt)' . PHP_EOL
+                        .' JOIN ' . $ctgLnkTbl . ' AS lnk ON (node.'.$ctgKey.' = lnk.' . $ctgLnkKey . ')';
+
+        return $sqlSelectIds;
+    }
+
+    public function getTourResourceFilterSql($aFilter): string
+    {
+        /* @var $db Zend_Db_Adapter_Abstract */
+        $db = $this->_db;
+
+        // START Tour-Filter
+        $tourId = (array_key_exists('tour_id', $aFilter) ? (int)$aFilter['tour_id'] : 0);
+
+        if ($tourId) {
+            $aDateTimeRange = Model_Db_TourenDispoVorgaenge::get($tourId);
+
+            $this->_require(!empty($aDateTimeRange), 'Tour not found with ID: ' . $tourId);
+
+            $aDateTimeRange['DatumVon'] = new DateTime( $aDateTimeRange['DatumVon'] );
+            $aDateTimeRange['DatumBis'] = new DateTime( $aDateTimeRange['DatumBis'] );
+
+        } else {
+            $aDateTimeRange = $aFilter;
+            $this->_require(!empty($aDateTimeRange['DatumVon']),
+                'Missing Parameter DatumVon');
+            $this->_require(strtotime($aDateTimeRange['DatumVon']),
+                'Invalid Parameter-Value for DatumVon: ' . $aDateTimeRange['DatumVon']);
+
+            if (!($aDateTimeRange['DatumVon'] instanceof DateTime)) {
+                $aDateTimeRange['DatumVon'] = new DateTime($aDateTimeRange['DatumVon']);
+            }
+
+            if( empty($aDateTimeRange['DatumBis'])) {
+                $aDateTimeRange['DatumBis'] = '';
+            } elseif (!($aDateTimeRange['DatumBis'] instanceof DateTime)) {
+                $aDateTimeRange['DatumBis'] = new DateTime($aDateTimeRange['DatumBis']);
+            }
+
+            if( !isset($aDateTimeRange['ZeitVon'])) {
+                $aDateTimeRange['ZeitVon'] = '';
+            }
+            if( !isset($aDateTimeRange['ZeitBis'])) {
+                $aDateTimeRange['ZeitBis'] = '';
+            }
+        }
+
+        $oQueryOpts = new MyProject_Model_QueryBuilder();
+        $oQueryOpts->setSelect($this->rsrcKey);
+        $oQueryOpts->setFrom($this->_tblRsrcName);
+
+        // SQL-Part Already in Dispo
+        $sqlInTouren = $this->getSqlSelectIdsInDisponiert($aDateTimeRange, $tourId);
+        $oQueryOpts->andWhere($this->rsrcKey . " NOT IN ($sqlInTouren)");
+
+        // SQL-Part Sperre
+        $tblExt = Model_Db_Extern::obj()->tableName();
+        $sqlInSperre = $this->getSqlSelectIdsInSperrzeiten(
+            $aDateTimeRange['DatumVon'], $aDateTimeRange['DatumBis'] ?: null);
+
+        $oQueryOpts->andWhere(
+            $this->rsrcKey . ' NOT IN(' . $sqlInSperre . ')');
+
+        // SQL-Part Category
+        if (!empty($aFilter['categoryTerm'])) {
+            $sqlInCtg = $this->getSqlSelectIdsInCategorie($aFilter['categoryTerm']);
+            $oQueryOpts->andWhere(
+                $this->rsrcKey . ' IN(' . $sqlInCtg . ')'
+            );
+        }
+
+        return $oQueryOpts->assemble();
+    }
+
+
+    // TOUR-RESOURCE-BASE-FILTER
+    // Aufruf z.B. aus FuhrparkControler::gridresponsedataAction()
+    /**
+     * Liefert SQL-Abfrage, der als Negativ-Ausdruck ( tour_id NOT IN({subSql}) als Sub-Sql verwendet werden kann
+     * @param array $filter
+     * @return string sql
+     */
+    public function getTourResourceFilterSqlNEU20190823($filter)
+    {
+        /* @var $db Zend_Db_Adapter_Abstract */
+        $db = $this->_db;
+
+        // START Tour-Filter
+        $tourId  = (array_key_exists('tour_id', $filter) ? $filter['tour_id'] : '' );
+
+        if ($tourId) {
+            $row = Model_Db_TourenDispoVorgaenge::get($tourId);
+
+            $dVon = $row['DatumVon'];
+            $dBis = $row['DatumBis'];
+            $zVon = $row['ZeitVon'];
+            $zBis = $row['ZeitBis'];
+
+        } else {
+            $dVon  = (array_key_exists('DatumVon', $filter) ? $filter['DatumVon'] : '' );
+            $dBis  = (array_key_exists('DatumBis', $filter) ? $filter['DatumBis'] : '' );
+            $zVon  = (array_key_exists('ZeitVon',  $filter) ? $filter['ZeitVon']  : '' );
+            $zBis  = (array_key_exists('ZeitBis',  $filter) ? $filter['ZeitBis']  : '' );
+        }
+
+        $aDateTimeRange = [
+            'DatumVon' => strtotime($dVon) ? new DateTime(strtotime($dVon)) : null,
+            'DatumBis' => strtotime($dBis) ? new DateTime(strtotime($dBis)) : null,
+            'ZeitVon' => $zVon,
+            'ZeitBis' => $zBis,
+        ];
+        $oQueryOpts = new MyProject_Model_QueryBuilder();
+
+        $tblExt = Model_Db_Extern::obj()->tableName();
+        $tblLstg = Model_Db_Leistung::obj()->tableName();
+
+        $oQueryOpts->setSelect('*')
+            ->setFrom($this->_tblRsrcName)
+            ->setJoin("LEFT JOIN $tblExt e ON (e.extern_id = $this->_tblRsrcName.extern_id)", true)
+            ->addJoin( " LEFT JOIN $tblLstg l ON(l.leistungs_id = {$this->_tblRsrcName}.leistungs_id)", true)
+        ;
+
+        $sqlInTouren = $this->getSqlSelectIdsInDisponiert($aDateTimeRange, $tourId);
+        $oQueryOpts->andWhere($this->_tblRsrcKey . " NOT IN ($sqlInTouren)");
+
+        $sqlInSperre = $this->getSqlSelectIdsInSperrzeiten($aDateTimeRange['DatumVon'], $aDateTimeRange['DatumBis']);
+        $oQueryOpts->andWhere(
+            $this->rsrcKey. ' NOT IN(' . $sqlInSperre . ')');
+        $oQueryOpts->andWhere(
+            '('.$this->rsrcTbl. '.extern_id IS NULL OR ' . $this->rsrcTbl . '.extern_id = 0)'
+        );
+
+        if (!empty($aFilter['categoryTerm'])) {
+            $sqlInCtg = $this->getSqlSelectIdsInCategorie($aFilter['categoryTerm']);
+            $oQueryOpts->andWhere(
+                $this->rsrcKey. ' IN(' . $sqlInCtg . ')'
+            );
+        }
+
+
+
+        $portletTbl = Model_Db_TourenPortlets::obj()->tableName();
+        $timelineTbl = Model_Db_TourenTimelines::obj()->tableName();
+        $tourenTbl = Model_Db_TourenDispoVorgaenge::obj()->tableName();
+        $tourenRsrcTbl = $this->rsrcLnkTbl;
+        $rsrcTbl = $this->rsrcTbl;
+        $szTbl = Model_Db_ResourcesSperrzeiten::obj()->tableName();
+
+        $rsrcType = $this->_resourceType;
+        $rsrcTypeQuoted = $db->quote($rsrcType);
+        $rsrcKey = $this->rsrcKey;
+        $tourenRsrcKey = $this->rsrcLnkKey;
+
+        $gesperrtWhere = '';
+        $disponiertWhere = '';
+        if ($dVon) {
+            $gesperrtWhere.= $db->quoteInto(
+                    ' (gesperrt_von <= ? AND gesperrt_bis >= ?) ', $dVon ) . PHP_EOL;
+
+            if ($dBis && $dBis != $dVon) {
+                $disponiertWhere.= $db->quoteInto(
+                        ' (p.datum <= ? AND p.datum >= ?)', $dVon) . PHP_EOL
+                        . $db->quoteInto(
+                        ' AND (p.datum <= ? AND p.datum >= ?)', $dBis) . PHP_EOL;
+            } else {
+                $disponiertWhere.= $db->quoteInto(' (p.datum = ?)', $dVon) . PHP_EOL;
+            }
+        }
+
+        if ($dVon && $dBis && $dBis !== $dVon) {
+            $gesperrtWhere.= ($gesperrtWhere ? ' OR ' : '') . $db->quoteInto(
+                    ' OR (gesperrt_von <= ? AND gesperrt_bis >= ?) ', $dBis ) . PHP_EOL;
+
+            $disponiertWhere.= ($gesperrtWhere ? ' AND ' : '') . $db->quoteInto(
+                    ' AND (p.datum <= ? AND p.datum >= ?)', $dBis) . PHP_EOL;
+        }
+
+        if ($dVon && $zVon)  {
+            $disponiertWhere.= ' AND (';
+            $disponiertWhere.= $db->quoteInto(
+                    ' (t.ZeitVon <= ? AND t.ZeitBis > ?)', $zVon) . PHP_EOL;
+
+            if ($zBis && $zBis !== $zVon) {
+                $disponiertWhere.= $db->quoteInto(
+                        ' OR (t.ZeitVon < ? AND t.ZeitBis >= ?)', $zBis) . PHP_EOL;
+            }
+            $disponiertWhere.= ')';
+        }
+
+        if ($gesperrtWhere) {
+            $gesperrtQuery = " AND $rsrcKey NOT IN( SELECT ressourcen_id FROM $szTbl WHERE ressourcen_typ=$rsrcTypeQuoted AND ($gesperrtWhere) )";
+        } else {
+            $gesperrtQuery = '';
+        }
+
+        if ($disponiertWhere) {
+            $disponiertWhere = "WHERE $disponiertWhere";
+        }
+
+        $subSql = <<<EOT
+SELECT $rsrcKey FROM $rsrcTbl  
+WHERE ($rsrcKey NOT IN(
+	SELECT distinct(rsrc.$rsrcKey)
+	 FROM $portletTbl p
+	 JOIN $timelineTbl tl ON (p.portlet_id = tl.portlet_id)
+	 JOIN $tourenTbl t ON (tl.timeline_id = t.timeline_id)
+	 JOIN $tourenRsrcTbl tr ON (t.tour_id = tr.tour_id)
+	 JOIN $rsrcTbl rsrc ON (tr.$tourenRsrcKey = rsrc.$rsrcKey)
+	 $disponiertWhere	 
+ ))
+ $gesperrtQuery
+ ORDER BY $rsrcKey
+EOT;
+
+
         return $subSql;
     }
 

@@ -10,7 +10,7 @@
  *
  * @author rybka
  */
-class Model_Db_TourenPortlets extends Zend_Db_Table_Abstract 
+class Model_Db_TourenPortlets extends Model_Db_Abstract
 {
     //put your code here
     protected $_name = 'mr_touren_portlets';

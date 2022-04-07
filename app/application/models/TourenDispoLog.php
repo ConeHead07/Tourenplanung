@@ -10,13 +10,15 @@
  *
  * @author rybka
  */
-class Model_TourenDispoLog extends MyProject_Model_Database
+class Model_TourenDispoLog extends MyProject_Model_Database implements Model_TourenDispoLogInterface
 {
     //put your code here
     protected $_storageName = 'tourenDispoLog';
     
     /** var $_storage Zend_Db_Table_Abstract */
     protected $_storage = null;
+
+    protected $_uid = 0;
     
     public const OBJ_TOURENPLAN         = 'TP';
     public const OBJ_TIMELINE           = 'TL';
@@ -30,6 +32,7 @@ class Model_TourenDispoLog extends MyProject_Model_Database
         /* @var $this->_storage Zend_Db_Table_Abstract */
         $this->_storage = $this->getStorage();
         $this->_db = $this->_storage->getAdapter();
+        $this->_uid = MyProject_Auth_Adapter::getUserId ();
     }
 
     public function getTourLogDetails(int $tour_id) {
@@ -54,12 +57,16 @@ class Model_TourenDispoLog extends MyProject_Model_Database
                 'ZeitBis' => '',
             ];
         }
+    }
 
+    public function setUID(int $uid) {
+        $this->_uid = $uid;
+        return $this;
     }
 
     public function log($oType, $oId, $action, $tour_id = 0, $uid = null, $sperrzeiten_id = null, array $aDetails = []) {
         if ($uid === null) {
-            $uid = MyProject_Auth_Adapter::getUserId ();
+            $uid = $this->_uid;
         }
 
         $aLogData = [
@@ -120,6 +127,88 @@ class Model_TourenDispoLog extends MyProject_Model_Database
             $tourLogger->log($tour_id, $action, $uid);
             $tourLogger->log($tour_id, $action.'-'.$oType, $uid);
         }
+    }
+
+    public function logAddDefaultResource(string $datum, array $aTouren, $rsrcType, $rsrcId, array $aRsrcInfo = []) {
+        if (!count($aTouren)) {
+            return false;
+        }
+        $db = $this->_db;
+
+        $qDatum = $db->quote($datum);
+        $qRsrcType = $db->quote($rsrcType);
+        $qRsrcId = $db->quote($rsrcId);
+        $qAction = $db->quote("apply-defaults");
+        $qRsrcInfo = $db->quote( $aRsrcInfo['name'] ?? json_encode($aRsrcInfo));
+
+        $aInsertValues = array_map(function($itm) use ($db, $qDatum, $qRsrcType, $qRsrcId, $qAction, $qRsrcInfo) {
+            return [
+                'tour_id' => (int)$itm['tour_id'],
+                'object_type' => $qRsrcType,
+                'object_id' => $qRsrcId,
+                'action' => $qAction,
+                'user_id' => $this->_uid,
+                'action_time' => 'NOW()',
+                'tour_anr' => (int)($itm['Auftragsnummer'] ?? 0),
+                'dispo_datum' => $qDatum,
+                'dispo_zeit_von' => $db->quote($itm['ZeitVon']),
+                'dispo_zeit_bis' => $db->quote($itm['ZeitBis']),
+                'bemerkung' => $qRsrcInfo,
+            ];
+        }, $aTouren);
+
+        $sql = "INSERT INTO mr_touren_dispo_log (" . implode(',', array_keys($aInsertValues[0])) . ")\nVALUES\n"
+            . implode(",\n", array_map(function($itm) { return '(' . implode(',', array_values($itm)) . ')'; }, $aInsertValues));
+
+        if ($debug = 0) {
+            $aLogVarNames = ['datum','aTouren','rsrcType','rsrcId','qDatum','qRsrcType','qRsrcId','qAction','aInsertValues','sql'];
+            $aLogVars = array_combine($aLogVarNames, compact($aLogVarNames));
+            MyProject_Response_Json::send($aLogVars);
+        }
+
+        $db->query($sql);
+
+    }
+
+    public function logRemoveDefaultResource(string $datum, array $aTouren, $rsrcType, $rsrcId, array $aRsrcInfo = []) {
+        if (!count($aTouren)) {
+            return false;
+        }
+        $db = $this->_db;
+
+        $qDatum = $db->quote($datum);
+        $qRsrcType = $db->quote($rsrcType);
+        $qRsrcId = $db->quote($rsrcId);
+        $qAction = $db->quote("removed-default");
+        $qRsrcInfo = $db->quote( $aRsrcInfo['name'] ?? json_encode($aRsrcInfo));
+
+        $aInsertValues = array_map(function($itm) use ($db, $qDatum, $qRsrcType, $qRsrcId, $qAction, $qRsrcInfo) {
+            return [
+                'tour_id' => (int)$itm['tour_id'],
+                'object_type' => $qRsrcType,
+                'object_id' => $qRsrcId,
+                'action' => $qAction,
+                'user_id' => $this->_uid,
+                'action_time' => 'NOW()',
+                'tour_anr' => (int)($itm['Auftragsnummer'] ?? 0),
+                'dispo_datum' => $qDatum,
+                'dispo_zeit_von' => $db->quote($itm['ZeitVon']),
+                'dispo_zeit_bis' => $db->quote($itm['ZeitBis']),
+                'bemerkung' => $qRsrcInfo,
+            ];
+        }, $aTouren);
+
+        $sql = "INSERT INTO mr_touren_dispo_log (" . implode(',', array_keys($aInsertValues[0])) . ")\nVALUES\n"
+            . implode(",\n", array_map(function($itm) { return '(' . implode(',', array_values($itm)) . ')'; }, $aInsertValues));
+
+        if ($debug = 0) {
+            $aLogVarNames = ['datum','aTouren','rsrcType','rsrcId','qDatum','qRsrcType','qRsrcId','qAction','aInsertValues','sql'];
+            $aLogVars = array_combine($aLogVarNames, compact($aLogVarNames));
+            MyProject_Response_Json::send($aLogVars);
+        }
+
+        $db->query($sql);
+
     }
     
     public function logTour($tour_id, $action, $uid = null, array $aDetails = [] ) {
@@ -198,14 +287,105 @@ class Model_TourenDispoLog extends MyProject_Model_Database
             ->setLimit($iLimit)
             ->setParam('tour_id', $iTourID);
 
-//        echo $qb->assemble();
-//        exit;
+        return [
+            'total' => $this->_db->fetchOne( $qb->assembleCount() ),
+            'offset' => $iOffset,
+            'limit' => $iLimit,
+            'rows' => $this->_db->fetchAll( $qb->assemble() ),
+            'sql' => $qb->assemble()
+        ];
+
+    }
+
+
+    public function getHistorie(array $queryOptions = [])
+    {
+        $iPage = (int)($queryOptions['page'] ?? 1);
+        $iRows  = (int)($queryOptions['rows'] ?? 100);
+        
+        $iOffset = ($iPage - 1) * $iRows;
+        $iLimit = $iRows;
+        
+        $sSortFld  = $queryOptions['sortfld'] ?? 'action_time';
+        $sSortDir  = $queryOptions['sortdir'] ?? 'DESC';
+        $aSearch   = $queryOptions['search'] ?? [];
+
+        $sModifiedDateFrom = $aSearch['lastModifiedFrom'] ?? '';
+        $sModifiedDateTo = $aSearch['lastModifiedTo'] ?? '';
+        $sTourId     = $aSearch['tour_id'] ?? '';
+        $sObjectType = $aSearch['object_type'] ?? '';
+        $sObjectId   = $aSearch['object_id']   ?? '';
+        $sObjectName = $aSearch['resource'] ?? '';
+        $sActionType = $aSearch['action'] ?? '';
+        $joinIsRequiredForCountQuery = true;
+
+        $qb = $this->buildQuery([]);
+        $qb->setSelect(
+            'l.id,
+            l.tour_id,
+            l.object_id,
+            l.object_type,
+            l.action_time, 
+            l.user_id,
+            u.user_name AS user,
+            if (m.mid is not null, m.name, if (f.fid is not null,f.kennzeichen, \'\')) resource,
+            l.action,
+            l.tour_anr, 
+            l.dispo_datum, 
+            l.dispo_zeit_von, 
+            l.dispo_zeit_bis,
+            l.bemerkung,' . PHP_EOL
+            .' if (m.mid is not null, m.mid, if (f.fid is not null,f.fid, \'\')) AS `Rsrc-ID`' . PHP_EOL)
+            ->setFrom('mr_touren_dispo_log l')
+            ->setJoin('LEFT JOIN mr_user u ON (l.user_id = u.user_id)' . PHP_EOL
+//                .' LEFT JOIN mr_touren_dispo_mitarbeiter dm ON (l.object_type = \'MA\' AND l.tour_id = dm.tour_id AND l.object_id = dm.id)' . PHP_EOL
+                .' LEFT JOIN mr_mitarbeiter m ON (l.object_type = \'MA\' AND l.object_id = m.mid )' . PHP_EOL
+//                .' LEFT JOIN mr_touren_dispo_fuhrpark df ON (l.object_type = \'FP\' AND l.tour_id = df.tour_id AND l.object_id = df.id)' . PHP_EOL
+                .' LEFT JOIN mr_fuhrpark f ON ( l.object_type = \'FP\' AND l.object_id = f.fid  )',
+                $joinIsRequiredForCountQuery);
+
+
+        if ($sModifiedDateFrom) {
+            $qb->andWhere('action_time >= ' . $this->_db->quote(date('Y-m-d H:i', strtotime($sModifiedDateFrom))));
+        }
+        if ($sModifiedDateTo) {
+            $qb->andWhere('action_time <= ' . $this->_db->quote(date('Y-m-d H:i', strtotime($sModifiedDateTo))));
+        }
+        if ((int)$sTourId){
+            $qb->andWhere('tour_id = LIKE ' . (int)$sTourId);
+        }
+        if (!empty($sObjectType)){
+            $qb->andWhere('object_type = ' . $this->_db->quote($sObjectType));
+        }
+        if (!empty($sObjectName)){
+            $_qy = $this->_db->quote("%$sObjectName%");
+            $qb->andWhere("m.name LIKE $_qy OR f.kennzeichen LIKE $_qy");
+        }
+        if (!empty($sObjectId)){
+            $qb->andWhere('object_id LIKE ' . $this->_db->quote("%$sObjectId%") );
+        }
+        if (!empty($sActionType)){
+            $qb->andWhere('action LIKE ' . $this->_db->quote("%$sActionType%") );
+        }
+        if (!empty($aSearch['user'])) {
+            $qb->andWhere('u.user_name LIKE ' . $this->_db->quote("%{$aSearch['user']}%") );
+        }
+        if (!empty($aSearch['user_id'])) {
+            $qb->andWhere('l.user_id = ' . (int)$aSearch['user_id'] );
+        }
+
+        $qb
+            ->setOrder($sSortFld)
+            ->setOrderDir($sSortDir)
+            ->setOffset($iOffset)
+            ->setLimit($iLimit);
 
         return [
             'total' => $this->_db->fetchOne( $qb->assembleCount() ),
             'offset' => $iOffset,
             'limit' => $iLimit,
-            'rows' => $this->_db->fetchAll( $qb->assemble() )
+            'rows' => $this->_db->fetchAll( $qb->assemble() ),
+            'sql' => $qb->assemble()
         ];
 
     }

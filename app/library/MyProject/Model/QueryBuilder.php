@@ -10,15 +10,19 @@ class MyProject_Model_QueryBuilder
 {
     protected $select = '*';
     protected $from = '';
-    protected $join = '';
+    protected $join = [];
     protected $where = '';
     protected $group = '';
     protected $having = '';
     protected $order = '';
     protected $orderdir = '';
-    protected $offset = 0;
-    protected $limit = 0;
+    protected $offset = null;
+    protected $limit = null;
     protected $params = [];
+    protected $offsetDefault = 0;
+    protected $limitDefault = 0;
+    protected $orderDefault = '';
+    protected $orderdirDefault = '';
     protected $joinIsRequiredForCountQuery = false;
 
     public function __construct(array $aQueryParts = [])
@@ -38,6 +42,28 @@ class MyProject_Model_QueryBuilder
                 $this->{$checkMethod}($v);
             }
         }
+        return $this;
+    }
+
+    public function setOrderDefault( $v ) {
+        $this->orderDefault = $this->_getCsvValue($v);
+        return $this;
+    }
+
+    public function setOrderDirDefault( $v ) {
+        if (is_string($v) && in_array( strtoupper($v), ['ASC','DESC'])) {
+            $this->orderdirDefault = $v;
+        }
+        return $this;
+    }
+
+    public function setLimitDefault(int $v) {
+        $this->limitDefault = $v;
+        return $this;
+    }
+
+    public function setOffsetDefault(int $v) {
+        $this->offsetDefault = max(0, $v);
         return $this;
     }
 
@@ -70,16 +96,35 @@ class MyProject_Model_QueryBuilder
     }
 
     public function setJoin($v, bool $joinIsRequiredForCountQuery = false) {
-        $this->joinIsRequiredForCountQuery = $joinIsRequiredForCountQuery;
-        $this->join = $this->_getCsvValue($v, ' ');
+        $this->join = [];
+        return $this->addJoin($v, $joinIsRequiredForCountQuery);
+    }
+
+    public function addJoin($v, bool $joinIsRequiredForCountQuery = false) {
+        if ($joinIsRequiredForCountQuery) {
+            $this->joinIsRequiredForCountQuery = $joinIsRequiredForCountQuery;
+        }
+        if (is_array($v)) {
+            foreach($v as $_join) {
+                $this->join[] = [ 'join' => $_join, 'required' => $joinIsRequiredForCountQuery];
+            }
+        } else {
+            $this->join[] = [ 'join' => $v, 'required' => $joinIsRequiredForCountQuery];
+        }
         return $this;
     }
 
-    public function getJoin(bool $doRender = false) {
-        if ($doRender && $this->join) {
-            return ' ' . $this->quoteParamsInto($this->join);
+    public function getJoin(bool $doRender = false, $bForCountQuery = false) {
+        $re = '';
+        foreach($this->join as $_join) {
+            if ($bForCountQuery && !$_join['required']) {
+                continue;
+            }
+            if ($doRender && $_join) {
+                $re.= ' ' . $this->quoteParamsInto($_join['join']) . "\n";
+            }
         }
-        return $this->join;
+        return $re;
     }
 
     public function quoteParamsInto($query) {
@@ -92,9 +137,9 @@ class MyProject_Model_QueryBuilder
                         return $db->quote($val);
                     }, $v);
                     $qVals = implode(',', $aInVals);
-                    $qq = preg_replace('/:' . preg_quote($k) . '\b/', $qVals, $qq);
+                    $qq = preg_replace('/:' . preg_quote($k, '/') . '\b/', $qVals, $qq);
                 } else {
-                    $qq = preg_replace('/:' . preg_quote($k) . '\b/', $db->quote($v), $qq);
+                    $qq = preg_replace('/:' . preg_quote($k, '/') . '\b/', $db->quote($v), $qq);
                 }
             }
         }
@@ -102,15 +147,22 @@ class MyProject_Model_QueryBuilder
     }
 
     public function setWhere($v) {
-        $this->where = '(' . $this->_getCsvValue($v, ') AND (') . ')';
+        $w = $this->_getCsvValue($v, ') AND (');
+        if (trim($w)) {
+            $this->where = '(' . $w . ')';
+        }
         return $this;
     }
 
     public function andWhere($v) {
-        if ($this->where) {
+        $w = $this->_getCsvValue($v, ') AND (');
+        if (!trim($w)) {
+            return $this;
+        }
+        if (trim($this->where)) {
             $this->where.= ' AND ';
         }
-        $this->where.= '(' . $this->_getCsvValue($v, ') AND (') . ')';
+        $this->where.= '(' . $w . ')';
         return $this;
     }
 
@@ -151,8 +203,10 @@ class MyProject_Model_QueryBuilder
     }
 
     public function getOrder(bool $doRender = false) {
-        if ($doRender && $this->order) {
-            return ' ORDER BY ' . $this->order . ' ' . $this->orderdir;
+        $of = $this->order ?: $this->orderDefault;
+        $od = $this->orderdir ?: $this->orderdirDefault;
+        if ($doRender && $of) {
+            return ' ORDER BY ' . $of . ' ' . $od;
         }
         return $this->order;
     }
@@ -175,7 +229,7 @@ class MyProject_Model_QueryBuilder
     }
 
     public function getOffset() {
-        return $this->offset;
+        return is_numeric($this->offset) ? $this->offset : ($this->offsetDefault ?: 0);
     }
 
     public function setLimit(int $v) {
@@ -184,9 +238,10 @@ class MyProject_Model_QueryBuilder
     }
 
     public function getLimit(bool $doRender = false) {
+        $l = (string)is_numeric($this->limit) ? (int)$this->limit : (int)$this->limitDefault;
         if ($doRender) {
-            if ($this->limit) {
-                return ' LIMIT ' . $this->offset . ', ' . $this->limit;
+            if ($l) {
+                return ' LIMIT ' . $this->getOffset() . ', ' . $l;
             } else {
                 return '';
             }
@@ -218,7 +273,7 @@ class MyProject_Model_QueryBuilder
 
         $a['select'] = $this->getSelect( true );
         $a['from']   = $this->getFrom( true );      //' FROM ' . $this->from;
-        $a['join']   = $this->getJoin( true );      //' FROM ' . $this->from;
+        $a['join']   = $this->getJoin( true, $type === 'count' );      //' FROM ' . $this->from;
         $a['where']  = $this->getWhere( true );     //($this->where ? ' WHERE ' . $this->where : '');
         $a['group']  = $this->getGroup(true );      //($this->group ? ' GROUP BY ' . $this->group : '');
         if ($a['group']) {

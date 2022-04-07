@@ -20,7 +20,16 @@ class Model_TourenDispoWerkzeug extends Model_TourenDispoResourceAbstract
     protected $_rsrcLnkKey    = 'werkzeug_id';
     
     protected $_rsrcTitleField = 'bezeichnung';
-    
+
+    protected $_tblCtgName = 'mr_werkzeug_categories';
+
+    protected $_tblCtgLnkName = 'mr_werkzeug_categories_lnk';
+    protected $_tblCtgLnkRsrcKey = 'werkzeug_id';
+
+
+    public function getSqlSelectExprAsLabel(): string {
+        return 'bezeichnung';
+    }
     
     /**
      * 
@@ -236,12 +245,18 @@ class Model_TourenDispoWerkzeug extends Model_TourenDispoResourceAbstract
         $return->total = $total_pages;
         $return->records = $count;
         $return->rows = $result->fetchAll(Zend_Db::FETCH_ASSOC);
-        
-        $modelRsrc = MyProject_Model_Database::loadModel($tblRsrcModelName);
+        $aRsrcIds = array_column($return->rows, $this->_tblRsrcKey);
+        // die('<pre>'. $return->sql . '<br/>'.PHP_EOL . print_r([$this->rsrcKey, $aRsrcIds, $return->rows],1) . '</pre>');
+
+        /** @var Model_Fuhrpark $modelRsrc */
+        $modelRsrc = Model_Fuhrpark::getSingleton();
+        $aCategoriesByRsrcId = $modelRsrc->fetchCategoriesByRsrcIds($aRsrcIds);
         foreach($return->rows as $i => $row ) {
-            $return->rows[$i]['categories'] = $modelRsrc->fetchCategoriesByRow( $row )->toArray();
+            // $return->rows[$i]['categories'] = $modelRsrc->fetchCategoriesByRow( $row )->toArray();
+            $_rsrcId = $row[ $this->_tblRsrcKey ];
+            $return->rows[$i]['categories'] = $aCategoriesByRsrcId[$_rsrcId] ?? [];
         }
-        
+
         return $return;
     }
 }

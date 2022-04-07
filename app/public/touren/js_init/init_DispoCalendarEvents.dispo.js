@@ -9,7 +9,7 @@ $.extend(Fb.DispoCalendarEvents, {
         
 //        alert( '#10 onCreatePortlet dbdata.date: ' + dbdata.date);
         if (!dbdata || !dbdata.id) {
-             return Fb.AjaxTourRequest({
+            return Fb.AjaxTourRequest({
                     url: Fb.AppBaseUrl + '/touren/ajax/addportlet',
                     data: {data:dbdata}
                 }, {
@@ -104,7 +104,6 @@ $.extend(Fb.DispoCalendarEvents, {
 
     // 'onPrintPortlet': defined in ....base.js
     'onCreateTimeline': function() {
-        // console.log('#90 js_init/init_DispoCalendarEvents.dispo.js; onCreateTimeline');
         var $self = $(this);
         var data = $self.fbDispoTimelineDropzone('getData');
         var s = $self.fbDispoTimelineDropzone('getTimelineSettings');
@@ -127,15 +126,13 @@ $.extend(Fb.DispoCalendarEvents, {
                     }
                 }
              );
-            // console.log('#113 js_init/init_DispoCalendarEvents.dispo.js; onCreateTimeline re:', re);
             return re;
         }
-        // console.log('#116 js_init/init_DispoCalendarEvents.dispo.js; onCreateTimeline re:', re);
         return re;
     },
     'onSortTimeline': function(event, ui) {
         if (!ui || !ui.item) {
-            console.log('115 init_DispoCalendarEvents.dispo.js onSortTimeline: Missing Property ui.item');
+            console.error('115 init_DispoCalendarEvents.dispo.js onSortTimeline: Missing Property ui.item');
             return false;
         }
 
@@ -157,11 +154,11 @@ $.extend(Fb.DispoCalendarEvents, {
     'onMoveTimeline': function(event, ui) {        
         var targetPortletId = $( this ).fbDispoPortlet('getData','id');
         if (!targetPortletId) {
-            console.log('137 init_DispoCalendarEvents.dispo.js onMoveTimeline: Cannot retrieve targetPortletId by $(this).fbDispoPortlet(\'getData\', \'id\')');
+            console.error('137 init_DispoCalendarEvents.dispo.js onMoveTimeline: Cannot retrieve targetPortletId by $(this).fbDispoPortlet(\'getData\', \'id\')');
             return false;
         }
         if (!ui || !ui.item) {
-            console.log('140 init_DispoCalendarEvents.dispo.js onMoveTimeline: Missing Property ui.item');
+            console.error('140 init_DispoCalendarEvents.dispo.js onMoveTimeline: Missing Property ui.item');
             return false;
         }
         var $timeline = ui.item;
@@ -286,17 +283,15 @@ $.extend(Fb.DispoCalendarEvents, {
                 }, {
                     defaultError: "Interner Fehler beim Anlegen der Tour!",
                     onsuccess: function(d){
-                        console.log('#246 init_DispoCalendarEvents.dispo.js success-callback');
                         $self.fbDispoRoute('setData', 'id', d.id).fbDispoRoute('setData', 'tour_id', d.id);
                     },
                     onerror: function(jqXHR, textStatus) {
-                        console.log('#250 init_DispoCalendarEvents.dispo.js error-callback', 'xhr', jqXHR, 'clear element self:', self);
+                        console.error('#250 init_DispoCalendarEvents.dispo.js error-callback', 'xhr', jqXHR, 'clear element self:', self);
                         $(self).remove();
                     }
                 }
              );
         }
-        console.log('#252 init_DispoCalendarEvents.dispo.js error');
         Fb.DispoLoading(0);
         return false;
     },
@@ -481,6 +476,7 @@ $.extend(Fb.DispoCalendarEvents, {
         var $self = $(this);
         var data = $self.fbDispoResource('getData');
         var re = false;
+        var eventCallbackFunction = 'onDropResourceDefaults';
         
         if (data.route_id && !data.id) {                
              var hasRoutes = $self.closest("div.fbDispoTimelineDropzone").find("div.fbDispoRoute").length;
@@ -502,11 +498,30 @@ $.extend(Fb.DispoCalendarEvents, {
                 }, {
                     defaultError: "Interner Fehler beim Speichern der Resource!",
                     onsuccess: function(d) {
-                       $self.fbDispoResource('setData', 'id', d.id);
-                       Fb.ReloadTimelineResources( $self.closest("div.fbDispoRouteDefaults").fbDispoRouteDefaults('getTimeline')  );
+                        $self.remove();
+                        if ("data" in d && "inserts" in d.data) {
+                            var inserts = d.data.inserts;
+                            for(var i = 0; i < inserts.length; i++) {
+                                var tour = inserts[i]['tour'];
+                                var rsrc = inserts[i]['rsrc'];
+                                var isDef = parseInt(tour['IsDefault']);
+
+                                if (isDef === 1) {
+                                    $("#fbDispoRouteDefaults_" + tour['tour_id']).fbDispoRouteDefaults( 'addResources', [rsrc]);
+                                } else {
+                                    $("#fbDispoRoute_" + tour['tour_id']).fbDispoRoute('addResources', [rsrc]);
+                                }
+                            }
+                        } else {
+                            console.error(eventCallbackFunction, "No Insert-Data Found to add new ressources!");
+                        }
+                        // $self.fbDispoResource('destroy');
+
+                        // Fb.ReloadTimelineResources( $self.closest("div.fbDispoRouteDefaults").fbDispoRouteDefaults('getTimeline')  );
                     },
                     onerror: function() {
-                       Fb.ReloadTimelineResources( $self.closest("div.fbDispoRouteDefaults").fbDispoRouteDefaults('getTimeline')  );
+                        $self.remove();
+                        // Fb.ReloadTimelineResources( $self.closest("div.fbDispoRouteDefaults").fbDispoRouteDefaults('getTimeline')  );
                     }
                 }
              );
@@ -558,18 +573,81 @@ $.extend(Fb.DispoCalendarEvents, {
     // Daher statt function(data) ==> function() { var data = arguments[0]; ...
     'onRemoveResourceDefaults': function() {
 //        var m='#196 onRemoveResource routeData: '; for(i in data) m+= i+':'+data[i]+'\n'; alert(m);
+        var self = this;
         var data = arguments[0];
-        //alert('#461 onRemoveResourceDefaults typeof(data):' + typeof(data) );
-        if (data.resourceType && data.id) {
-            
-             return Fb.AjaxTourRequest({
+
+        if (("resourceType" in data)
+            && ("id" in data)
+            && data.resourceType
+            && data.id) {
+
+            var removeResourcesByRows = function(rows) {
+                if (rows.length) {
+                    for(var i = 0; i < rows.length; i++) {
+                        var itm = rows[i];
+                        var tourId = itm['tour_id'];
+                        var rsrcType = itm['type'];
+                        var rsrcId = itm['id'];
+
+                        var rsrcObj = $("#fbDispoResource_"+rsrcType+rsrcId);
+                        if (!rsrcObj.length) {
+                            continue;
+                        }
+                        var elmData = rsrcObj.data("fbDispoResource");
+                        var parentObj = ("_parent" in elmData) ? elmData._parent : null;
+                        var parentObjFnc = ("_parentJqFunction") ? elmData._parentJqFunction : null;
+
+                        if (parentObj && parentObjFnc) {
+                            rsrcObj.remove();
+                            $(parentObj)[parentObjFnc]('addResources', []);
+                        } else {
+                            console.error("ParentObj not Found of Item: ", itm);
+                        }
+
+                    }
+                }
+            };
+
+             var callbackResult = Fb.AjaxTourRequest({
                     url: Fb.AppBaseUrl + '/touren/ajax/removeresourcedefault',
                     data: {id:data.id, resourceType:data.resourceType}
                 }, {
-                    defaultError: "Interner Fehler beim Entfernen der Resource!"
+                    defaultError: "Interner Fehler beim Entfernen der Resource!",
+                    onsuccess: function(data, textStatus, jqXHR) {
+                        var rows = ("data" in data && "rows" in data.data && data.data.rows[0])
+                                    ? data.data.rows
+                                    : [];
+
+                        removeResourcesByRows( rows );
+                        return true;
+                    },
+                    onerror: function(jqXHR, textStatus) {
+                        console.error({
+                            'line':601,
+                            'file':'init_DispoCalendarEvents.dispo.js',
+                            'callback':'onerror',
+                            textStatus, jqXHR
+                        });
+                        var data = JSON.parse(jqXHR.responseText);
+
+                        var rows = ("data" in data && "rows" in data.data && data.data.rows[0])
+                            ? data.data.rows
+                            : [];
+
+                        removeResourcesByRows( rows );
+                        return false;
+                    }
                 }
              );
+
         }
+        else {
+            console.error({
+                'line':624,'file':'init_DispoCalendarEvents.dispo.js',
+                'CANNOT sendRequest data': data
+            });
+        }
+
         return false;
     }
 });

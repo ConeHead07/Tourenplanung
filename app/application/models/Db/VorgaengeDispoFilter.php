@@ -1,6 +1,6 @@
 <?php
 
-class Model_Db_VorgaengeDispoFilter extends Zend_Db_Table_Abstract 
+class Model_Db_VorgaengeDispoFilter extends Model_Db_Abstract
 {   
     protected $_name    = 'mr_auftragskoepfe_dispofilter';
     protected $_primary = array('Mandant', 'Auftragsnummer');

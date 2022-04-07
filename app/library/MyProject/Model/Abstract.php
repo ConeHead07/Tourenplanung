@@ -5,6 +5,8 @@
  * and open the template in the editor.
  */
 
+class MyProject_Model_Exception extends \Exception{}
+
 /**
  * Description of Abstract
  *
@@ -50,7 +52,7 @@ abstract class MyProject_Model_Abstract implements MyProject_Model_Interface
     /**
      *
      * @param string $name
-     * @return Zend_Db_Table 
+     * @return Model_Db_Abstract
      */
     static public function loadStorage($name)
     {
@@ -62,14 +64,26 @@ abstract class MyProject_Model_Abstract implements MyProject_Model_Interface
     
     /**
      *
-     * @return Zend_Db_Table 
+     * @return Model_Db_Abstract
      */
-    public function getStorage()
+    public function getStorage(): Model_Db_Abstract
     {
         if (null === $this->_storage) {
             $this->_storage = self::loadStorage($this->_storageName);
         }
         return $this->_storage;
+    }
+
+    protected function _require( $mixedExpression, string $messageOnFalse) {
+        if (is_callable($mixedExpression)) {
+            if (!$mixedExpression()) {
+                throw new MyProject_Model_Exception( $messageOnFalse );
+            }
+        }
+
+        if (empty($mixedExpression)) {
+            throw new MyProject_Model_Exception( $messageOnFalse );
+        }
     }
 }
 

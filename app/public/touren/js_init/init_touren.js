@@ -196,7 +196,6 @@ Fb.CalendarSurveyLoad = function(surveyID, context, baseUrl, interval) {
     // - integer interval zeiteinheiten +/-
     if (typeof(interval) == "string" && interval.match(/^(\d\d\d\d)-0?(\d{1,2})-0?(\d{1,2})$/)) {
         m = interval.match(/^(\d\d\d\d)-0?(\d{1,2})-0?(\d{1,2})$/);
-        alert( "#13 parse date string "+interval+", matches:" + m.join("-"));
         d = new Date( m[1], m[2]-1, m[3]);
     } else {
         // Wenn typeof interval == object, sollte es ein Date-Objekt sein!!
@@ -241,6 +240,10 @@ Fb.CalendarSurveyLoad = function(surveyID, context, baseUrl, interval) {
             $.datepicker.iso8601Week( d ) + ' KW'); 
         break;
 
+        case 'tabs-historie':
+            url = baseUrl + "/lager_id/" + l + "/date/" + $.datepicker.formatDate( 'yy-mm-dd', d );
+            break;
+
         default:
             alert("26 _ID unbekannt: " + _ID);
     }
@@ -262,6 +265,7 @@ Fb.CalendarSurveyLoad = function(surveyID, context, baseUrl, interval) {
                 var _ID = $(ui.tab).attr('name');
                 var _BASEURL = $(ui.tab).attr('rel');
                 switch(_ID) {
+                    case 'tabs-historie':
                     case 'tabs-woche':
                     case 'tabs-monat':
                     case 'tabs-einsatz':

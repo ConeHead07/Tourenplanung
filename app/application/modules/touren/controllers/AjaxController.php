@@ -16,13 +16,57 @@ class Touren_AjaxController extends Zend_Controller_Action
     
     // TourenDispoLogger: kann MyProject_Model_Database::loadModel geladen werden
     protected $_modelLoggerName = 'tourenDispoLog';
+    protected $_modelLogger = null;
     protected $rq = null;
     protected $db = null;
 
     /** @var MyProject_Helper_JsonResponse  */
     protected $json = null;
-    
+
+    protected function getTourenResourceModelByType(string $type): Model_TourenDispoResourceAbstract {
+        switch($type) {
+            case 'MA':
+                return Model_TourenDispoMitarbeiter::getSingleton();
+
+            case 'FP':
+                return Model_TourenDispoFuhrpark::getSingleton();
+
+            case 'WZ':
+                return Model_TourenDispoWerkzeug::getSingleton();
+
+            default:
+                return null;
+        }
+    }
+
+    protected function setTourenDispoLogger(Model_TourenDispoLogInterface $modelLogger)
+    {
+        $this->_modelLogger = $modelLogger;
+    }
+
+    protected function getTourenDispoLogger(): Model_TourenDispoLogInterface
+    {
+        return $this->_modelLogger;
+    }
+
+    protected function getResourceModelByType(string $type): Model_ResourceInterface{
+        switch($type) {
+            case 'MA':
+                return Model_Mitarbeiter::getSingleton();
+
+            case 'FP':
+                return Model_Fuhrpark::getSingleton();
+
+            case 'WZ':
+                return Model_Werkzeug::getSingleton();
+
+            default:
+                return null;
+        }
+    }
+
     public function init() {
+        $this->_helper->layout->disableLayout();
         $this->json = $this->getHelper('jsonResponse');
 
         $this->view->debug = false;
@@ -47,35 +91,39 @@ class Touren_AjaxController extends Zend_Controller_Action
         $this->_request = $this->getRequest();
 
         $this->getResponse()->setHeader('Content-Type', 'text/html; charset=UTF-8');
+
+        $this->setTourenDispoLogger(
+            new Model_TourenDispoLog()
+        );
     }
 
-    protected function sendJsonSuccess(string $msg, array $data = []) {
-        return $this->_helper->json([
+    protected function sendJsonSuccess(string $msg, array $data = [], array $aExtras = []) {
+        $this->_helper->layout->disableLayout();
+        $aJsonData = [
             'type' => 'success',
             'success' => true,
             'msg' => $msg,
             'data' => $data,
-        ]);
+        ];
+        if ($aExtras) foreach($aExtras as $k => $v) $aJsonData[$k] = $v;
+        return $this->_helper->json($aJsonData);
     }
 
     protected function sendJsonSuccessID($id, string $msg = '', array $data = [])
     {
-        return $this->_helper->json([
-            'type' => 'success',
-            'success' => true,
-            'msg' => $msg,
-            'id' => $id,
-            'data' => $data,
-        ]);
+        return $this->sendJsonSuccess($msg, $data, ['id' => $id]);
     }
 
-    protected function sendJsonError(string $error, array $data = []) {
-        return $this->_helper->json([
+    protected function sendJsonError(string $error, array $data = [], array $aExtras = []) {
+        $this->_helper->layout->disableLayout();
+        $aJsonData = [
             'type' => 'error',
             'success' => false,
             'error' => $error,
             'data' => $data,
-        ]);
+        ];
+        if ($aExtras) foreach($aExtras as $k => $v) $aJsonData[$k] = $v;
+        return $this->_helper->json( $aJsonData );
     }
 
     protected function _require( $mixedExpression, string $messageOnFalse) {
@@ -502,6 +550,7 @@ class Touren_AjaxController extends Zend_Controller_Action
         $rq = $this->getRequest();
         $tour_id = $rq->getParam('tour_id');
         $format  = $rq->getParam('format', 'html');
+        $dev  = (int)$rq->getParam('dev', '1');
 
         $role = MyProject_Auth_Adapter::getUserRole();
 
@@ -515,19 +564,16 @@ class Touren_AjaxController extends Zend_Controller_Action
         
         /* @var $modelDV Model_TourenDispoVorgaenge */
         $modelDV = MyProject_Model_Database::loadModel('tourenDispoVorgaenge');
-        $this->view->data->default = $modelDV->fetchEntry($tour_id);
-        $this->view->data->defaultResources = $modelDV->getResources($tour_id);
-        $data = &$this->view->data->default;
-        
-        /* @var $modelTL Model_TourenTimelines */
-        $modelTL = $tblTL = MyProject_Model_Database::loadModel('tourenTimelines');
-        $this->view->data->timeline = $modelTL->fetchEntry($data['timeline_id']);
-        $this->view->data->vorgaenge = $modelTL->getDispoVorgaenge($data['timeline_id']);
-        $vorgaenge = &$this->view->data->vorgaenge;
-        
-        /* @var $_vg Model_TourenDispoVorgaenge */
-        foreach($vorgaenge as $_vgIdx => $_vg) {
-            $vorgaenge[$_vgIdx]['resources'] = $modelDV->getResources($_vg['tour_id']);
+
+        $this->view->data = $modelDV->getVorgangsResourcenDefaults((int)$tour_id);
+
+
+        if ('json' === $format) {
+            $this->sendJsonSuccess('', [], [
+                'allowed' => $this->view->allowed,
+                'data' => $this->view->data,
+                'queries' => MyProject_Db_Profiler::getProfiledQueryList()
+            ]);
         }
                 
         $this->_helper->viewRenderer->setRender(
@@ -1250,192 +1296,68 @@ class Touren_AjaxController extends Zend_Controller_Action
     
     public function calendarweekdataAction()
     {
-        $this->_helper->viewRenderer->setRender('calendarweekdata');
-        $this->view->assign(array(
-            'dateRange' => array('DatumVon'=>'x', 'DatumBis' => 'y'),
-            'lager_id' => '9',
-            'data' => array(1,2,3,4,5,6,7,8,9)
-        ));
-        
         $rq = $this->rq;
+        $this->_helper->viewRenderer->setRender('calendarweekdata');
+
         $date = $rq->getParam('date', '');
         $kw   = $rq->getParam('kw', '');
         $lager_id = $rq->getParam('lager_id', '');
         
         if ($kw && preg_match('/^(?P<YEAR>\d{4})-(?P<KW>\d{1,2}?)$/', $kw, $m)) {
-            // Ermittel das Start-Datum (Montag) der ersten KW
-            // Kann auch im Vorjahr liegen
-            // ISO-Regel, die Woche die den ersten Donnerstag des neuen Jahres enthält gilt als 1. KW
-            $m['KW'] = intval($m['KW']);
-            $yrStartTime = mktime(4,0,0,1,1,$m['YEAR']);
-            $yrStartDay = date('w', $yrStartTime);
-            $moDiff = 0;
-            $moTime = 0;
-            
-            switch($yrStartDay) {
-                case 1: /* Mo */ $moDiff = 0; break;
-                case 2: /* Di */ $moDiff = -1; break;
-                case 3: /* Mi */ $moDiff = -2; break;
-                case 4: /* Do */ $moDiff = -3; break;
-                case 5: /* fr */ $moDiff = 3; break;
-                case 6: /* Sa */ $moDiff = 2; break;
-                case 0: /* So */ $moDiff = 1; break;
-            }
-            
-            $yrStartMoTime = $yrStartTime + ($moDiff*(24*3600));
-            echo '<pre>#'.__LINE__. ' moTime: ' . date('Y-m-d', $yrStartMoTime) . PHP_EOL
-                             . ' moDiff: ' . $moDiff . PHP_EOL
-                             . 'yrStartDay: ' . $yrStartDay . PHP_EOL . '</pre>';
-            $kwTime = $yrStartMoTime + ( ($m['KW']-1) * (7 * 24 * 3600));
+
+            /** @var Datetime $moDate */
+            $moDate = (new Datetime())->setISODate($m['YEAR'], $m['KW'], 1);
         }
-        elseif ($date && preg_match('/^(?P<Y>\d{4}-(?P<M>\d\d)-(?P<D>\d{2}$/', $date, $m)) {
-            $time = mktime(1,0,0,$m['M'],$m['D'],$m['Y']);
-            $wDay = date( 'w', $time);
-            $moDiff = 0;
-            
-            $moDiff = ($wDay > 0) ? $wDay - 1 : -6;
-            $kwTime = $time + ($moDiff*(24*3600));
+        elseif ($date && preg_match('/^\d{4}-\d\d-\d{2}$/', $date) && is_int($t = strtotime($date))) {
+            $moDate = (new DateTime())->setISODate(date('Y', $t), date('W', $t), 1);
         }
         else {
-            $time = time();
-            $wDay = date( 'w');
-            $moDiff = 0;
-            
-            $moDiff = ($wDay > 0) ? $wDay - 1 : -6;
-            $kwTime = $time + ($moDiff*(24*3600));  
+            $moDate = (new DateTime())->setISODate(date('Y'), date('W'), 1);
         }
+
+        $suDate = (clone $moDate)->add(new DateInterval('P7D'));
         
         $dateRange = array(
-          'Von' => date('Y-m-d', $kwTime),
-          'Bis' => date('Y-m-d', $kwTime + (7*24*3600))
+          'Von' => $moDate->format('Y-m-d'),
+          'Bis' => $suDate->format('Y-m-d'),
         );
-        
-        $db = $this->db;
-        $NAME = Zend_Db_Table::NAME;
-        $tblAK = MyProject_Model_Database::loadStorage('vorgaenge')->info($NAME);
-        $tblDV = MyProject_Model_Database::loadStorage('tourenDispoVorgaenge')->info($NAME);
-        $tblTL = MyProject_Model_Database::loadStorage('tourenTimelines')->info($NAME);
-        $tblPT = MyProject_Model_Database::loadStorage('tourenPortlets')->info($NAME);
-        
-        $modDV = MyProject_Model_Database::loadModel('tourenDispoVorgaenge');
-        
-        
-        $sqlTouren =
-         "SELECT DV.*, PT.*, PT.topcustom PortletTopCustom, PT.title PortletTitle, TL.*, TL.title TimelineTitle, A.* " . PHP_EOL
-            ."FROM " . $tblPT . " PT " . PHP_EOL
-            ."LEFT JOIN " . $tblTL . " TL ON PT.portlet_id  = TL.portlet_id " . PHP_EOL
-            ."LEFT JOIN " . $tblDV . " DV ON TL.timeline_id = DV.timeline_id " . PHP_EOL
-            ."LEFT JOIN " . $tblAK . " A  ON (DV.Mandant = A.Mandant AND DV.Auftragsnummer = A.Auftragsnummer) " . PHP_EOL
-                
-        ." WHERE " . PHP_EOL
-        ." PT.lager_id = :lager_id " . PHP_EOL
-        ." AND (" . PHP_EOL
-        ." (PT.title IS NOT NULL AND PT.datum BETWEEN :DatumVon AND :DatumBis) "  . PHP_EOL
-        ." OR (DV.IsDefault = 0  "  . PHP_EOL
-        ." AND DV.DatumVon BETWEEN :DatumVon AND :DatumBis) "  . PHP_EOL
-        ." )" . PHP_EOL
-        ."ORDER BY DV.timeline_id, ZeitVon";
-        
-        if (0) die('<pre>' . strtr($sqlTouren, array(
-            ':lager_id' => (int)$lager_id,
-            ':DatumVon' => $dateRange['Von'],
-            ':DatumBis' => $dateRange['Bis']
-        )) . '</pre>' . PHP_EOL);
+
         $this->view->dateRange = $dateRange;
         $this->view->lager_id = $lager_id;
-        
-        
-        $this->view->data = $db->fetchAll($sqlTouren, array(
-            ':lager_id' => (int)$lager_id,
-            ':DatumVon' => $dateRange['Von'],
-            ':DatumBis' => $dateRange['Bis']
-        ));
-        
-        $this->view->tourResources = array();
-        foreach($this->view->data as $_tour) {
-            $this->view->tourResources[$_tour['tour_id']] = $modDV->getResources($_tour['tour_id'], false);
-        }
+
+        $oData = (new Model_TourenDispoVorgaenge())->getCalendarweekdata((int)$lager_id, $dateRange['Von'], $dateRange['Bis']);
+        $this->view->data = $oData->touren;
+        $this->view->tourResources = $oData->tourResources;
     }
     
     public function calendarmonthdataAction()
     {
-        $this->_helper->viewRenderer->setRender('calendarmonthdata');
-        
-        $this->view->assign(array(
-            'dateRange' => array('DatumVon'=>'x', 'DatumBis' => 'y'),
-            'lager_id' => '9',
-            'data' => array(1,2,3,4,5,6,7,8,9)
-        ));
-        
         $rq = $this->rq;
-        $date = $rq->getParam('date', '');
         $monat   = $rq->getParam('monat', '');
         $lager_id = $rq->getParam('lager_id', '');
-        
-        $dateRange = array();
-        
-        if (preg_match('/^(?P<YEAR>\d{4})-0?(?P<MONTH>\d{1,2})$/', $monat, $m)) {
-            if (checkdate($m['MONTH'], 1, $m['YEAR'])) {
-                
-                $year = $m['YEAR'];
-                $month = $m['MONTH'];
-                
-                $mTime = mktime(12,0,0,$month,1, $year);
-                $mDays = date("t", $mTime);
-                
-                $dateRange = array(
-                    'Von' => date('Y-m-d', $mTime),
-                    'Bis' => date('Y-m-d', mktime(12,0,0, $month, $mDays, $year) )
-                );
-            }
+        $dateRange = ['Von'=>'', 'Bis' => ''];
+
+        $this->_helper->viewRenderer->setRender('calendarmonthdata');
+
+        if (is_int($tVon = strtotime("$monat-01")) ) {
+
+            $dateRange = [
+                'Von' => new DateTime( date('Y-m-d', $tVon)),
+                'Bis' => new DateTime( date('Y-m-t', $tVon)),
+            ];
         }
         
-        if (!array_key_exists('Von', $dateRange))
-            throw new Exception('Ungueltige Monatsange: ' . $monat);
-        
-        $db = $this->db;
-        $NAME = Zend_Db_Table::NAME;
-        $tblAK = MyProject_Model_Database::loadStorage('vorgaenge')->info($NAME);
-        $tblDV = MyProject_Model_Database::loadStorage('tourenDispoVorgaenge')->info($NAME);
-        $tblTL = MyProject_Model_Database::loadStorage('tourenTimelines')->info($NAME);
-        $tblPT = MyProject_Model_Database::loadStorage('tourenPortlets')->info($NAME);
-        
-        $sqlTouren =
-         "SELECT T.*, PT.*, A.* " . PHP_EOL
-            ."FROM " . $tblDV . " T " . PHP_EOL
-        ."LEFT JOIN " . $tblAK . " A USING(Mandant,Auftragsnummer) " . PHP_EOL
-        ."LEFT JOIN " . $tblTL . " TL ON T.timeline_id = TL.timeline_id " . PHP_EOL
-        ."LEFT JOIN " . $tblPT . " PT ON TL.portlet_id = PT.portlet_id " . PHP_EOL
-        ." WHERE T.IsDefault = 0 AND PT.lager_id = :lager_id " . PHP_EOL
-        ." AND T.DatumVon BETWEEN :DatumVon AND :DatumBis" . PHP_EOL
-        ."ORDER BY T.timeline_id, ZeitVon";
-        
-        
-        $sqlTouren =
-         "SELECT DV.*, PT.*, PT.title PortletTitle, TL.*, TL.title TimelineTitle, A.* " . PHP_EOL
-            ."FROM " . $tblPT . " PT " . PHP_EOL
-            ."LEFT JOIN " . $tblTL . " TL ON PT.portlet_id  = TL.portlet_id " . PHP_EOL
-            ."LEFT JOIN " . $tblDV . " DV ON TL.timeline_id = DV.timeline_id " . PHP_EOL
-            ."LEFT JOIN " . $tblAK . " A  ON (DV.Mandant = A.Mandant AND DV.Auftragsnummer = A.Auftragsnummer) " . PHP_EOL
-        ." WHERE " . PHP_EOL
-        ." PT.lager_id = :lager_id " . PHP_EOL
-        ." AND (" . PHP_EOL
-        ." (PT.title IS NOT NULL AND PT.datum BETWEEN :DatumVon AND :DatumBis) "  . PHP_EOL
-        ." OR (DV.IsDefault = 0  "  . PHP_EOL
-        ." AND DV.DatumVon BETWEEN :DatumVon AND :DatumBis) "  . PHP_EOL
-        ." )" . PHP_EOL
-        ."ORDER BY DV.timeline_id, ZeitVon";
-        
-        $this->view->dateRange = $dateRange;
+        if (!$dateRange['Von'] instanceof DateTime) {
+            throw new Exception('Ungueltige Monatsangabe: ' . $monat);
+        }
+
+        $this->view->dateRange = [];
+        $this->view->dateRange['Von'] = $dateRange['Von']->format('Y-m-d');
+        $this->view->dateRange['Bis'] = $dateRange['Bis']->format('Y-m-d');
         $this->view->lager_id = $lager_id;        
-        
-        $this->view->data = $db->fetchAll($sqlTouren, array(
-            ':lager_id' => (int)$lager_id,
-            ':DatumVon' => $dateRange['Von'],
-            ':DatumBis' => $dateRange['Bis']
-        ));
-        
-//        die( print_r($this->view->data, 1));
+
+        $oResult = (new Model_TourenDispoVorgaenge())->getCalendarmonthdata((int)$lager_id, $dateRange['Von'], $dateRange['Bis']);
+        $this->view->data = $oResult->data;
     }
     
     public function tageseinsatzlisteAction()
@@ -1458,19 +1380,20 @@ class Touren_AjaxController extends Zend_Controller_Action
         $result = $modelDV->getFullDayData($date, $lager_id);
         
         $modelRsrc = array(
-            'FP' => MyProject_Model_Database::loadModel('tourenDispoFuhrpark'),
-            'MA' => MyProject_Model_Database::loadModel('tourenDispoMitarbeiter')
+            'FP' => Model_TourenDispoFuhrpark::getSingleton(),
+            'MA' => Model_TourenDispoMitarbeiter::getSingleton(),
         );
         
         $this->view->ajax_response->freeResources = array('FP'=>null,'MA'=>null);
-        
-        
+
+
+        /** @var Model_TourenDispoResourceAbstract $_model */
         foreach($modelRsrc as $k => $_model) {
             $this->view->ajax_response->freeResources[$k] = $_model->getFreeResources($filterFreeRsrc, array());
         }
-        // die('<pre>'.print_r($this->view->ajax_response->freeResources,1).'</pre>');
         
         if ($result->error === null) {
+            $this->view->ajax_response->queries = ''; // MyProject_Db_Profiler::getProfiledQueryList();
             $this->view->ajax_response->data = $result->data;
         } else {
             $this->view->ajax_response->data = null;
@@ -1641,41 +1564,22 @@ class Touren_AjaxController extends Zend_Controller_Action
         $rq = $this->getRequest();
         $date = $rq->getParam('date', date('Y-m-d'));
         $iLagerId = (int)$rq->getParam('lager_id', '1');
-
-        $dateTime = strtotime($date);
+        $modelMethodN = (int)$rq->getParam('modelMethod', 3);
 
         $userIdentity = MyProject_Auth_Adapter::getIdentity();
-        $userRole = $userIdentity->user_role;
         
-        $this->_helper->viewRenderer->setRender('jsonresponse');
-        $this->view->ajax_response = new stdClass();
+        // $this->_helper->viewRenderer->setRender('jsonresponse');
         
         $modelDV = new Model_TourenDispoVorgaenge();
         
-        // Cache frontendoptions
-        $frontendOptions = array(
-           'lifetime' => 100, // 100 Sekunden 24*60*60*3 // 3 Tage cachen
-           'automatic_serialization' => true,
-        );
-        // Cache backendoptions
-        $backendOptions = array(
-            // Directory where to put the cache files
-            'cache_dir' => APPLICATION_PATH . '/cache' 
-        );
-        // Cache object
-        $cache = Zend_Cache::factory('Output',
-                                     'APC',
-                                     $frontendOptions,
-                                     $backendOptions);
-        $cacheID = md5(__METHOD__ .'/' . $date . '/' . $iLagerId);
-        
-//        if (!($result = $cache->load($cacheID))) {
-//            $result = $modelDV->getFullDayData($date, $lager_id);
-//            $cache->save($result);
-//        }
-        
         $timeIn = time();
-        $result = $modelDV->getFullDayData($date, $iLagerId);
+        if ($modelMethodN) {
+            // New AND FAST
+            $result = $modelDV->getFullDayData3($date, $iLagerId);
+        } else {
+            // OLD AND SLOW
+            $result = $modelDV->getFullDayData0($date, $iLagerId);
+        }
 
         $denyAll = !$this->dayIsDisposable($date, $iLagerId);
 
@@ -1695,70 +1599,62 @@ class Touren_AjaxController extends Zend_Controller_Action
             $timelineIsDroppable = true;
         }
 
-        if ( 1 || !$this->dayIsDisposable($date) ) {
+        $result->settings = [];
+        $result->settings['portlet']['isEditable'] = $portletIsEditable;
+        $result->settings['portlet']['isPrintable'] = 1;
+        $result->settings['route']['isEditable'] = $routeIsEditable;
+        $result->settings['resource']['isDraggable'] = $resrcIsDraggable;
+        $result->settings['resource']['isRemovable'] = $resrcIsRemovable;
+        $result->settings['timelineDropzone']['isEditable'] = $timelineIsEditable;
+        $result->settings['timelineDropzone']['isDroppable'] = $timelineIsDroppable;
 
-            $result->settings = [];
-            $result->settings['portlet']['isEditable'] = $portletIsEditable;
-            $result->settings['portlet']['isPrintable'] = 1;
-            $result->settings['route']['isEditable'] = $routeIsEditable;
-            $result->settings['resource']['isDraggable'] = $resrcIsDraggable;
-            $result->settings['resource']['isRemovable'] = $resrcIsRemovable;
-            $result->settings['timelineDropzone']['isEditable'] = $timelineIsEditable;
-            $result->settings['timelineDropzone']['isDroppable'] = $timelineIsDroppable;
+        $iNumResultData = count($result->data);
 
-            $iNumResultData = count($result->data);
+        for ($i = 0; $i < $iNumResultData; $i++) {
+            $result->data[$i]['settings']['isEditable'] = !$denyAll;
+            $result->data[$i]['settings']['isDroppable'] = !$denyAll;
+            $_iNumTimelines = count($result->data[$i]['timelines']);
 
-            for ($i = 0; $i < $iNumResultData; $i++) {
-                $result->data[$i]['settings']['isEditable'] = !$denyAll;
-                $result->data[$i]['settings']['isDroppable'] = !$denyAll;
-                $_iNumTimelines = count($result->data[$i]['timelines']);
+            for ($i2 = 0; $i2 < $_iNumTimelines; $i2++) {
+                $result->data[$i]['timelines'][$i2]['settings']['isEditable'] = $timelineIsEditable;
+                $result->data[$i]['timelines'][$i2]['settings']['isPrintable'] = true;
+                $result->data[$i]['timelines'][$i2]['settings']['isDroppable'] = $timelineIsDroppable;
+                $_iNumTouren = count($result->data[$i]['timelines'][$i2]['touren']);
 
-                for ($i2 = 0; $i2 < $_iNumTimelines; $i2++) {
-                    $result->data[$i]['timelines'][$i2]['settings']['isEditable'] = $timelineIsEditable;
-                    $result->data[$i]['timelines'][$i2]['settings']['isPrintable'] = true;
-                    $result->data[$i]['timelines'][$i2]['settings']['isDroppable'] = $timelineIsDroppable;
-                    $_iNumTouren = count($result->data[$i]['timelines'][$i2]['touren']);
+                for ($i3 = 0; $i3 < $_iNumTouren; $i3++) {
 
-                    for ($i3 = 0; $i3 < $_iNumTouren; $i3++) {
+                    $_aTourData = $result->data[$i]['timelines'][$i2]['touren'][$i3];
+                    $_tourIsEditable  = !$denyAll && $modelDV->tourOperationIsAllowedByData($_aTourData, $userIdentity, 'edit');
+                    $_tourIsResizable = !$denyAll && $modelDV->tourOperationIsAllowedByData($_aTourData, $userIdentity, 'resize');
+                    $_tourIsRemovable = !$denyAll && $modelDV->tourOperationIsAllowedByData($_aTourData, $userIdentity, 'remove');
+                    $_tourIsDroppable = !$denyAll && $modelDV->tourOperationIsAllowedByData($_aTourData, $userIdentity, 'drop');
+                    $_tourIsDraggable = !$denyAll && $modelDV->tourOperationIsAllowedByData($_aTourData, $userIdentity, 'drag');
 
-                        $_aTourData = $result->data[$i]['timelines'][$i2]['touren'][$i3];
-                        $_tourIsEditable  = !$denyAll && $modelDV->tourOperationIsAllowedByData($_aTourData, $userIdentity, 'edit');
-                        $_tourIsResizable = !$denyAll && $modelDV->tourOperationIsAllowedByData($_aTourData, $userIdentity, 'resize');
-                        $_tourIsRemovable = !$denyAll && $modelDV->tourOperationIsAllowedByData($_aTourData, $userIdentity, 'remove');
-                        $_tourIsDroppable = !$denyAll && $modelDV->tourOperationIsAllowedByData($_aTourData, $userIdentity, 'drop');
-                        $_tourIsDraggable = !$denyAll && $modelDV->tourOperationIsAllowedByData($_aTourData, $userIdentity, 'drag');
-
-                        $result->data[$i]['timelines'][$i2]['touren'][$i3]['settings']['isEditable']  = $_tourIsEditable;
-                        $result->data[$i]['timelines'][$i2]['touren'][$i3]['settings']['isResizable'] = $_tourIsResizable;
-                        $result->data[$i]['timelines'][$i2]['touren'][$i3]['settings']['isRemovable'] = $_tourIsRemovable;
-                        $result->data[$i]['timelines'][$i2]['touren'][$i3]['settings']['isDroppable'] = $_tourIsDroppable;
-                        $result->data[$i]['timelines'][$i2]['touren'][$i3]['settings']['isDraggable'] = $_tourIsDraggable;
-                    }
+                    $result->data[$i]['timelines'][$i2]['touren'][$i3]['settings']['isEditable']  = $_tourIsEditable;
+                    $result->data[$i]['timelines'][$i2]['touren'][$i3]['settings']['isResizable'] = $_tourIsResizable;
+                    $result->data[$i]['timelines'][$i2]['touren'][$i3]['settings']['isRemovable'] = $_tourIsRemovable;
+                    $result->data[$i]['timelines'][$i2]['touren'][$i3]['settings']['isDroppable'] = $_tourIsDroppable;
+                    $result->data[$i]['timelines'][$i2]['touren'][$i3]['settings']['isDraggable'] = $_tourIsDraggable;
                 }
             }
-        } elseif ($userRole === 'innendienst' ) {
-
-
-
         }
 
-//        echo '<pre>' . json_encode($result->data, JSON_PRETTY_PRINT) . '</pre>';
-//        exit;
-
-        // die(print_r($result->data,1));
         $time = time() - $timeIn;
         
         if ($result->error === null) {
-            $this->view->ajax_response->time = $time;
-            $this->view->ajax_response->settings = $result->settings;
-            $this->view->ajax_response->data = $result->data;
+
+            $this->sendJsonSuccess('Touren loaded', [
+            ], [
+                'data' => $result->data,
+                'settings' => $result->settings,
+                'time' => $time,
+                'modelMethod' => $modelMethodN,
+                ]);
         } else {
-            $this->view->ajax_response->data = null;
-            $this->view->ajax_response->error = $result->error->message;
-            $this->view->ajax_response->errorObject = $result->error;
+            $this->sendJsonError($result->error->message, [], [
+                'errorObject' => $result->error
+            ]);
         }
-        return;
-        
     }
     
     public function resourcedataAction() 
@@ -1789,6 +1685,7 @@ class Touren_AjaxController extends Zend_Controller_Action
                 $this->view->ajax_response->data[] = $_rsrc;
             }
         }
+        $this->view->ajax_response->log = MyProject_Db_Profiler::getProfiledQueryList();
         $this->view->ajax_response->msg = "Ressourcen wurden geladen";
     }
 
@@ -2900,131 +2797,80 @@ class Touren_AjaxController extends Zend_Controller_Action
     
     public function dropresourceAction() 
     {
-        $timeIn = microtime(true);
+        $microTimeIn = microtime( true );
         $TLOG = [];
+
+        $tlog = function($line, $txt) use(&$microTimeIn, &$TLOG) {
+            $t = round(microtime(true) - $microTimeIn, 3);
+            $TLOG[] = [ $t, implode(' ', func_get_args())];
+        };
+
         $this->view->ajax_response->type = 'success';
         $this->view->ajax_response->success = true;
+        $aRsrcKeyByType = ['MA'=>'mid', 'FP'=>'fid', 'WZ'=>'wid'];
+
         $rq = $this->getRequest();
-        $data = $rq->getParam('data');
-        
+        $params = $rq->getParams();
+
+
         // Ist nur relevant, wenn Resource auf der Standard-Resource-Leiste abgelegt wurde
-        $applyDefaults      = $rq->getParam('applyDefaults', '');
-        $resourceType       = (array_key_exists('resourceType', $data) ? $data['resourceType'] : '');
-        $resourceModelClass = (array_key_exists($resourceType, $this->_resourceModels)) ? $this->_resourceModels[$resourceType] : '';
-        $resourceDataModelClass = (array_key_exists($resourceType, $this->_resourceDataModels))
-            ? $this->_resourceDataModels[$resourceType]
-            : '';
-        /* @var Model_Mitarbeiter $modelDataRsrc  */
-        $modelDataRsrc = MyProject_Model_Database::loadModel( $resourceDataModelClass );
+        $applyDefaults = filter_var($params['applyDefaults'] ?? 'false', FILTER_VALIDATE_BOOLEAN);
 
-        // Parse true/false from string to boolean
-        if ($applyDefaults === 'true') {
-            $applyDefaults = true;
-        } elseif ($applyDefaults === 'false') {
-            $applyDefaults = false;
+        $this->_require(!empty($params['data']) && is_array($params['data']),
+            'No Data in Get-Parameter data[]!');
+        $data = $params['data'];
+
+        if (is_numeric($data['tour_id'] ?? '')) {
+            $data['route_id'] = $data['tour_id'] = (int)$data['tour_id'];
+        } elseif (is_numeric($data['route_id'] ?? '')) {
+            $data['route_id'] = $data['tour_id'] = (int)$data['route_id'];
+        } else {
+            $this->sendJsonError('Missing Parameter tour_id or route_id in data[]!');
         }
-        
-        /* @var $modelTour Model_TourenDispoVorgaenge */
-        $modelTour    = new Model_TourenDispoVorgaenge();
-        $tourData = $modelTour->getVorgangAndStatus( $data['route_id'] );
+        $iTourId = (int)$data['route_id'];
 
-        if (!empty($tourData['DatumVon']) && !$this->dayIsDisposable( $tourData['DatumVon'] )) {
-            return $this->sendJsonVorlaufError();
+        $this->_require(!empty($data['resourceType']),
+            'No resourceType in Get-Parameter data[]!');
+        $resourceType = $data['resourceType'];
+
+
+        $this->_require(isset($aRsrcKeyByType[$resourceType]),
+            "No valid resourceType specified: Invalid Parameter for data[resourceType]: $resourceType!");
+        $resourceKey = $aRsrcKeyByType[$resourceType];
+
+        $this->_require(!empty($data[$resourceKey]),
+            "No resourceId specified: Missing data[$resourceKey]!");
+        $resourceId = $data[$resourceKey];
+        
+        $aDropResult = $this->getTourenResourceModelByType($resourceType)->dropQuick($iTourId, $resourceId, $resourceType);
+        $iNumTours = $aDropResult['affectedRows'];
+        $iNumExist = count($aDropResult['aExistingTouren']);
+        $iNumConflict = count($aDropResult['aConflictTouren']);
+
+        if ($iNumTours) {
+            $sMsg = "Resource wurde zu $iNumTours Tour(en) hinzugefuegt!\n";
         }
 
-        $TLOG[] = [ __LINE__, microtime(true) - $timeIn, 'getVorgangAndStatu'];
-        $tourIsLocked = $modelTour->isLockedByRow( $tourData );
-        $TLOG[] = [ __LINE__, microtime(true) - $timeIn, 'isLockedByRow'];
-        
-        if ($tourIsLocked) {
-            $this->json->error('Tour wurde bereits gesperrt!');
+        if ($iNumConflict) {
+            $sMsg.= "$iNumConflict Tour(en) konnten wegen Zeitkonflikten nicht hinzugefuegt werden!\n";
         }
 
-        if ($data['route_id']) $data['tour_id'] = $data['route_id'];
-        $TLOG[] = [ __LINE__, microtime(true) - $timeIn, 'test-log'];
-        
-        $this->view->ajax_response->sent   = print_r($data, 1);
-        $TLOG[] = [ __LINE__, microtime(true) - $timeIn, 'test-log'];
-        // $this->view->debug = true;
-        
-        // Pre-Condition
-        if (!$resourceModelClass) {
-            $this->view->ajax_response->test[] = __LINE__;
-            $this->view->ajax_response->type = 'error';
-            $this->view->ajax_response->success = false;
-            $this->view->ajax_response->error = "Ungültiger ResourceTyp `$resourceType`. Erwarteter Wert FP, MA oder WZ!";
-            return;
+        if ($iNumExist) {
+            $sMsg.= "$iNumExist Tour(en) wurde die Resource bereits hinzugefügt!\n";
         }
-        $this->view->ajax_response->test[] = __LINE__;
-        
-        /* @var $modelRsrc MyProject_Model_TourenResourceInterface */
-        $modelRsrc = MyProject_Model_Database::loadModel($resourceModelClass);
-        $TLOG[] = [ __LINE__, microtime(true) - $timeIn, 'loadResourceModel'];
-        $this->view->ajax_response->resourceModelClass   = $resourceModelClass;
-        
-        /* @var $modelLogger Model_TourenDispoLog */        
-        $modelLogger = MyProject_Model_Database::loadModel($this->_modelLoggerName);
-        $TLOG[] = [ __LINE__, microtime(true) - $timeIn, 'loadLogger'];
-        $this->view->ajax_response->test[] = __LINE__;
-        
-        try {
-//            die('#' . __LINE__ . 'getRsrcKey(): ' . $modelRsrc->getRsrcKey() . PHP_EOL);
 
-            switch($resourceType) {
-                case 'MA':
-                    $rid = $data['mid'];
-                    break;
-                case 'FP':
-                    $rid = $data['fid'];
-                    break;
-                case 'WZ':
-                    $rid = $data['wid'];
-                    break;
-
-                default:
-                    $rid = 0;
-            }
-            $rsrcName = ($rid) ?  $modelDataRsrc->getName($rid) : $resourceType.'?';
-            
-            $newID = $modelRsrc->drop($data, $tourData);
-            $TLOG[] = [ __LINE__, microtime(true) - $timeIn, 'drop'];
-
-            if ($tourData['IsDefault'] && $applyDefaults) {
-                $aAppliedTourIDs = $modelRsrc->applyDefaults( $modelRsrc->fetchEntry( $newID ), $tourData['timeline_id'] );
-                $TLOG[] = [ __LINE__, microtime(true) - $timeIn, 'applyDefaults ' . print_r($aAppliedTourIDs,1)];
-            } else {
-                $aAppliedTourIDs = [];
-                // die(print_r([__LINE__, __FILE__, __METHOD__, 'tourData'=>$tourData, 'applyDefaults'=>$applyDefaults],1));
-            }
-
-            $modelLogger->logResource($resourceType, $rid, 'Drop', $data['tour_id']);
-
-            $TLOG[] = [ __LINE__, microtime(true) - $timeIn, 'logResource'];
-            if (is_array($aAppliedTourIDs)) {
-                foreach($aAppliedTourIDs as $_ids) {
-                    $modelLogger->logResource($resourceType, $rid, 'Drop-Default', $_ids['tourID']);
-                }
-                $TLOG[] = [ __LINE__, microtime(true) - $timeIn, 'logResource on applied Tours: ' . print_r($aAppliedTourIDs,1)];
-            }
-
-            $this->view->ajax_response->msg = "$rsrcName wurde zur Tour ({$data['tour_id']}) hinzugefügt.";
-            $this->view->ajax_response->data = [ 'new-rsrc-link-id' => $newID, 'rsrc-id' => $rid] + $data;
-            $this->view->ajax_response->id = $newID;
-            
-        } catch (Exception $e) {
-            $this->view->ajax_response->type = 'error';
-            $this->view->ajax_response->success = false;
-            Zend_Controller_Front::getInstance()->getResponse()->setHttpResponseCode(400);
-//            $this->view->ajax_response->error = '#' . $e->getLine() . ' ' . $e->getFile() . PHP_EOL;
-            $this->view->ajax_response->error = $e->getMessage();
-            
-            if (0 && APPLICATION_ENV == 'development') {          
-                $this->view->ajax_response->error.= print_r(Zend_Registry::get('db')->getProfiler()->getQueryProfiles(),1);
-            }
+        if ($iNumTours && !$iNumConflict) {
+            $sMsg = "Resource wurde zu $iNumTours Tour(en) hinzugefuegt!\n";
+            return $this->sendJsonSuccessID( $aDropResult['iTourInsertedRsrcId'], $sMsg, [
+                'inserts' => $aDropResult['aRsrcInsertedValues'],
+                'dropLog' => $aDropResult]);
+        } else {
+            return $this->sendJsonError($sMsg, $aDropResult);
         }
-        $this->view->ajax_response->test[] = __LINE__;
-        $TLOG[] = [ __LINE__, microtime(true) - $timeIn, 'End-Of-Action'];
-        $this->view->ajax_response->tlog = $TLOG;
+    }
+
+    private function getProfiledQueries(): array {
+        return MyProject_Db_Profiler::getProfiledQueryList( Zend_Registry::get('db') );
     }
         
     public function moveresourceAction() 
@@ -3084,6 +2930,38 @@ class Touren_AjaxController extends Zend_Controller_Action
         } catch (Exception $e) {
             return $this->sendJsonError("Fehler beim Verschieben der Resource!\n" . $e->getMessage() );
         }
+    }
+
+    public function removeresource1Action()
+    {
+
+        $rq = $this->getRequest();
+        $tourRsrcId = $rq->getParam('id', 0);
+        $rsrcType = $rq->getParam('resourceType', '');
+
+        if (!$tourRsrcId) {
+            $this->sendJsonError('Missing Tour-Rsrc-ID');
+        }
+
+        if (!$rsrcType) {
+            $this->sendJsonError('Missing Resource-Type');
+        }
+
+        $tourRsrcModel = $this->getTourenResourceModelByType($rsrcType);
+
+        if (is_null($tourRsrcModel)) {
+            $this->sendJsonError('Invalid Resource-Type');
+        }
+
+        $aRemoveResult = $tourRsrcModel->removeQuick($tourRsrcId);
+
+        $re = [ 'rows' => $aRemoveResult['aDeletedLinks'], 'logs' => $aRemoveResult];
+
+        if (!empty($aRemoveResult['error'])) {
+            return $this->sendJsonError($aRemoveResult['error'], $re);
+        }
+
+        return $this->sendJsonSuccess('Resource wurde entfernt', $re);
     }
     
     public function removeresourceAction()
@@ -3165,8 +3043,43 @@ class Touren_AjaxController extends Zend_Controller_Action
             return $this->sendJsonError( "Fehler beim Entfernen der Resource!\n" . $e->getMessage() );
         }
     }
-    
+
     public function removeresourcedefaultAction()
+    {
+        $rq = $this->getRequest();
+
+        $rsrcLnkId = (int)$rq->getParam('id', 0);
+        $rsrcType = $rq->getParam('resourceType', '');
+
+        if (!$rsrcLnkId) {
+            $this->sendJsonError('Missing TourRsrc-LinkID');
+        }
+
+        if (!$rsrcType) {
+            $this->sendJsonError('Missing TourRsrc-Type');
+        }
+
+        $tourRsrcModel = $this->getTourenResourceModelByType($rsrcType);
+
+        if (is_null($tourRsrcModel)) {
+            $this->sendJsonError('Invalid Ressource-Type: ' . $rsrcType);
+        }
+
+        $aRemoveResult = $tourRsrcModel->removeQuick($rsrcLnkId);
+
+        if (!empty($aRemoveResult['error'])) {
+            $this->sendJsonError($aRemoveResult['error'], $aRemoveResult);
+        }
+
+        $this->sendJsonSuccess('Resource wurde entfernt', [
+            'rows' => $aRemoveResult['aDeletedLinks'],
+            'aRemoveResult' => $aRemoveResult,
+        ]);
+
+
+    }
+    
+    public function removeresourcedefault0Action()
     {        
         $rq = $this->getRequest();
         $id = $rq->getParam('id', null);
@@ -3228,7 +3141,10 @@ class Touren_AjaxController extends Zend_Controller_Action
                 $iUnlinkedTours = count($aUnlinkedTourIds);
                 return $this->sendJsonSuccess(
                     "Default-Ressource $rsrcName (" . $resourceType . ") "
-                    ."mit der id " . $id . " wurde aus $iUnlinkedTours Touren (inkl. Default-Leiste) gelöscht!");
+                    ."mit der id " . $id . " wurde aus $iUnlinkedTours Touren (inkl. Default-Leiste) gelöscht!",
+                [
+                    'queries' => MyProject_Db_Profiler::getProfiledQueryList()
+                ]);
             } else {
                 return $this->sendJsonError(
                     "Default-Ressource  $rsrcName (" . $resourceType . ") "

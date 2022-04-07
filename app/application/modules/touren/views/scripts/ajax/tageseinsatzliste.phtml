@@ -135,6 +135,7 @@ $(function(){
                 $kunde = preg_replace('/^\d*/', '', $_tour['LieferungName']);
                 $monteure = array();
                 $monteureDrkt = array();
+                $fahrzeuge = [];
                 $fp_kz = array();
                 $fp_groesse = array();
                 $fp_num_lkw = 0;
@@ -150,11 +151,14 @@ $(function(){
                         
                         case 'FP':
                             ++$fp_num_lkw;
-                            $fp_groesse[] = $_rsrc['fahrzeugart'];
-                            if (preg_match('/\d*$/', $_rsrc['kennzeichen'], $kznr))
-                                $fp_kz[] = $kznr[0];
-                            else 
-                                $fp_kz[] = $_rsrc['kennzeichen'];
+                            $fahrzeuge[] = $_rsrc['label'];
+                            $fp_groesse[] = ''; //$_rsrc['fahrzeugart'];
+                            if (0) {
+                                if (preg_match('/\d*$/', $_rsrc['kennzeichen'], $kznr))
+                                    $fp_kz[] = $kznr[0];
+                                else
+                                    $fp_kz[] = $_rsrc['kennzeichen'];
+                            }
                             break;
                     }
                 }
@@ -168,7 +172,7 @@ $(function(){
                 echo '<td>' . ($fp_num_bulli ? $fp_num_bulli : '') . '</td>';
                 echo '<td>' . ($fp_num_lkw ? $fp_num_lkw : '') . '</td>';
                 echo '<td>' . implode('; ', $fp_groesse) . '</td>';
-                echo '<td>' . implode('; ', $fp_kz) . '</td>';
+                echo '<td>' . implode('; ', $fahrzeuge) . '</td>';
                 echo '</tr>' . PHP_EOL;
             }
             echo '</tbody>' . PHP_EOL;
@@ -223,4 +227,7 @@ foreach($resources as $key => $_result) {
         Fb.RouteToolTip( this, "table.freeResources.MA", "bottom", "selector");
     });
 </script>
+<pre>
+    <?= print_r($this->ajax_response->queries, 1) ?>
+</pre>
 

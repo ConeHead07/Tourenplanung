@@ -10,7 +10,7 @@
  *
  * @author rybka
  */
-class Model_Db_UserProfile extends Zend_Db_Table_Abstract 
+class Model_Db_UserProfile extends Model_Db_Abstract
 {
     //put your code here
     protected $_name = 'mr_user_profile';

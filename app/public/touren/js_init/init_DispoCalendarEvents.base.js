@@ -158,6 +158,7 @@ $.extend(Fb.DispoCalendarEvents, {
                                  .replace(/\/ZeitBis\/\d+(:\d+){0,2}\//, "/" )
                                  .replace(/\/tour\/\d+\//, "/" )
                                  .replace(/\/tour\/\d+\b/, "/" )
+                                 .replace(/\/listavaiables\b/, '/listavaiables/date/'+date)
                                  .replace(/\/gridresponsedata\b/, '/gridresponsedata/date/'+date);
 //                    alert("#124 init_DispoCalendarEvents tabsselect "+tabsMap[u.index]+" set date="+date+"\noldUrl:"+oldUrl+"\nnewUrl:"+newUrl);
                     $this.fbMultiSearchBox({'jqGridSearchUrl':newUrl});
@@ -181,6 +182,7 @@ $.extend(Fb.DispoCalendarEvents, {
                              .replace(/\/ZeitBis\/\d+(:\d+){0,2}\//, "/" )
                              .replace(/\/tour\/\d+\//, "/" )
                              .replace(/\/tour\/\d+\b/, "/" )
+                             .replace(/\/listavaiables\b/, '/listavaiables/date/'+date)
                              .replace(/\/gridresponsedata\b/, '/gridresponsedata/date/'+date);
                 $(this).fbMultiSearchBox({'jqGridSearchUrl':newUrl});
             });
@@ -229,6 +231,7 @@ $.extend(Fb.DispoCalendarEvents, {
                                 .replace(/\/ZeitBis\/\d+(:\d+){0,2}\//, "/" )
                                 .replace(/\/tour\/\d+\//, "/" )
                                 .replace(/\/tour\/\d+\b/, "/" )
+                                .replace(/\/listavaiables\b/, '/listavaiables/'+zeitFilter)
                                 .replace(/\/gridresponsedata\b/, '/gridresponsedata/'+zeitFilter);
 //                    var newUrl = oldUrl.split('/gridresponsedata')[0]+'/gridresponsedata/'+zeitFilter;
                     $(this).fbMultiSearchBox({'jqGridSearchUrl':newUrl});
@@ -250,6 +253,7 @@ $.extend(Fb.DispoCalendarEvents, {
                              .replace(/\/ZeitBis\/\d+(:\d+){0,2}\//, "/" )
                              .replace(/\/tour\/\d+\//, "/" )
                              .replace(/\/tour\/\d+\b/, "/" )
+                             .replace(/\/listavaiables\b/, '/listavaiables/'+zeitFilter)
                              .replace(/\/gridresponsedata\b/, '/gridresponsedata/'+zeitFilter);
                 $(this).fbMultiSearchBox({'jqGridSearchUrl':newUrl});
             });

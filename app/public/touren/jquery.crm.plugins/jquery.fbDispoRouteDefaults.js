@@ -344,6 +344,7 @@
             if (!addData) addData = {name: '??'};
 
             var t = $('<div />').text(addData.name);
+
             if (!t || !t.length) {
                 alert('Unbekannter Systemfehler. Ressource konnte nicht initialisiert werden!');
                 return false;
@@ -361,6 +362,9 @@
             );
             t.data('dragdata',addData); //.removeClass('Drag-Rsrc');
             t.removeClass('Drag-Rsrc');
+        },
+        'removeResourceById': function(id) {
+
         },
         'getTimeline': function() {
             return $( this ).closest("div.fbDispoTimelineDropzone");

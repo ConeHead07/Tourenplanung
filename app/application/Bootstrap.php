@@ -17,6 +17,16 @@ class Bootstrap extends Zend_Application_Bootstrap_Bootstrap
         });
     }
 
+    protected function _initDbprofiles()
+    {
+        if (constant('WHOAMI') !== 'local') {
+            return;
+        }
+        register_shutdown_function(function(){
+            MyProject_Db_Profiler::logSiteQueries();
+        });
+    }
+
     protected function _initCache()
     {
         $frontendOptions = array(

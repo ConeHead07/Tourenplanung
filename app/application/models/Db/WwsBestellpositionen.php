@@ -1,6 +1,6 @@
 <?php
 
-class Model_Db_WwsBestellpositionen extends Zend_Db_Table_Abstract 
+class Model_Db_WwsBestellpositionen extends Model_Db_Abstract
 {  
     protected $_name    = 'wws_bestellpositionen';
     protected $_primary = array('Mandant','Bestellnummer','Positionsnummer');

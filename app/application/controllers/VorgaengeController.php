@@ -302,7 +302,7 @@ class VorgaengeController extends Zend_Controller_Action
                     'view'    => $view,
                 )
         );
-        
+        $response->sql    = $vorgaenge->sql;
         $response->page    = $vorgaenge->page;
         $response->total   = $vorgaenge->total_pages;
         $response->records = $vorgaenge->total;
