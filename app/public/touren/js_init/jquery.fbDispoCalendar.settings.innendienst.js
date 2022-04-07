@@ -31,12 +31,14 @@ $.extend(Fb.DispoCalendarSettings, {
    timelineGrid: {},
    
    route: {
-       isEditable: false,
+       isEditable: true,
        isDroppable: false,
-       isDraggable: false,
-       isResizable: false,
-       isRemovable: false
-   },
+       isDraggable: true,
+       isResizable: true,
+       isRemovable: false,
+       allowedColors: ['Gelb','Blau','Weiss', 'Reklamation', 'Service']
+
+},
    routeDefaults: {
        isDroppable: false
    },

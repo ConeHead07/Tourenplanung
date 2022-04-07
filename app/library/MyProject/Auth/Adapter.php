@@ -31,9 +31,8 @@ class MyProject_Auth_Adapter
         }
         return 0;
     }
-    
+
     /**
-     * 
      * @return mixed|null
      */
     public static function getIdentity() {

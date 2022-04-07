@@ -285,6 +285,7 @@ class LdapmappingController  extends RestAbstract
                 $aList['num_exists']++;
                 $aList['existsUsers'][] =
                     $_sUser . ' => ['
+                    . 'entries => ' . json_encode($entries) . '; '
                     . $entries[0]['samaccountname'] . ' => '
                     . $entries[0]['name'] . ' '
                     . ($entries[0]['email'] ?? '') . ']';

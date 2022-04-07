@@ -16,6 +16,7 @@ class MyProject_Model_Database extends MyProject_Model_Abstract
     protected $_db = null;
     protected $_tbl = null;
     protected $_key = null;
+    static protected $_tourDispoLogger = null;
 
     public function __construct()
     {
@@ -29,6 +30,13 @@ class MyProject_Model_Database extends MyProject_Model_Abstract
         } elseif (is_string($a)) {
             $this->_key = $a;
         }
+    }
+
+    public function getTourDispoLogger() : Model_TourenDispoLog {
+        if (is_null(self::$_tourDispoLogger)) {
+            self::$_tourDispoLogger = new Model_TourenDispoLog();
+        }
+        return self::$_tourDispoLogger;
     }
 
     public function getTable() {

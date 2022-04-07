@@ -33,9 +33,12 @@ class Model_TourenDispoVorgaenge extends MyProject_Model_Database
     const STATUS_TOUR_ABGESCHLOSSEN    = 3;
     const STATUS_TOUR_DISPONIERT       = 2;
     const STATUS_TOUR_LOCKED           = 1;
-    
+
+    /** @var string  */
+    private $_lastErrorTourOperationNotAllowed = '';
     
     public function __construct() {
+        parent::__construct();
         /* @var $this->_storage Model_Db_TourenDispoVorgaenge */
         $this->_storage = $this->getStorage();
         
@@ -44,6 +47,11 @@ class Model_TourenDispoVorgaenge extends MyProject_Model_Database
         
         /* @var $this->_tbl string */
         $this->_tbl = $this->_storage->info(Zend_Db_Table::NAME);        
+    }
+
+    public function dispoLog($tour_id, $action, $aDetails) {
+        $uid = MyProject_Auth_Adapter::getUserId();
+        $this->getTourDispoLogger()->logTour($tour_id, $action, $uid, $aDetails);
     }
     
     public function statusTourenZeitenErfassung($mandant, $auftragsnr) {
@@ -234,6 +242,8 @@ if ($orderby) {
                 $data['DatumBis'] = $data['DatumVon'];
             }
             $id = $this->insert($data);
+            $data['bemerkung'] = json_encode($data);
+            $this->dispoLog($id, 'insert', $data);
             return $id;
         }
         if (!$id) {
@@ -270,9 +280,11 @@ if ($orderby) {
         $id = null;
         $rgxIsoDate = ':^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[0-2])$:';
         if (array_key_exists('DatumVon', $data) && preg_match($rgxIsoDate, $data['DatumVon'])) {
-            return $this->update($data, $data['id']);
+            $updateSuccess = $this->update($data, $data['id']);
+            $this->dispoLog($data['id'], 'moved', $data + ['bemerkung'=>json_encode($data)]);
+            return $updateSuccess;
         }
-        
+
         if (!$id) {
             throw new Exception('ungueltige Daten. Route konnte nicht gespeichert werden!' . PHP_EOL . print_r($checkdata,1));
             
@@ -294,7 +306,9 @@ if ($orderby) {
         $b = preg_match($rgxIsoDate, $data['DatumVon'], $m);
         
         if (isset($data['DatumVon']) && preg_match($rgxIsoDate, $data['DatumVon'])) {
-            return $this->update($data, $data['id']);
+            $updateSuccess = $this->update($data, $data['id']);
+            $this->dispoLog($data['id'], 'resize', $data + ['bemerkung'=>json_encode($data)]);
+            return $updateSuccess;
         }
         return null;
     }
@@ -680,6 +694,7 @@ if ($orderby) {
                  ." DV.IsDefault, " . PHP_EOL
                  ." DV.avisiert, " . PHP_EOL
                  ." DV.farbklasse, " . PHP_EOL
+                 ." DV.locked, " . PHP_EOL
                  ." CONCAT(A.Auftragsnummer,', ',A.LieferungOrt) name, " . PHP_EOL
                  ." A.LieferterminFix, " . PHP_EOL
                  ." A.LieferungName, " . PHP_EOL
@@ -693,36 +708,38 @@ if ($orderby) {
                  ." DA.tour_dispo_count, " . PHP_EOL
                  ." DA.tour_abschluss_count, " . PHP_EOL
 
-                .'CASE '
-                .' WHEN DV.DatumVon is null ' . PHP_EOL
-                .'  THEN \'neu\' '             . PHP_EOL
-                .' WHEN DV.DatumVon is not null  AND DA.auftrag_disponiert_am IS NULL  AND (DA.tour_dispo_count IS NULL OR DA.tour_dispo_count = 0) ' . PHP_EOL
-                .'  THEN \'beauftragt\' '      . PHP_EOL
-                .' WHEN DV.zeiten_erfasst_am IS NOT NULL ' . PHP_EOL
-                .'  THEN \'fertig\' '          . PHP_EOL
-                .' WHEN DA.auftrag_abgeschlossen_am IS NULL AND DA.tour_neulieferungen_count > 0 ' . PHP_EOL
-                .'  THEN \'neulieferung\' '          . PHP_EOL
-                .' WHEN DA.auftrag_disponiert_am IS NULL  AND DA.tour_dispo_count IS NOT NULL AND DA.tour_dispo_count > 0 ' . PHP_EOL
-                .'  THEN \'teil\' '            . PHP_EOL
-                .' WHEN DA.auftrag_disponiert_am IS NOT NULL ' . PHP_EOL
-                .'  THEN \'teil\' '          . PHP_EOL
-                .' ELSE '                     . PHP_EOL
-                .'  -- nicht bestimmbar '      . PHP_EOL
-                .'  NULL '                     . PHP_EOL
-                .'END AS dispoStatus, '      . PHP_EOL
+                 .'CASE '
+                 .' WHEN DV.DatumVon is null ' . PHP_EOL
+                 .'  THEN \'neu\' '             . PHP_EOL
+                 .' WHEN DV.DatumVon is not null  AND DA.auftrag_disponiert_am IS NULL  AND (DA.tour_dispo_count IS NULL OR DA.tour_dispo_count = 0) ' . PHP_EOL
+                 .'  THEN \'beauftragt\' '      . PHP_EOL
+                 .' WHEN DV.zeiten_erfasst_am IS NOT NULL ' . PHP_EOL
+                 .'  THEN \'fertig\' '          . PHP_EOL
+                 .' WHEN DA.auftrag_abgeschlossen_am IS NULL AND DA.tour_neulieferungen_count > 0 ' . PHP_EOL
+                 .'  THEN \'neulieferung\' '          . PHP_EOL
+                 .' WHEN DA.auftrag_disponiert_am IS NULL  AND DA.tour_dispo_count IS NOT NULL AND DA.tour_dispo_count > 0 ' . PHP_EOL
+                 .'  THEN \'teil\' '            . PHP_EOL
+                 .' WHEN DA.auftrag_disponiert_am IS NOT NULL ' . PHP_EOL
+                 .'  THEN \'teil\' '          . PHP_EOL
+                 .' ELSE '                     . PHP_EOL
+                 .'  -- nicht bestimmbar '      . PHP_EOL
+                 .'  NULL '                     . PHP_EOL
+                 .'END AS dispoStatus, '      . PHP_EOL
 
-               .' cu.user_role created_role,' . PHP_EOL
-               .' mu.user_role modified_role' . PHP_EOL
+                 ." DV.created_uid, " . PHP_EOL
+                 ." DV.modified_uid, " . PHP_EOL
+                 .' cu.user_role created_role,' . PHP_EOL
+                 .' mu.user_role modified_role' . PHP_EOL
 
-               ." FROM " . $tblTP . " p " //mr_touren_portlets "
-               ." LEFT JOIN " . $tblTL . " tl ON p.portlet_id = tl.portlet_id "
-               ." LEFT JOIN " . $tblDV . " DV ON tl.timeline_id = DV.timeline_id"
-               ." LEFT JOIN $tblAK A  ON(DV.Mandant = A.Mandant AND DV.Auftragsnummer = A.Auftragsnummer) " . PHP_EOL
-               ." LEFT JOIN $tblDA DA ON(DV.Mandant = DA.Mandant AND DV.Auftragsnummer = DA.Auftragsnummer) " . PHP_EOL
-               ." LEFT JOIN $tblUsr cu ON (DV.created_uid = cu.user_id) " . PHP_EOL
-               ." LEFT JOIN $tblUsr mu ON (DV.modified_uid = mu.user_id) " . PHP_EOL
-               ." WHERE p.datum = :date AND p.lager_id = :lager_id "
-               ." ORDER BY p.position, tl.position, ZeitVon";
+                 ." FROM " . $tblTP . " p " //mr_touren_portlets "
+                 ." LEFT JOIN " . $tblTL . " tl ON p.portlet_id = tl.portlet_id "
+                 ." LEFT JOIN " . $tblDV . " DV ON tl.timeline_id = DV.timeline_id"
+                 ." LEFT JOIN $tblAK A  ON(DV.Mandant = A.Mandant AND DV.Auftragsnummer = A.Auftragsnummer) " . PHP_EOL
+                 ." LEFT JOIN $tblDA DA ON(DV.Mandant = DA.Mandant AND DV.Auftragsnummer = DA.Auftragsnummer) " . PHP_EOL
+                 ." LEFT JOIN $tblUsr cu ON (DV.created_uid = cu.user_id) " . PHP_EOL
+                 ." LEFT JOIN $tblUsr mu ON (DV.modified_uid = mu.user_id) " . PHP_EOL
+                 ." WHERE p.datum = :date AND p.lager_id = :lager_id "
+                 ." ORDER BY p_position, p.portlet_id, tl_position, tl.timeline_id, DV.ZeitVon";
             
 //            die('#'.__LINE__ . ' <pre>' . strtr($sql, array(':date'=>$date, ':lager_id'=>$lager_id)) . '</pre>' .PHP_EOL);
             $rows =  $db->fetchAll($sql, array(':date'=>$date, ':lager_id'=>$lager_id));
@@ -1246,7 +1263,7 @@ if ($orderby) {
         
         $fp->addTourDefaults( $tourData );
         $ma->addTourDefaults( $tourData );
-        $wz->addTourDefaults( $tourData );    
+        $wz->addTourDefaults( $tourData );
     }
     
     public function addResource($tour_id, $rsrc_id, $rsrc_typ )
@@ -1991,6 +2008,105 @@ if ($orderby) {
         }
         return null;
     }
+
+    /**
+     * @param int $tourid
+     * @return array|false
+     * @throws Zend_Db_Table_Exception
+     */
+    public function getTourWithUserRole(int $tourid)
+    {
+        $tbl = $this->getStorage()->info(Zend_Db_Table::NAME);
+
+        $sql = 'SELECT t.tour_id, t.Mandant, t.Auftragsnummer, farbklasse,
+                t.timeline_id, t.DatumVon, t.ZeitVon, t.DatumBis, t.ZeitBis, 
+                t.IsDefault, t.locked, t.created_uid,  t.modified_uid, 
+                u.user_role, u.user_role created_role, u.user_name
+                FROM ' . $tbl . ' t '
+            . ' LEFT JOIN mr_user u ON (t.created_uid = u.user_id) WHERE tour_id = ' . (int)$tourid;
+
+        return $this->_db->fetchRow($sql, [], Zend_Db::FETCH_ASSOC);
+    }
+
+
+    public function tourOperationIsAllowedById(int $tourId, object $userIdentity, string $action = '')
+    {
+        $aTour = $this->getTourWithUserRole($tourId);
+
+        return $this->tourOperationIsAllowedByData( $aTour, $userIdentity, $action );
+    }
+
+    public function getLastErrorTourOperationNotAllowed() : string {
+        return $this->_lastErrorTourOperationNotAllowed;
+    }
+
+    private function setLastErrorTourOperationNotAllowed(string $error) {
+        $this->_lastErrorTourOperationNotAllowed = $error;
+    }
+
+    public function tourOperationIsAllowedByData(array $aTour, object $userIdentity, string $action = '')
+    {
+        $this->setLastErrorTourOperationNotAllowed('');
+
+        $user_id = $userIdentity->user_id;
+        $user_role = $userIdentity->user_role;
+        $verbose = 0;
+
+        if ($verbose && $aTour['created_uid'] == '200' && $aTour['tour_id'] == '129926' && $action === "drag" ) {
+            print_r([
+                'aTour' => $aTour,
+                'userIdentity' => $userIdentity,
+                'action' => $action,
+                'user_id' => $user_id,
+                'user_role' => $user_role,
+            ]);
+            $dbg = true;
+        } else {
+            $dbg = false;
+        }
+
+        switch ($user_role) {
+            case 'innendienst':
+            case 'controller':
+                if ($aTour['locked']) {
+                    $this->setLastErrorTourOperationNotAllowed( "Tour ist bereits gesperrt!" );
+                    if ($dbg) {
+                        echo "\nlocked=" . $aTour['locked'] . "\n";
+                        exit;
+                    }
+                    return false;
+                }
+                if ( ($aTour['farbklasse'] ?? '') === 'Gruen') {
+                    $this->setLastErrorTourOperationNotAllowed( "Tour ist als VIP-Tour markiert und wurde gesperrt!" );
+                    if ($dbg) {
+                        echo "\nlocked=" . $aTour['locked'] . "\n";
+                        exit;
+                    }
+                    return false;
+                }
+                if (0 && $aTour['created_role'] != $user_role) {
+                    if ($dbg) {
+                        echo "\nTour wurde nicht von einem $user_role-Mitarbeiter angelegt!\n";
+                        exit;
+                    }
+                    return false;
+                }
+                if (!in_array($action, ['resize', 'remove', 'move', 'drag', 'set-Tour-Farbklasse', 'setTourFarbklasse'])) {
+                    $this->setLastErrorTourOperationNotAllowed( "Tour-Aktion " . $action . " ist für die Benutzergruppe " . $user_role . " gesperrt!" );
+                    if ($dbg) {
+                        echo "\nUmzulässige Tour-Operation " . $action . "!\n";
+                        exit;
+                    }
+                    return false;
+                }
+                break;
+        }
+        if ($dbg) {
+            echo "\nTour-Operation is ALLOWED: " . $action . "!\n";
+            exit;
+        }
+        return true;
+    }
     
     /**
      *
@@ -2167,6 +2283,19 @@ if ($orderby) {
             'tour_id = ' . $this->_db->quote($tour_id)
         );
 
+        if ($iAffected) {
+            $this->dispoLog($tour_id, 'color-' . $sFarbklasse, []);
+        }
+
         return $iAffected;
+    }
+
+
+    public function getFarbklasse(int $tour_id): string
+    {
+        $sql = 'SELECT farbklasse FROM ' . $this->_tbl . ' '
+            . ' WHERE tour_id = ' . $this->_db->quote($tour_id);
+
+        return $this->_db->fetchOne( $sql );
     }
 }

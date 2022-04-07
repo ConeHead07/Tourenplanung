@@ -44,6 +44,23 @@ class MyProject_Acl extends Zend_Acl {
         }
     }
 
+    public function isAllowed($role = null, $resource = null, $privilege = null) {
+
+        return parent::isAllowed($role, $resource, $privilege);
+    }
+
+    public function isAllowedByDate($date, $role = null, $resource = null, $privilege = null) {
+
+        return parent::isAllowed($role, $resource, $privilege);
+    }
+
+
+
+    public function isAllowedByObject(string $sObjectType, $aObject, $role = null, $resource = null, $privilege = null) {
+
+        return parent::isAllowed($role, $resource, $privilege);
+    }
+
     protected function __clone() {
         ;
     }

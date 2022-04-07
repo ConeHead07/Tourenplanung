@@ -15,6 +15,8 @@ class Plugin_Auth extends Zend_Controller_Plugin_Abstract
         
         /* @var $acl MyProject_Acl */    
         $acl = Zend_Registry::get('acl');
+
+        $hdAccept = $request->getHeader('accept');
         
         // ? 'user' : 'guest';
 //        Zend_Auth::getInstance()->clearIdentity();
@@ -34,7 +36,7 @@ class Plugin_Auth extends Zend_Controller_Plugin_Abstract
             ($controllerName == 'user' && $actionName == 'logout')
             || Zend_Registry::get('acl')->isAllowed(
             $role, 
-            // F�hrte zu Fehler: $prefixModule.$role,
+            // Fuehrte zu Fehler: $prefixModule.$role,
             $controllerName,
             $actionName
         );
@@ -54,6 +56,18 @@ class Plugin_Auth extends Zend_Controller_Plugin_Abstract
         }
         
         if (!$IsAllowed) {
+
+            if (stripos($hdAccept, 'json') !== false) {
+                header("Content-Type: text/json");
+                echo json_encode([
+                    'type' => 'error',
+                    'success' => false,
+                    'error' => 'Zugriff auf angeforderte Ressource wurde abgelehnt!',
+                    'data' => [],
+                ]);
+                exit;
+            }
+
             if ($role == 'guest') {
                 $request->setModuleName('default');
                 $request->setControllerName( 'user');

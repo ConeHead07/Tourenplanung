@@ -51,7 +51,7 @@ implements MyProject_Model_TourenResourceInterface
         $this->_tblRsrcName = $this->_tblRsrcObj->info(Zend_Db_Table::NAME);
         $this->_tblRsrcKey  = $this->_map['resource']['refColumns'];
         
-        // Resource-Verkn�pfungs-Tabelle
+        // Resource-Verknüpfungs-Tabelle
         $this->_tblRsrcLnkName = $this->_cnf['name'];
         $this->_tblRsrcLnkKey  = $this->_map['resource']['columns'];
 
@@ -69,6 +69,31 @@ implements MyProject_Model_TourenResourceInterface
 //        echo $this->rsrcKey . ';' . $this->rsrcLnkKey . '<br>' . PHP_EOL;
         $this->tourTbl    = $this->_db->quoteIdentifier( $this->_tblTourName );
         $this->tourKey    = $this->_db->quoteIdentifier( $this->_tblTourKey );        
+    }
+
+
+    public function dispoLog(int $rsrc_id, string $action, int $tour_id, array $aDetails = []) {
+        $uid = MyProject_Auth_Adapter::getUserId();
+        $sperrzeiten_id = $aDetails['sperrzeiten_id'] ?? null;
+        switch($this->_resourceType) {
+            case 'MA':
+                $this->getTourDispoLogger()->logResourceMA(
+                    $rsrc_id, $action, $tour_id, $uid, $sperrzeiten_id, $aDetails
+                );
+                break;
+
+            case 'FP':
+                $this->getTourDispoLogger()->logResourceFP(
+                    $rsrc_id, $action, $tour_id, $uid, $sperrzeiten_id, $aDetails
+                );
+                break;
+
+            case 'WZ':
+                $this->getTourDispoLogger()->logResourceWZ(
+                    $rsrc_id, $action, $tour_id, $uid, $sperrzeiten_id, $aDetails
+                );
+                break;
+        }
     }
     
     public function countUnerfassteZeitenByTourId($tourid) {
@@ -176,7 +201,13 @@ implements MyProject_Model_TourenResourceInterface
                 $this->_tblRsrcLnkKey => $rsrcId,
                 $this->_tblTourKey => $tourId
             ));
-            if ($id) return $id;
+            if ($id) {
+                $this->dispoLog(
+                    $rsrcId, 'insert', $tourId,
+                    $tourEntry + ['bemerkung' => json_encode($rsrcEntry)]
+                );
+                return $id;
+            }
             else {
                 throw new Exception('Ungueltige Daten. Tour konnte nicht gespeichert werden!' . PHP_EOL . print_r($data,1));
             }
@@ -256,7 +287,13 @@ implements MyProject_Model_TourenResourceInterface
             $this->_tblRsrcLnkKey => $rsrcId,
             $this->_tblTourKey => $tourId
         ));
-        if ($id) return $id;
+        if ($id) {
+            $this->dispoLog(
+                $rsrcId, 'insert-default', $tourId,
+                $tourEntry + ['bemerkung' => json_encode($tourEntry)]
+            );
+            return $id;
+        }
         else {
             throw new Exception('Ungueltige Daten. Tour konnte nicht gespeichert werden!' . PHP_EOL . print_r($data,1));
         }
@@ -381,7 +418,24 @@ implements MyProject_Model_TourenResourceInterface
             $db->beginTransaction();
             $sql = 'DELETE FROM ' . $this->_tbl . ' WHERE ' . $this->tourKey . ' IN ('.implode(',', $filterTourIds) . ') AND ' . $this->rsrcLnkKey . ' = '.$rsrcId;
             $db->query($sql);
-            $newId = $this->drop(array_merge($dstTourEntry, $rsrcEntry, array('route_id'=>$dstTourEntry['tour_id'])));
+            foreach($filterTourIds as $_tour_id) {
+                $this->dispoLog(
+                    $rsrcId, 'remove-move', $_tour_id,
+                    $data + ['bemerkung' => json_encode($data)]
+                );
+            }
+
+            $newId = $this->drop(
+                array_merge($dstTourEntry, $rsrcEntry, array('route_id'=>$dstTourEntry['tour_id']))
+            );
+
+            if ($newId) {
+                $this->dispoLog(
+                    $rsrcId, 'apply-defaults', $dstTourEntry['tour_id'],
+                    $dstTourEntry + ['bemerkung' => json_encode($dstTourEntry)]
+                );
+            }
+
             $returnObject->success = true;
             $returnObject->dispoRsrcId = $newId;
             $db->commit();
@@ -478,6 +532,13 @@ implements MyProject_Model_TourenResourceInterface
                     'timeline_id' => $tid,
                 ), $_tourData);
 
+                if ($id) {
+                    $this->dispoLog(
+                        $rid, 'apply-defaults', $_tour_id,
+                        $_tourData + ['bemerkung' => json_encode($_tourData)]
+                    );
+                }
+
                 $aAppliedTourIDs[] = ['newID' => $id, 'tourID' => $_tour_id];
             }
         } catch(Exception $e) {
@@ -516,6 +577,12 @@ implements MyProject_Model_TourenResourceInterface
         $iSelected = count($aTourIDs);
 
         $iDeleted = $db->delete($this->_tblRsrcLnkName, $where );
+
+        foreach($aTourIDs as $_tour_id) {
+            $this->dispoLog(
+                $rid, 'removed-default', $_tour_id
+            );
+        }
 
         if ($iDeleted != $iSelected) {
             throw new Exception("Die ermittelte Anzahl Touren ($iSelected) entspricht nicht der Anzahl Touren ($iDeleted) aus der die Ressource entfernt wrude!");
@@ -848,14 +915,10 @@ implements MyProject_Model_TourenResourceInterface
      */
     public function removeRessourceFromTourlist($id, $aTourIDs, $sperrzeiten_id = null)
     {
-        /** @var Model_TourenDispoLog $modelLogger */
-        $modelLogger = MyProject_Model_Database::loadModel('tourenDispoLog');
-
         $reCountRemoved = 0;
         foreach($aTourIDs as $_tourID) {
-
             $sqlDelete = 'DELETE FROM '.$this->rsrcLnkTbl.' '
-                .' WHERE '.$this->_rsrcLnkKey .' = ' . intval($id)
+                .' WHERE '.$this->_rsrcLnkKey .' = ' . (int)$id
                 .'  AND tour_id = ' . $this->_db->quote($_tourID);
 
             $stmt = $this->_db->query($sqlDelete);
@@ -871,7 +934,11 @@ implements MyProject_Model_TourenResourceInterface
                     'tour_id' => $_tourID,
                     'sperrzeiten_id' => $sperrzeiten_id
                 ],1));
-                $modelLogger->logResource($this->_resourceType, $id, 'removed', $_tourID, null, $sperrzeiten_id);
+
+                $this->dispoLog(
+                    $id, 'removed', $_tourID,
+                    [ 'sperrzeiten_id' => $sperrzeiten_id ]
+                );
             }
         }
 

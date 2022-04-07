@@ -66,19 +66,24 @@ class Model_TourenDispoAttachments extends MyProject_Model_Database
 
         $this->getStorage()->delete($this->_db->quoteInto('dok_datei LIKE ?', $file));
 
-        $record = $this->getStorage()->createRow(
-                array(
-                    'tour_id' => $tour_id,
-                    'oeffentlich' => 'Ja',
-                    'typ' => 'Datei',
-                    'dok_datei' => $file,
-                    'titel' => $title,
-                    'dok_groesse' => $size,
-                    'dok_type' => $aFileInfo["extension"],
-                    'created' => new Zend_Db_Expr('NOW()'),
-                    'createdby' => MyProject_Auth_Adapter::getUserId(),
-                )
+        $aData = array(
+            'tour_id' => $tour_id,
+            'oeffentlich' => 'Ja',
+            'typ' => 'Datei',
+            'dok_datei' => $file,
+            'titel' => $title,
+            'dok_groesse' => $size,
+            'dok_type' => $aFileInfo["extension"],
+            'created' => new Zend_Db_Expr('NOW()'),
+            'createdby' => MyProject_Auth_Adapter::getUserId(),
         );
+
+        $record = $this->getStorage()->createRow(
+                $aData
+        );
+
+        print_r(['<pre>', $aData, $record->toArray(), '</pre>']);
+
         $record->save();
         return $record->dokid;
     }
