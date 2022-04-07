@@ -15,20 +15,23 @@ class DbprofilerController extends Zend_Controller_Action {
     
     public function indexAction()
     {
-        //return;
         $this->view->dbprofiler = '';
         $db = Zend_Registry::get( 'db' );
-        $profiler = new Zend_Db_Profiler();
-        $this->view->dbprofiler.= Zend_Debug::dump($profiler->getEnabled(), 'dbprofiler->getEnabled()', false);
-        if (Zend_Registry::get('dbprofiler_enabled') )  {
-            $profiler = $db->getProfiler();
+        $profiler = $db->getProfiler();
+        $this->view->dbprofiler .= '<div>APPLICATION_ENV: ' . APPLICATION_ENV . '</div>' . "\n";
+
+        if ( $profiler->getEnabled() )  {
             if ($profiler->getQueryProfiles()) {
                 foreach($profiler->getQueryProfiles() as $query) {
-                    $this->view->dbprofiler.= $query->getQuery() . ' [' . $query->getElapsedSecs(). "<br>\n";
+                    $_sql = $query->getQuery();
+                    if (!preg_match('#user_pw|MD5\(#', $_sql)) {
+                        $this->view->dbprofiler .= $_sql . ' [' . $query->getElapsedSecs() . "<br>\n";
+                    } else {
+                        $this->view->dbprofiler .= substr($_sql, 0, 25) . '... [' . $query->getElapsedSecs() . "<br>\n";
+                    }
                 }
             }
         }
     }
 }
 
-?>

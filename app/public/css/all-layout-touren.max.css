@@ -870,7 +870,7 @@ DIV.bookmarks {
 .grey		{ color: #777; }
 .red		{ color: #F00; }
 /**
-* Regel für Tabs-Darstellung zur Einbindung von ui-icons in den Tab-Titel
+* Regel fï¿½r Tabs-Darstellung zur Einbindung von ui-icons in den Tab-Titel
 */
 body, * {
     font-size:11px;
@@ -1876,7 +1876,7 @@ div.route-stat-finished {
 div.route-stat-dispo {
     background-color: #fbec88 !important;
 }
-div.route-stat-nodispo {
+div.route-stat-nodispo {r
     background-color: mistyrose !important;
 }
 

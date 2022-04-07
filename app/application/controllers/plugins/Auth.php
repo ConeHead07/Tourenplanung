@@ -17,17 +17,26 @@ class Plugin_Auth extends Zend_Controller_Plugin_Abstract
         $acl = Zend_Registry::get('acl');
         
         // ? 'user' : 'guest';
+//        Zend_Auth::getInstance()->clearIdentity();
         $identity = Zend_Auth::getInstance()->getIdentity();
+//        $identity = null;
+//        print_r(['<pre>', '#'=>__LINE__, __FILE__, __METHOD__, 'identity'=>$identity, '</pre>']);
+//        exit;
         $role = (null == $identity) ? 'guest' : $identity->user_role;
         
         $module = $this->getRequest()->getModuleName();
         $prefixModule = ($module != 'default') ? $module.'_' : '';
+
+        $controllerName = $prefixModule . $request->getControllerName();
+        $actionName = $request->getActionName();
         
-        $IsAllowed = Zend_Registry::get('acl')->isAllowed(
+        $IsAllowed =
+            ($controllerName == 'user' && $actionName == 'logout')
+            || Zend_Registry::get('acl')->isAllowed(
             $role, 
-            // Führte zu Fehler: $prefixModule.$role,
-            $prefixModule . $request->getControllerName(),
-            $request->getActionName()
+            // Fï¿½hrte zu Fehler: $prefixModule.$role,
+            $controllerName,
+            $actionName
         );
         
         if ($this->_debug && !$IsAllowed) {

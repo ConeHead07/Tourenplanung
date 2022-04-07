@@ -30,28 +30,40 @@ class UserController extends Zend_Controller_Action
     }
 
     public function loginAction() 
-    {        
-//        echo '#' . __LINE__ . ' ' . __CLASS__ . ' ' . __METHOD__ . ' '. APPLICATION_ENV . "<br>\n";
+    {
+
         if (!Zend_Auth::getInstance()->hasIdentity()) {
             //require_once 'forms/User/Login.php';
             $form = new Form_User_Login();
             Zend_Registry::set('pageTitel', 'Login');
+
+            $form->getElement( 'user_name')->setValue('*');
+
             $this->view->pageTitel = 'Login';
-            $this->view->login = $form->render();
             $rq = Zend_Controller_Front::getInstance()->getRequest();
             $uname = $rq->getPost('user_name');
             $upass = $rq->getPost('user_pw');
 
-            if (!$uname || !$upass)
-                return;
+            if ($uname) {
+                $form->getElement( 'user_name')->setValue((string)$uname);
+            }
+            $this->view->login = $form->render();
 
-            
+            if (!$uname || !$upass) {
+                $this->view->error = 'Es wurden keine oder unvollständige Anmeldedaten angegeben!';
+                return;
+            }
+
             $auth = Zend_Auth::getInstance();
-            if (0) {
+            if (1) {
                 $authAdapter = new MyProject_Auth_Adapter($uname, $upass);
             } else {
                 $authAdapter = new Zend_Auth_Adapter_DbTable(
-                                Zend_Registry::get('db'), 'mr_user', 'user_name', 'user_pw', 'MD5(?)'
+                                Zend_Registry::get('db'),
+                                'mr_user',
+                                'user_name',
+                                'user_pw',
+                                'MD5(?)'
                 );
                 $authAdapter->setIdentity($uname);
                 $authAdapter->setCredential($upass);
@@ -61,16 +73,16 @@ class UserController extends Zend_Controller_Action
                 $auth->clearIdentity();
                 switch ($result->getCode()) {
                     case Zend_Auth_Result::FAILURE_IDENTITY_NOT_FOUND:
-                        echo 'user name is invalid';
+                        $this->view->error = 'Ungültiger Benutzername!';
                         break;
 
                     case Zend_Auth_Result::FAILURE_CREDENTIAL_INVALID:
-                        echo 'invalid password provided';
+                        $this->view->error = 'Ungültiger Benutzername oder Passwort!';
                         break;
 
                     default:
 //                        echo 'authentication successful.move forward';
-                        $this->_redirect('/user/login');
+                        $this->redirect('/user/login');
                         break;
                 }
             } else {
@@ -80,7 +92,7 @@ class UserController extends Zend_Controller_Action
                 );
                 
                 $auth->getStorage()->write($identity);
-                $this->_redirect('/');
+                $this->redirect('/');
                 echo Zend_Debug::dump(Zend_Auth::getInstance()->getIdentity());
                 echo "LinkToLogout";
             }
@@ -89,7 +101,15 @@ class UserController extends Zend_Controller_Action
     }
 
     public function logoutAction() {
+        $user_id = MyProject_Auth_Adapter::getUserId();
+
+        if ($user_id) {
+            $userModel = new Model_User();
+            $userModel->setLogout($user_id);
+        }
+
         Zend_Auth::getInstance()->clearIdentity();
+        session_regenerate_id( true );
         $this->_helper->viewRenderer('login');
     }
 

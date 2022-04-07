@@ -20,4 +20,4 @@ class AjaxController extends Zend_Controller_Action
         $this->render("json_response", "ajax");
     }
 }
-?>
+

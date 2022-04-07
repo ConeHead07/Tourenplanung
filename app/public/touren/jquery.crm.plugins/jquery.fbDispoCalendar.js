@@ -14,7 +14,7 @@ $( function() {
         }
 
         if (typeof d !== "object" || (!("type" in d) && !("success" in d) && !("msg" in d) && !("error" in d)) ) {
-            console.log('#13 abort. Nothing to show for Toast', 'typeof d:', (typeof d), d, 'jqXHR', jqXHR);
+            // console.log('#13 abort. Nothing to show for Toast', 'typeof d:', (typeof d)); //, d, 'jqXHR', jqXHR);
             return
         }
 
@@ -84,8 +84,8 @@ if (!Fb.DispoCalendarSettings) Fb.DispoCalendarSettings = {};
  * im requestOpts-Objekt muss mind. eine url angeben, und im Regelfall sollten noch data uebergeben werden.
  * Requests werden synchron abgeschickt, d.h. alle anderen Aktionen ruhen bis
  * die Antwort des Servers empfangen und ausgewertet wurde, kann ueberschrieben werden (async:true).
- * Unterstuetzt Bestätigungsantworten des Servers:
- * Hierfür werden im json-Response-Objekt die Properties 
+ * Unterstuetzt Bestï¿½tigungsantworten des Servers:
+ * Hierfï¿½r werden im json-Response-Objekt die Properties 
  * - confirm (string)
  * - confirmUrl  (string) Wohin soll bestaetigung geschickt werden
  * - confirmData (string) Daten die mit bestaetigung hinzugefuegt werden (default: {confirm:1})
@@ -500,8 +500,8 @@ Fb.DispoCalendarEvents = {};
        'isContextSearchable': true,
        
                      
-          // Legt fest, ob Child-Events zusätzlich an jQuery-Binded-Handler weitergereicht werden
-          // Dies sollten die Child selbst übernehmen, da sonst Events mehrfach getriggert werden
+          // Legt fest, ob Child-Events zusï¿½tzlich an jQuery-Binded-Handler weitergereicht werden
+          // Dies sollten die Child selbst ï¿½bernehmen, da sonst Events mehrfach getriggert werden
         'triggerChildEvents': false, 
                        
           // Event-Listeners
@@ -521,7 +521,7 @@ Fb.DispoCalendarEvents = {};
             'onUnfoldPortlet': null, //*null*/ function(){alert(dataKey + '.onUnfoldPortlet Default-Dummie-Handler');},
            
            // Registriert im Portlet, wenn Timeline auf ein Portlet gezogen wird
-           // Also sowohl beim Timeline-Sortieren als auch Portletübergreifendes Verschieben
+           // Also sowohl beim Timeline-Sortieren als auch Portletï¿½bergreifendes Verschieben
            // Droppable ui - overview
            // ui.draggable - current draggable element, a jQuery object.
            // ui.helper - current draggable helper, a jQuery object
@@ -575,14 +575,10 @@ Fb.DispoCalendarEvents = {};
   'onHideRouteDefaultsDetails': null,
          
                'onAddResource': null, //*null*/ function(){},
-         /**
-          * this: fbDispoRoute
-          * param e event
-          * param ui droppable
-          */
               'onDropResource': null, //*null*/ function(e, ui){},
               'onMoveResource': null, //*null*/ function(){alert(dataKey + '.onMoveResource Default-Dummie-Handler');},
-            'onRemoveResource': null //*null*/ function(data){alert(dataKey + '.onRemoveResource arguments.length:'+arguments.length);}
+            'onRemoveResource': null, //*null*/ function(data){alert(dataKey + '.onRemoveResource arguments.length:'+arguments.length);}
+         'onSetTourFarbklasse': null
     };
    
     var methods = {

@@ -7,10 +7,13 @@
 
 $baseUrl = APPLICATION_BASE_URL . '/';
 $terminalBaseUrl = $baseUrl . 'touren/terminal/index/lager_id/'. $this->lager['lager_id'] . '/tag/';
+$tplLagerUrl = $baseUrl . 'touren/terminal/index/lager_id/{lager_id}/tag/' . $this->date;
 
 $i = 0;
 
 $touren = array();
+$hasVorOrtInfo = false;
+
 foreach ($this->data->data as $p) {
     //die(print_r($p,1));
     if (isset($p['timelines'])) foreach ($p['timelines'] as $tl) {
@@ -25,195 +28,390 @@ foreach ($this->data->data as $p) {
             $_vti = trim($t['Vorgangstitel']);
             if (!$t['IsDefault']) {
                 $vg[] = '<span class="vg-zeit">' . (int)($t['ZeitVon']).'-'.(int)substr($t['ZeitBis'], 0, 5) . 'Uhr</span> '
-                      . ' ' . ($_knd ?? $_vti);
+                    . ' ' . ($_knd ?? $_vti);
             }
-            
+
             if (isset($t['resources'])) foreach ($t['resources'] as $r) {
                 switch ($r['resourceType']) {
-                    case 'MA': 
+                    case 'MA':
                         $_ma = trim($r['nachname']);
                         if ($r['einsatz_ab'] == 'Baustelle') {
-                            if (!in_array( $_ma, $ma_baustelle)) $ma_baustelle[] = $_ma; 
+                            if (!in_array( $_ma, $ma_baustelle)) $ma_baustelle[] = $_ma;
                         }
-                        if (!in_array( $_ma,$ma_lager) && !in_array($_ma, $ma_baustelle)) 
-                            $ma_lager[] = $_ma; 
+                        if (!in_array( $_ma,$ma_lager) && !in_array($_ma, $ma_baustelle))
+                            $ma_lager[] = $_ma;
                         break;
-                    case 'FP': 
-                        if (!in_array(str_replace(' ', '&nbsp;', trim($r['kennzeichen'])),$fp)) 
-                            $fp[] = str_replace(' ', '&nbsp;', trim($r['kennzeichen'])); 
+                    case 'FP':
+                        $fpInfo = implode('&middot;', preg_split('/[\s-]+/', trim($r['kennzeichen'])));
+
+                        $fpInfo.= '<i><small><sup>';
+                        if ($r['fahrzeugart']) {
+                            $fpInfo.= '&nbsp;' . substr(trim($r['fahrzeugart']),0,15);
+                        }
+                        if ($r['modell']) {
+                            $fpInfo.= '&nbsp;' . substr(trim($r['modell']),0,8);
+                        }
+                        $fpInfo.= '</sup></small></i>';
+                        if (!in_array($fpInfo,$fp)) {
+                            $fp[] = $fpInfo;
+                        }
                         break;
                 }
             }
         }
-        
+
         $ma_lager = array_diff($ma_lager, $ma_baustelle);
         $touren[] =  array(
             'tagesnr' => $p['tagesnr'],
             'ma_lg' => implode(', ',  $ma_lager),
             'ma_bs' => implode(', ',  $ma_baustelle),
-            'fp' => implode(', ',  $fp),
+            'fp' => implode("<br>\n",  $fp),
             'vg' => $tourGroupTitle . implode('; ', $vg)
         );
+
+        if (count($ma_baustelle)) {
+            $hasVorOrtInfo = true;
+        }
     }
 }
 ?>
 <html>
-    <head>
-        <meta http-equiv="refresh" content="300" />
-        <link rel="stylesheet" href="<?= $baseUrl; ?>css/fontawesome/5.3.1/css/all.css"
-              integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
-        <link rel="stylesheet" xhref="https://use.fontawesome.com/releases/v5.3.1/css/all.css"
-              integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
+<head>
+    <meta http-equiv="refresh" content="300" />
+    <link rel="stylesheet" href="<?= $baseUrl; ?>css/fontawesome/5.3.1/css/all.css"
+          crossorigin="anonymous">
+    <link rel="stylesheet" xhref="https://use.fontawesome.com/releases/v5.3.1/css/all.css"
+          integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
 
 
-        <style>
-            body {
-                background-color:#222;
-                border-collapse:collapse;
-                border-spacing:0;
-            }
-            table {
-                width:100%;
-            }
-            thead th.border {
-                border-bottom:1px dotted yellow;
-            }
-            th { 
-                text-align: left; 
-                color:yellow;
-            }
-            tbody td.border {
-                border-bottom:1px dotted #ccc;
-            }
-            td, th {
-                padding-right:4px;
-                vertical-align: top;
-            }
-            td {
-                empty-cells:show;
-            }
-            td, b {
-                color:#fff;
-            }
-            td.tagesnr {
-                color:#1c94c4;
-            }
-            span.vg-zeit {
-                color:#f00;
-            }
-            body, body *, div, span, b, th, td {
-                font-family:Arial,sans-serif;
-            }
+    <style>
+        body {
+            background-color:#222;
+            border-collapse:collapse;
+            border-spacing:0;
+        }
+        table {
+            width:100%;
+        }
+        thead th.border {
+            border-bottom:1px dotted yellow;
+        }
+        th {
+            text-align: left;
+            color:yellow;
+        }
+        tbody td.border {
+            border-bottom:1px dotted #ccc;
+        }
+        td, th {
+            padding-right:4px;
+            vertical-align: top;
+        }
+        td {
+            empty-cells:show;
+        }
+        td, b {
+            color:#fff;
+        }
+        td.tagesnr {
+            color:#1c94c4;
+        }
+        span.vg-zeit {
+            color:#f00;
+        }
+        body, body *, div, span, b, th, td {
+            font-family:Arial,sans-serif;
+        }
+        .cal-nav-panel {
+            width:100%;
+            max-width:1900px;
+        }
 
-            .cal-nav .cal-nav-day {
-                padding:1.5.rem 2.5rem;
-                box-sizing: border-box;
-                height:1.3rem;
-                font-size:1rem;
+        .cal-nav .cal-nav-day {
+            padding:1.5.rem 2.5rem;
+            box-sizing: border-box;
+            height:1.3rem;
+            font-size:1rem;
 
-            }
-            .cal-nav .cal-nav-group {
-                background-color: #fff;
-                border: 1px solid #fff;
-                float: left;
-                border-radius: 4px;
-                overflow: hidden;
-            }
-            .cal-nav .cal-nav-group + .cal-nav-group {
-                margin-left:2rem;
-            }
-            .cal-nav .cal-nav-group .cal-nav-day {
-                float: left;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                min-width:2rem;
-                padding:0.5rem;
-            }
-            .cal-nav .cal-nav-group .cal-nav-day + .cal-nav-day {
-                margin-left: 2px;
-            }
-            .cal-nav .cal-nav-day,
-            .cal-nav .cal-nav-day a {
-                color: red;
-                text-decoration: none;
-                background-color:#aaa;
-                font-weight:normal;
-            }
-            .cal-nav .cal-nav-day.cal-nav-day__active,
-            .cal-nav .cal-nav-day.cal-nav-day__active a {
-                color: #1c94c4;
-                font-weight:bold;
-                background-color:#ccc;
-            }
-            .cal-nav .cal-nav-day.cal-nav-icon,
-            .cal-nav .cal-nav-icon {
-                width: 2.5rem;
-            }
-            .cal-nav .cal-nav-day.cal-nav-today,
-            .cal-nav .cal-nav-today {
-                width: 5rem;
-            }
-        </style>
-    </head>
-    <body>
-    
+        }
+        .cal-nav .cal-nav-group {
+            background-color: #fff;
+            border: 1px solid #fff;
+            float: left;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .cal-nav .cal-nav-group + .cal-nav-group {
+            margin-left:2rem;
+        }
+        .cal-nav .cal-nav-group .cal-nav-day {
+            float: left;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width:5rem;
+            padding:1.2rem;
+        }
+        .cal-nav .cal-nav-group .cal-nav-day + .cal-nav-day {
+            margin-left: 2px;
+        }
+        .cal-nav .cal-nav-day,
+        .cal-nav .cal-nav-day a {
+            color: red;
+            text-decoration: none;
+            background-color:#aaa;
+            font-weight:normal;
+        }
+        .cal-nav .cal-nav-day.cal-nav-day__active,
+        .cal-nav .cal-nav-day.cal-nav-day__active a {
+            color: #1c94c4;
+            font-weight:bold;
+            background-color:#ccc;
+        }
+        .cal-nav .cal-nav-day.cal-nav-icon,
+        .cal-nav .cal-nav-icon {
+            width: 2.5rem;
+        }
+        .cal-nav .cal-nav-day.cal-nav-today,
+        .cal-nav .cal-nav-today {
+            width: 5rem;
+        }
+
+        .cal-nav.cal-nav-section-title {
+            display: inline-block;
+            _?_min-width: 25rem;
+        }
+        .cal-nav.cal-nav-section-lager {
+            display: inline-block;
+        }
+        .cal-nav.cal-nav-section-date {
+            display: inline-block;
+            float:right;
+        }
+
+        .cal-nav .cal-nav-title {
+            font-weight: bold;
+            font-family:Arial,sans-serif;
+            font-size:1rem;
+            color: #1c94c4;
+            background-color:#ccc;
+            border: 1px solid #fff;
+            border-radius: 4px;
+            padding: .6rem;
+        }
+
+        .cal-nav .cal-nav-lager {
+            font-weight: bold;
+            font-family:Arial,sans-serif;
+            font-size:1rem;
+            color: #1c94c4;
+            background-color:#ccc;
+            border: 1px solid #fff;
+            border-radius: 4px;
+            padding: .6rem;
+        }
+
+        #media-queries-test {
+            display: none;
+            background-color: #ffdddd;
+        }
+        /*
+        #media-queries-test div {
+            display: inline-block;
+            min-width:140px;
+        }
+        
+        @media (min-width: 680px) {
+            #media-queries-test .min-width::after     { content: "min-width-680px";   }
+            #media-queries-test .min-width-680::after { content: attr(class);       }
+        }
+        @media (min-width: 800px) {
+            #media-queries-test .min-width::after      { content: "min-width-800px";   }
+            #media-queries-test .min-width-800::after  { content: attr(class);       }
+        }
+        @media (min-width: 1024px) {
+            #media-queries-test .min-width::after      { content: "min-width-1024px";   }
+            #media-queries-test .min-width-1024::after { content: attr(class);       }
+        }
+        @media (min-width: 1240px) {
+            #media-queries-test .min-width::after      { content: "min-width-1240px";   }
+            #media-queries-test .min-width-1240::after { content: attr(class);       }
+        }
+        @media (min-width: 1600px) {
+            #media-queries-test .min-width::after      { content: "min-width-1600px";   }
+            #media-queries-test .min-width-1600::after { content: attr(class);       }
+        }
+        @media (min-width: 1900px) {
+            #media-queries-test .min-width::after      { content: "min-width-1900px";   }
+            #media-queries-test .min-width-1900::after { content: attr(class);       }
+        }
+        @media (min-width: 2200px) {
+            #media-queries-test .min-width::after      { content: "min-width-2200px";   }
+            #media-queries-test .min-width-2200::after { content: attr(class);       }
+        }
+
+
+        @media (min-device-width: 240px) {
+            #media-queries-test .min-device-width::after     { content: "min-device-width-240px";   }
+            #media-queries-test .min-device-width-240::after { content: attr(class);       }
+        }
+        @media (min-device-width: 3000px) {
+            #media-queries-test .min-device-width::after     { content: "min-device-width-300px";   }
+            #media-queries-test .min-device-width-300::after { content: attr(class);       }
+        }
+        @media (min-device-width: 320px) {
+            #media-queries-test .min-device-width::after     { content: "min-device-width-320px";   }
+            #media-queries-test .min-device-width-320::after { content: attr(class);       }
+        }
+        @media (min-device-width: 360px) {
+            #media-queries-test .min-device-width::after     { content: "min-device-width-360px";   }
+            #media-queries-test .min-device-width-360::after { content: attr(class);       }
+        }
+        @media (min-device-width: 375px) {
+            #media-queries-test .min-device-width::after     { content: "min-device-width-375px";   }
+            #media-queries-test .min-device-width-375::after { content: attr(class);       }
+        }
+        @media (min-device-width: 400px) {
+            #media-queries-test .min-device-width::after     { content: "min-device-width-400px";   }
+            #media-queries-test .min-device-width-400::after { content: attr(class);       }
+        }
+        @media (min-device-width: 411px) {
+            #media-queries-test .min-device-width::after     { content: "min-device-width-411px";   }
+            #media-queries-test .min-device-width-411::after { content: attr(class);       }
+        }
+        @media (min-device-width: 680px) {
+            #media-queries-test .min-device-width::after     { content: "min-device-width-680px";   }
+            #media-queries-test .min-device-width-680::after { content: attr(class);       }
+        }
+        @media (min-device-width: 768px) {
+            #media-queries-test .min-device-width::after     { content: "min-device-width-768px";   }
+            #media-queries-test .min-device-width-768::after { content: attr(class);       }
+        }
+        @media (min-device-width: 800px) {
+            #media-queries-test .min-device-width::after      { content: "min-device-width-800px";   }
+            #media-queries-test .min-device-width-800::after  { content: attr(class);       }
+        }
+        @media (min-device-width: 1024px) {
+            #media-queries-test .min-device-width::after      { content: "min-device-width-1024px";   }
+            #media-queries-test .min-device-width-1024::after { content: attr(class);       }
+        }
+        @media (min-device-width: 1240px) {
+            #media-queries-test .min-device-width::after      { content: "min-device-width-1240px";   }
+            #media-queries-test .min-device-width-1240::after { content: attr(class);       }
+        }
+        @media (min-device-width: 1600px) {
+            #media-queries-test .min-device-width::after      { content: "min-device-width-1600px";   }
+            #media-queries-test .min-device-width-1600::after { content: attr(class);       }
+        }
+        @media (min-device-width: 1900px) {
+            #media-queries-test .min-device-width::after      { content: "min-device-width-1900px";   }
+            #media-queries-test .min-device-width-1900::after { content: attr(class);       }
+        }
+        @media (min-device-width: 2200px) {
+            #media-queries-test .min-device-width::after      { content: "min-device-width-2200px";   }
+            #media-queries-test .min-device-width-2200::after { content: attr(class);       }
+        }
+        */
+    </style>
+    <style media="print">
+        .cal-nav.cal-nav-section-date {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
 <div>
-<div style="float:left;"><b><?php echo $this->title; ?></b></div>
-<div style="float:left;width:30%;text-align:center"><b><?php echo $this->lager['lager_name']; ?></b></div>
-<?php //*
-?>
-<div class="cal-nav" style="float:right">
-    <div class="cal-nav-group">
-        <span class="cal-nav-day cal-nav-today"><a href="<?= $terminalBaseUrl ?>" title="Heute">Heute</a></span>
-        <span class="cal-nav-day cal-nav-today"><a href="<?= $terminalBaseUrl ?>morgen" title="Morgen">Morgen</a></span>
-    </div>
 
-    <div class="cal-nav-group cal-nav-group-days">
-<?php
-foreach($this->weekdays as $_date => $_dayname): ?>
-    <span class="cal-nav-day<?= ($_date!==$this->date ? '' : ' cal-nav-day__active') ?> " _date="<?=$_date?>" this-date="<?=$this->date ?>"><a href="<?= $terminalBaseUrl . $_date ?>"><?=$_dayname ?></a></span>
-<?php endforeach; ?>
+    <?php /* <div id="media-queries-test">
+        <div>
+            <div>min-width</div>
+            <div      class="min-width">#1 &nbsp; </div><div  class="min-width-680">#2 &nbsp; </div>
+            <div class="min-width-1024">#3 &nbsp; </div><div class="min-width-1240">#4 &nbsp; </div>
+            <div class="min-width-1600">#5 &nbsp; </div><div class="min-width-1900">#6 &nbsp; </div>
+            <div class="min-width-2200">#7 &nbsp; </div>
+        </div>
+        <div>
+            <div>min-device-width</div>
+            <div      class="min-device-width">#01 &nbsp; </div><div  class="min-device-width-240">#02 &nbsp; </div>
+            <div  class="min-device-width-300">#03 &nbsp; </div><div  class="min-device-width-320">#04 &nbsp; </div>
+            <div  class="min-device-width-360">#05 &nbsp; </div><div  class="min-device-width-375">#06 &nbsp; </div>
+            <div  class="min-device-width-400">#07 &nbsp; </div><div  class="min-device-width-411">#08 &nbsp; </div>
+            <div  class="min-device-width-680">#09 &nbsp; </div><div  class="min-device-width-768">#10 &nbsp; </div>
+            <div class="min-device-width-1024">#11 &nbsp; </div><div class="min-device-width-1240">#12 &nbsp; </div>
+            <div class="min-device-width-1366">#13 &nbsp; </div><div class="min-device-width-1600">#14 &nbsp; </div>
+            <div class="min-device-width-1900">#15 &nbsp; </div><div class="min-device-width-2200">#16 &nbsp; </div>
+        </div>
     </div>
-    <div class="cal-nav-group cal-nav-group-btns">
-        <span class="cal-nav-day cal-nav-icon"><a href="<?= $terminalBaseUrl . $this->prevKWMondayDate ?>" title="Vorherige KW"><i class="fas fa-angle-double-left"></i></a></span>
-        <span class="cal-nav-day cal-nav-icon"><a href="<?= $terminalBaseUrl . $this->prevDay ?>" title="Vorheriger Tag"><i class="fas fa-caret-left"></i></a></span>
-            <span class="cal-nav-day cal-nav-icon"><a href="<?= $terminalBaseUrl . $this->nextDay ?>" title="Nächster tag"><i class="fas fa-caret-right"></i></a></span>
-        <span class="cal-nav-day cal-nav-icon"><a href="<?= $terminalBaseUrl . $this->nextKWMondayDate ?>" title="Nächste KW"><i class="fas fa-angle-double-right"></i></a></span>
-    </div>
-</div>
+ */ ?>
+    <header>
+        <div class="cal-nav-panel">
 
-    <div style="clear:both"></div>
-<?php // */
-?>
-<table>
-    <thead>
+            <div class="cal-nav cal-nav-section-lager">
+                <select onchange="self.location.href=this.options[this.selectedIndex].value" class="cal-nav-lager">
+                    <option value="<?= $terminalBaseUrl . $this->date ?>" selected="selected"><?= $this->lager['lager_name'] ?></option>
+                    <?php foreach($this->lagerList as $_lgr): ?>
+                        <option value="<?= str_replace('{lager_id}', $_lgr['lager_id'], $tplLagerUrl) ?>"><?= $_lgr['lager_name'] ?></option>
+                    <?php endforeach;  ?>
+                </select>
+            </div>
+            <div class="cal-nav cal-nav-section-title"><span class="cal-nav-title"><?php echo $this->title; ?></span></div>
+
+            <div class="cal-nav cal-nav-section-date">
+                <div class="cal-nav-group">
+                    <a class="cal-nav-day cal-nav-today<?= ($this->date==date('Y-m-d')?'  cal-nav-day__active':'') ?>"
+                       href="<?= $terminalBaseUrl ?>" title="Heute"><span>Heute</span></a>
+                    <a class="cal-nav-day cal-nav-today<?= ($this->date==date('Y-m-d', strtotime('+1 day'))?'  cal-nav-day__active':'') ?>"
+                       href="<?= $terminalBaseUrl ?>morgen" title="Morgen"><span>Morgen</span></a>
+                </div>
+
+                <div class="cal-nav-group cal-nav-group-days">
+                    <?php
+                    foreach($this->weekdays as $_date => $_dayname): ?>
+                        <a class="cal-nav-day<?= ($_date!==$this->date ? '' : ' cal-nav-day__active') ?> "
+                           href="<?= $terminalBaseUrl . $_date ?>"><span _date="<?=$_date?>" this-date="<?=$this->date ?>"><?=$_dayname ?></span></a>
+                    <?php endforeach; ?>
+                </div>
+                <div class="cal-nav-group cal-nav-group-btns">
+                    <a class="cal-nav-day cal-nav-icon" href="<?= $terminalBaseUrl . $this->prevKWMondayDate ?>" title="Vorherige KW"><i class="fas fa-angle-double-left"></i></a>
+                    <a class="cal-nav-day cal-nav-icon" href="<?= $terminalBaseUrl . $this->prevDay ?>" title="Vorheriger Tag"><i class="fas fa-caret-left"></i></a>
+                    <a class="cal-nav-day cal-nav-icon" href="<?= $terminalBaseUrl . $this->nextDay ?>" title="Nächster tag"><i class="fas fa-caret-right"></i></a>
+                    <a class="cal-nav-day cal-nav-icon" href="<?= $terminalBaseUrl . $this->nextKWMondayDate ?>" title="Nächste KW"><i class="fas fa-angle-double-right"></i></a>
+                </div>
+            </div>
+
+            <div style="clear:both"></div>
+        </div>
+    </header>
+    <?php // */
+    ?>
+    <table style="margin-top:1rem">
+        <thead>
         <tr>
             <th>#</th>
             <th>Ab&nbsp;lager</th>
-            <th>Vor&nbsp;Ort</th>
+            <?= ($hasVorOrtInfo ? '<th>Vor&nbsp;Ort</th>' : '') ?>
             <th>Fahrzeug</th>
             <th>Vorgaenge</th>
         </tr>
-    <tr><th class="border" colspan=5></th></tr>
-    </thead>
-    <tbody>
-<?php
+        <tr><th class="border" colspan=5></th></tr>
+        </thead>
+        <tbody>
+        <?php
 
-foreach($touren as $_tour) {
-    echo '<tr>' . "\n"
-        .'  <td class="tagesnr">' . $_tour['tagesnr'] . '</td>' . "\n"
-        .'  <td>' . $_tour['ma_lg'] . '</td>' . "\n"
-        .'  <td>' . $_tour['ma_bs'] . '</td>' . "\n"
-        .'  <td>' . $_tour['fp'] . '</td>' . "\n"
-        .'  <td>' . $_tour['vg'] . '</td>' . "\n"
-        .'</tr>' . "\n"
-        .'<tr><td class="border" colspan=5></td></tr>' . "\n"
-        ;
-}
-?>
-    </tbody>
-</table>
+        foreach($touren as $_tour) {
+            echo '<tr>' . "\n"
+                .'  <td class="tagesnr">' . $_tour['tagesnr'] . '</td>' . "\n"
+                .'  <td style="min-width:160px;">' . $_tour['ma_lg'] . '</td>' . "\n"
+                .($hasVorOrtInfo ? '  <td>' . $_tour['ma_bs'] . '</td>' . "\n" : '')
+                .'  <td style="min-width:160px;">' . $_tour['fp'] . '</td>' . "\n"
+                .'  <td>' . $_tour['vg'] . '</td>' . "\n"
+                .'</tr>' . "\n"
+                .'<tr><td class="border" colspan=5></td></tr>' . "\n"
+            ;
+        }
+        ?>
+        </tbody>
+    </table>
 </body>
 </html>
-

@@ -165,8 +165,8 @@ class Model_TourenTimelines extends MyProject_Model_Database
             $tourIds[] = $_tour[$modelKey];
         }
         
-        // Wenn force => Lösche alle Touren
-        // Wenn keine Touren zugeordnet sind lösche Tour-Default
+        // Wenn force => Lï¿½sche alle Touren
+        // Wenn keine Touren zugeordnet sind lï¿½sche Tour-Default
         if (count($tourIds) ) {
             if ($force || !$hasTours) {
                 $storeTV->delete($modelKey.' IN (' . implode(',', $tourIds) . ')');
@@ -285,7 +285,7 @@ class Model_TourenTimelines extends MyProject_Model_Database
         $ignoreTourIds = array();
         $moveToOtherDay = ($toPortlet['datum'] != $fromPortlet['datum']);
         // Erst mal pruefen, ob die Portlets an unterschiedlichen Tagen eingetragen
-        // sind, denn dann müssen keine Touren u. Resourcen umgebucht werden.
+        // sind, denn dann mï¿½ssen keine Touren u. Resourcen umgebucht werden.
         if ( $moveToOtherDay )
         {
             $tourModel = new Model_TourenDispoVorgaenge();
@@ -304,7 +304,7 @@ class Model_TourenTimelines extends MyProject_Model_Database
 
             if (count($returnObject->lockedTouren)) {
                 $returnObject->message = 
-                    count($returnObject->lockedTouren). ' Touren sind geblockt und müssen erst wieder freigegeben werden:' . PHP_EOL
+                    count($returnObject->lockedTouren). ' Touren sind geblockt und mï¿½ssen erst wieder freigegeben werden:' . PHP_EOL
                    .implode(PHP_EOL, $returnObject->lockedTouren);
                 return $returnObject;                    
             }
@@ -442,6 +442,23 @@ class Model_TourenTimelines extends MyProject_Model_Database
          )->order(['DatumVon', 'ZeitVon', 'ZeitBis']);
         
         return $db->fetchAll($select, null, Zend_Db::FETCH_ASSOC);
+    }
+
+    /**
+     * @param int $timelineId
+     * @return string
+     * @throws Zend_Db_Table_Exception
+     */
+    public function getDatum(int $timelineId)
+    {
+        $modelPortlets = new Model_TourenPortlets();
+
+        $sql = 'SELECT p.Datum FROM ' . $this->_tbl . ' t '
+              .' LEFT JOIN ' . $modelPortlets->getTable() . ' p ON (t.portlet_id = p.portlet_id)'
+              .' WHERE ' . $this->key() . ' = ' . (int)$timelineId;
+
+        return $this->_db->fetchOne($sql, [], Zend_Db::FETCH_ASSOC);
+
     }
     
     public function countVorgaenge($timeline_id, $withDefaults = false)

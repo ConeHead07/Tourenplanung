@@ -50,9 +50,11 @@ $.extend(Fb.DispoCalendarEvents, {
     },
     // 'onPrintPortlet': defined in ....base.js
     'onCreateTimeline': function() {
+        // console.log('#53 js_init/init_DispoCalendarEvents.innendienst.js; onCreateTimeline');
         var $self = $(this);
         var data = $self.fbDispoTimelineDropzone('getData');
         var s = $self.fbDispoTimelineDropzone('getTimelineSettings');
+        var re = true;
         
         data.start = s.start;
         data.end = s.end;
@@ -60,7 +62,7 @@ $.extend(Fb.DispoCalendarEvents, {
         
         if (data.portlet_id && !data.id) {
 
-             return Fb.AjaxTourRequest({
+             re = Fb.AjaxTourRequest({
                     url: Fb.AppBaseUrl + '/touren/ajax/addtimeline',
                     data: {data:data}
                 }, {
@@ -71,12 +73,15 @@ $.extend(Fb.DispoCalendarEvents, {
                     }
                 }
              );
+            // console.log('#75 js_init/init_DispoCalendarEvents.innendienst.js; onCreateTimeline re:', re);
+            return re;
         }
-        return false;
+        // console.log('#78 js_init/init_DispoCalendarEvents.innendienst.js; onCreateTimeline re:', re);
+        return re;
     },
     // Keine Ahnung, wann und ob diese Funktion aufgerufen wird!!
     // Wenn Vorgaenge in die Timeline gezogen werden, wird onDropRoute aufgerufen!!!
-    // onCreateRoute ist fuers Hinzufügen gedacht, dass nicht auf Dragn'Drop basiert
+    // onCreateRoute ist fuers Hinzufï¿½gen gedacht, dass nicht auf Dragn'Drop basiert
     'onCreateRoute': function() {
         alert('#81 onCreateRoute');
         var $self = $(this);

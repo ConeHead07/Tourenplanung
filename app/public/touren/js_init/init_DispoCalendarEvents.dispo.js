@@ -78,17 +78,37 @@ $.extend(Fb.DispoCalendarEvents, {
                     url: Fb.AppBaseUrl + '/touren/ajax/removeportlet',
                     data: {id:id}
                 }, {
-                    defaultError: "Interner Löschen des Tourenplans!"
+                    defaultError: "Interner Lï¿½schen des Tourenplans!"
                 }
              );
         }
         return false;
     },
+
+    'onSetTourFarbklasse': function(fk) {
+        var data = $(this).fbDispoRoute('getData');
+
+        if (data.id) {
+            var id = data.id;
+
+            return Fb.AjaxTourRequest({
+                    url: Fb.AppBaseUrl + '/touren/ajax/set-Tour-Farbklasse',
+                    data: {tour_id:id, fk:fk}
+                }, {
+                    defaultError: "Farbklasse konnte nicht gespeichert werden!"
+                }
+            );
+        }
+        return false;
+    },
+
     // 'onPrintPortlet': defined in ....base.js
     'onCreateTimeline': function() {
+        // console.log('#90 js_init/init_DispoCalendarEvents.dispo.js; onCreateTimeline');
         var $self = $(this);
         var data = $self.fbDispoTimelineDropzone('getData');
         var s = $self.fbDispoTimelineDropzone('getTimelineSettings');
+        var re = true;
         
         data.start = s.start;
         data.end = s.end;
@@ -96,7 +116,7 @@ $.extend(Fb.DispoCalendarEvents, {
         
         if (data.portlet_id && !data.id) {
 
-             return Fb.AjaxTourRequest({
+             re = Fb.AjaxTourRequest({
                     url: Fb.AppBaseUrl + '/touren/ajax/addtimeline',
                     data: {data:data}
                 }, {
@@ -107,8 +127,11 @@ $.extend(Fb.DispoCalendarEvents, {
                     }
                 }
              );
+            // console.log('#113 js_init/init_DispoCalendarEvents.dispo.js; onCreateTimeline re:', re);
+            return re;
         }
-        return false;
+        // console.log('#116 js_init/init_DispoCalendarEvents.dispo.js; onCreateTimeline re:', re);
+        return re;
     },
     'onSortTimeline': function(event, ui) {
         if (!ui || !ui.item) {
@@ -150,7 +173,7 @@ $.extend(Fb.DispoCalendarEvents, {
                     url: Fb.AppBaseUrl + '/touren/ajax/movetimeline',
                     data: {id:id,pos:pos,portlet_id:targetPortletId}
                 }, {
-                    defaultError: "Interner Fehler beim Ausführen der Aktion!"
+                    defaultError: "Interner Fehler beim Ausfï¿½hren der Aktion!"
                 }
              );
         }
@@ -164,18 +187,18 @@ $.extend(Fb.DispoCalendarEvents, {
                     url: Fb.AppBaseUrl + '/touren/ajax/removetimeline',
                     data: {id:data.id}
                 }, {
-                    defaultError: "Interner Fehler beim Löschen der Zeitleiste!"
+                    defaultError: "Interner Fehler beim Lï¿½schen der Zeitleiste!"
                 }
              );
         } else {
-            alert('#459 Fehlende id für Zeitleiste');
+            alert('#459 Fehlende id fï¿½r Zeitleiste');
         }
         return false;
         
     },
     // Keine Ahnung, wann und ob diese Funktion aufgerufen wird!!
     // Wenn Vorgaenge in die Timeline gezogen werden, wird onDropRoute aufgerufen!!!
-    // onCreateRoute ist fuers Hinzufügen gedacht, dass nicht auf Dragn'Drop basiert
+    // onCreateRoute ist fuers Hinzufï¿½gen gedacht, dass nicht auf Dragn'Drop basiert
     'onCreateRoute': function() {
         alert('#218 onCreateRoute');
         var $self = $(this);
@@ -530,7 +553,7 @@ $.extend(Fb.DispoCalendarEvents, {
         return false;
     },
     // ACHTUNG !!
-    // Bis jetzt unerklärlicher Namenskonflikt, wenn data in die Parameterliste geschrieben wird
+    // Bis jetzt unerklï¿½rlicher Namenskonflikt, wenn data in die Parameterliste geschrieben wird
     // sind zwar noch alle Felder von data vorhanden, aber ohne Werte (undefined) ??
     // Daher statt function(data) ==> function() { var data = arguments[0]; ...
     'onRemoveResourceDefaults': function() {

@@ -54,24 +54,23 @@
      */
     var methods = {
         '_init': function() {
-//           alert('#' + dataKey + ' _init');
-           // Do Some Rendering after first initializing
-           var self  = this;
-           var $self = $( this );
-           var data  = $self.data(dataKey);
+            // Do Some Rendering after first initializing
+            var self  = this;
+            var $self = $( this );
+            var data  = $self.data(dataKey);
             
 //           var d=$self.data(dataKey).data, i=null; m="#54"+dataKey+"._init [data.data]:\n";
 //           for(i in d) m+=i+":"+d[i]+"\n"; alert(m);
            
-           //$self.wrap('<div class="DropZoneWrapper" style="padding-left:15px;border:1px solid #f00;"/>')
+            //$self.wrap('<div class="DropZoneWrapper" style="padding-left:15px;border:1px solid #f00;"/>')
            
             // In Fb.DropRouteSetting wird in der Methode create
             // fbDispoTimelineGrid aufgerufen. Dort wird auch style.height im Element gesetzt.
             // Eigentlich wird die Hoehe in der Klasse .DropZone-Route definiert      
-                
-           $self.addClass('DropZone DropZone-Route Drop-Timeline '+dataKey)
+
+            $self.addClass('DropZone DropZone-Route Drop-Timeline '+dataKey)
                 .append( $('<div class="Timeline"/>') )
-               .find( "div.Timeline" )
+                .find( "div.Timeline" )
                     .fbDispoTimelineLineal($self.data(dataKey).data)
                 .end()
                 .fbDispoTimelineDropzoneHandles({
@@ -81,19 +80,27 @@
                 })
                 .bind('drop', function(e, ui) { 
                //methods._trigger.apply(self, [self, 'drop'].concat($.makeArray(arguments)));
-           });
+            });
            
-           if (data.isDroppable)
-           $self.droppable( Fb.DropRouteSettings );
+            if (data.isDroppable) {
+                $self.droppable( Fb.DropRouteSettings );
+            }
            
-           methods._trigger.apply( self, [self, 'create']);
+            if (false === methods._trigger.apply( self, [self, 'create'])) {
+                console.log('#94 ' + dataKey + ' _init self.remove ');
+                $self.remove();
+                return false;
+            }
            
             var d=$(this).data(dataKey).data;
             
 //            alert('#74 fbDispoTimelineDropzone data.touren.length: '+ $(this).data(dataKey).data.touren.length);
             if ($(this).data(dataKey).data.touren) {
+                // console.log('#103 ' + dataKey + ' _init addRoutes');
                 methods.addRoutes.apply(self, [$(this).data(dataKey).data.touren] );
                 delete $(this).data(dataKey).data.touren;
+            } else {
+                // console.log('#107 ' + dataKey + ' _init no routes addded!');
             }
             $("div.fbDispoRouteDefaults", this).show();
         },
@@ -282,6 +289,14 @@
                 _callInit = true;
             }
             var data = $( self ).data(dataKey);
+            var d = data.data;
+
+            if (d.settings) {
+                for(var _si in d.settings) {
+                    data[_si] = d.settings[ _si ];
+                }
+                delete d.settings;
+            }
             
             // Default-Routine: Analyse Options-Settings and 
             // execute called Functions
@@ -308,7 +323,9 @@
                 }
             }
             
-            if (_callInit) methods['_init'].apply( self );
+            if (_callInit) {
+                methods['_init'].apply( self );
+            }
         });
     };
 

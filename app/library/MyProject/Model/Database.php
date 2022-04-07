@@ -31,6 +31,10 @@ class MyProject_Model_Database extends MyProject_Model_Abstract
         }
     }
 
+    public function getTable() {
+        return $this->_tbl;
+    }
+
     /**
      * 
      * @param string $class
@@ -48,7 +52,9 @@ class MyProject_Model_Database extends MyProject_Model_Abstract
      */
     public function keys()
     {
-        $this->_storage->info(Zend_Db_Table::PRIMARY);
+        // ZF1 is starting the Key-Array with 1 instead of 0
+        // Make Reset to Avoid confusing Access by Index
+        return array_values( $this->_storage->info(Zend_Db_Table::PRIMARY) );
     }
 
     /**
@@ -58,7 +64,7 @@ class MyProject_Model_Database extends MyProject_Model_Abstract
      */
     public function key(int $idx = 0)
     {
-        $a = $this->_storage->info(Zend_Db_Table::PRIMARY);
+        $a = $this->keys();
         return $a[$idx];
     }
 

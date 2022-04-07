@@ -144,26 +144,27 @@
                top:0, width:"15px", height:"15px", background:"#fff" 
             }
             // Detail-Info-Handler
-            $self.css({paddingLeft:20}).append( $("<div/>").css(iconOpts)
-            .addClass("ui-corner-all")
-            .append( $("<span/>").addClass("ui-icon ui-icon-info") )
-            .hover(function(){
-                    $(this).addClass("ui-state-hover");
-                    
-                    $self.data('MouseIsOver', true);
-                    
-                    setTimeout( function() {
-                        if ($self.data('MouseIsOver')) 
-                            methods._trigger.apply( self, [self, 'hover', self]);
-                    }, 1000);
-                
-                    }, 
-                   function(){
-                       $(this).removeClass("ui-state-hover");
-               } )
-            .click(function() {
-                Fb.showRouteDetails( $self, {pages:{Resources: 'Ressourcen',Options:'Einstellungen'}} );
-            })
+            $self.css({paddingLeft:20}).append(
+                $("<div/>").css(iconOpts)
+                .addClass("ui-corner-all")
+                .append( $("<span/>").addClass("ui-icon ui-icon-info") )
+                .hover(function(){
+                        $(this).addClass("ui-state-hover");
+
+                        $self.data('MouseIsOver', true);
+
+                        setTimeout( function() {
+                            if ($self.data('MouseIsOver'))
+                                methods._trigger.apply( self, [self, 'hover', self]);
+                        }, 1000);
+
+                        },
+                       function(){
+                           $(this).removeClass("ui-state-hover");
+                   } )
+                .click(function() {
+                    Fb.showRouteDetails( $self, {pages:{Resources: 'Ressourcen',Options:'Einstellungen'}} );
+                })
             );
             
             $self.bind('showDetails', function(e, tabs) {
@@ -241,7 +242,7 @@
             var rsrcData = null;
             
             if  ( data.rsrcUrl ) {
-            // Prüfen, ob rsrcUrl gesetzt ist, wenn ja Daten von Url nachladen     
+            // Prï¿½fen, ob rsrcUrl gesetzt ist, wenn ja Daten von Url nachladen     
                  $.ajax({
                     type: 'GET', dataType: 'json', async: false, data: {id:data.data.id},
                     url: data.rsrcUrl,
@@ -306,12 +307,12 @@
 //                var src = (ui && ui.draggable) ? ui.draggable : null;
 //                var src_parent = (src && src.data(dataKey) && src.data(dataKey)._parent) ? src.data(dataKey)._parent : null;
                 
-                // Ein bereits hinzugefügtes wurde verschoben
+                // Ein bereits hinzugefï¿½gtes wurde verschoben
                 objRsrc.fbDispoResource('options', resourceSetOpts );
                 objRsrc.fbDispoResource('_moved', e, ui);
                 
             } else {
-                // Neu hinzugefügt
+                // Neu hinzugefï¿½gt
                 //alert('#294 Resource was dropped!');
                 objRsrc.fbDispoResource( resourceSetOpts );
                 objRsrc.fbDispoResource('_dropped', e, ui);

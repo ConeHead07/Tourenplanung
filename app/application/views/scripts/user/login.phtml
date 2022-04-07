@@ -2,7 +2,12 @@
 //$action = $this->url(array( 'controller' => 'user', 'action' => 'login' ),
 //          null, true
 //);
+if ($this->error): ?>
+    <div class="error ui-state-error" style="padding:0.5rem;margin-bottom:.5rem;"><span class="ui-icon ui-icon-alert" style="float:left;margin:auto .5rem auto 0.5rem">&nbsp;</span><?= $this->error ?></div>
+<?php endif;
+
 echo $this->login;
+
 ?>
 <script>
 jQuery("#user_name").focus();

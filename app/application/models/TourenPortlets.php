@@ -247,4 +247,10 @@ class Model_TourenPortlets extends MyProject_Model_Database {
         return $db->fetchOne($sql);
     }
 
+    public function getDatum(int $portlet_id)
+    {
+        $sql = 'SELECT datum FROM ' . $this->getTable() . ' WHERE ' . $this->key() . ' = ' . (int)$portlet_id;
+        return $this->_db->fetchOne( $sql );
+    }
+
 }

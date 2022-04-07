@@ -239,7 +239,14 @@ class Bootstrap extends Zend_Application_Bootstrap_Bootstrap
         }
         Zend_Registry::set( 'acl', $acl );
     }
-    
+
+
+    protected function _initLdap()
+    {
+        $ldap = $this->getOption('ldap');
+        Zend_Registry::set( 'ldap', $ldap );
+    }
+
     protected function _initLog()
     {
         $fblogger = new Zend_Log_Writer_Firebug();
@@ -342,12 +349,22 @@ class Bootstrap extends Zend_Application_Bootstrap_Bootstrap
         $GitOrigHeadFile = $GitDir . '/ORIG_HEAD';
 
 
-        $branchName = str_replace('ref: refs/heads/', '/', file_exists($GitHeadFile) ? file_get_contents($GitHeadFile) : '');
+        $branchName = str_replace('ref: refs/heads/', '/', file_exists($GitHeadFile)
+            ? file_get_contents($GitHeadFile)
+            : ''
+        );
+
         $GitCommitFile = trim($GitDir . 'refs/heads' . $branchName);
+        $GitBranchCommit = file_exists($GitCommitFile)
+            ? file_get_contents($GitCommitFile)
+            : "";
 
         Zend_Registry::set('BRANCH_NAME', $branchName);
-        Zend_Registry::set('BRANCH_COMMIT', file_exists($GitCommitFile) ? file_get_contents($GitCommitFile) : "");
+
+        Zend_Registry::set('BRANCH_COMMIT', $GitBranchCommit );
+        Zend_Registry::set('BRANCH_COMMIT_SHORT', substr($GitBranchCommit, 0, 7) );
     }
+
 
     protected function _initDbInfo()
     {

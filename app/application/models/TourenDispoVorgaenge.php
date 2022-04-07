@@ -18,9 +18,14 @@ class Model_TourenDispoVorgaenge extends MyProject_Model_Database
     protected $_storageName = 'tourenDispoVorgaenge';
     protected $_numAll = 0;
     protected $_error = '';
-    
+
+    /** @var null|Model_Db_TourenDispoVorgaenge  */
     protected $_storage = null;
+
+    /** @var null|Zend_Db_Adapter_Abstract  */
     protected $_db = null;
+
+    /** @var string|null  */
     protected $_tbl = null;
     
     const STATUS_AUFTRAG_ABGESCHLOSSEN = 5;
@@ -225,6 +230,9 @@ if ($orderby) {
         $id = null;
         $rgxIsoDate = ':^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[0-2])$:';
         if (array_key_exists('DatumVon', $data) && preg_match($rgxIsoDate, $data['DatumVon'])) {
+            if (empty($data['DatumBis'])) {
+                $data['DatumBis'] = $data['DatumVon'];
+            }
             $id = $this->insert($data);
             return $id;
         }
@@ -344,7 +352,8 @@ if ($orderby) {
         } catch(Zend_Db_Exception $e) {
             $db->rollBack();
             echo $e->getMessage();
-            die(__METHOD__ . ' id:' . print_r($id,1));
+            echo $e->getTraceAsString();
+            die(__METHOD__ . print_r([' id' => $id ],1));
         }
     }
     
@@ -493,9 +502,25 @@ if ($orderby) {
         ))->save();
         return;
     }
+
+    /**
+     * @param int $id
+     * @return string
+     * @throws Zend_Db_Table_Exception
+     */
+    public function getDatum(int $id): string {
+        $sql = 'SELECT DatumVon FROM ' . $this->getTable() . ' WHERE ' . $this->key() . ' = ' . (int)$id;
+
+        return $this->_db->fetchOne( $sql );
+    }
     
     public function update(array $data, $id) {
         $tourData = $this->fetchEntry($id);
+
+        if (empty($tourData)) {
+            $this->_error = 'Tour mit ID ' . $id . ' konnte nicht gefunden werden!';
+            return false;
+        }
         
         $checkResources = false;
         $slotFields = array('DatumVon', 'DatumBis', 'ZeitVon', 'ZeitBis');
@@ -525,7 +550,9 @@ if ($orderby) {
                     $this->_error = "Tour konnte wegen ungueltiger Datumswerte nicht aktualisiert werden:" . PHP_EOL . $_f . ': ' . $data[$_f];
                     return false;
                 }
-                if ($data[$_f] != $tourData[$_f]) $checkResources = true;
+                if ($data[$_f] != $tourData[$_f]) {
+                    $checkResources = true;
+                }
             } else {
                 $data[$_f] = $tourData[$_f];
             }            
@@ -651,7 +678,8 @@ if ($orderby) {
                  ." DV.DatumVon, " . PHP_EOL
                  ." DV.DatumBis, " . PHP_EOL
                  ." DV.IsDefault, " . PHP_EOL
-                 ." DV.avisiert, "
+                 ." DV.avisiert, " . PHP_EOL
+                 ." DV.farbklasse, " . PHP_EOL
                  ." CONCAT(A.Auftragsnummer,', ',A.LieferungOrt) name, " . PHP_EOL
                  ." A.LieferterminFix, " . PHP_EOL
                  ." A.LieferungName, " . PHP_EOL
@@ -1734,7 +1762,7 @@ if ($orderby) {
         
         $cols = '
         DT.Mandant, DT.tour_id, DT.timeline_id, 
-        P.lager_id, P.tagesnr, tour_disponiert_am, tour_disponiert_user,
+        P.lager_id, L.lager_name, P.tagesnr, tour_disponiert_am, tour_disponiert_user,
         DatumVon, DatumBis, ZeitVon, ZeitBis';
         
         if ($GetTourSum)
@@ -1769,15 +1797,19 @@ if ($orderby) {
         $bind = array(':DVon' => $DVon, ':DBis' => $DBis);
         
         $select = $db->select()
-        ->from( array( 'DT' => 'mr_touren_dispo_vorgaenge'), '' )
-        ->joinLeft( 
-            array( 'TL' => 'mr_touren_timelines' ),
-            'TL.timeline_id = DT.timeline_id',
-            '')
-        ->joinLeft( 
+            ->from( array( 'DT' => 'mr_touren_dispo_vorgaenge'), '' )
+            ->joinLeft(
+                array( 'TL' => 'mr_touren_timelines' ),
+                'TL.timeline_id = DT.timeline_id',
+                '')
+            ->joinLeft(
             array( 'P' => 'mr_touren_portlets' ),
-            'P.portlet_id = TL.portlet_id',
-            '' );
+            'TL.portlet_id = P.portlet_id',
+            '' )
+            ->joinLeft(
+                array( 'L' => 'mr_lager' ),
+                'P.lager_id = L.lager_id',
+                '');
         
         if ($GetTourSum)
         $select
@@ -2124,5 +2156,17 @@ if ($orderby) {
 //        if ((int)$row['tour_disponiert_am'])       return self::STATUS_TOUR_DISPONIERT;
         if ($row['locked'])                        return self::STATUS_TOUR_LOCKED;
         return 0;
+    }
+
+
+    public function setFarbklasse(int $tour_id, string $sFarbklasse): int
+    {
+        $iAffected = $this->_db->update(
+            $this->_tbl,
+            [ 'farbklasse' => $sFarbklasse],
+            'tour_id = ' . $this->_db->quote($tour_id)
+        );
+
+        return $iAffected;
     }
 }

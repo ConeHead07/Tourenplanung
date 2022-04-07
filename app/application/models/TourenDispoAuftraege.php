@@ -155,10 +155,14 @@ class Model_TourenDispoAuftraege extends MyProject_Model_Database
         
         $da = $this->getStorage();
         $rec = $da->find($mandant, $auftragsnr)->current();
-        
-        if ($rec) $rec->setFromArray(array(
-            'tour_dispo_count' => $db->quote($dispo_count)
-        ))->save();
+
+        try {
+            if ($rec) $rec->setFromArray(array(
+                'tour_dispo_count' => intval($dispo_count)
+            ))->save();
+        } catch(Exception $e) {
+            throw new Exception( $e->getMessage(), [ '; dispo_count' => $dispo_count],1);
+        }
     }
     
     public function addTourDispoCount($mandant, $auftragsnr, $plus = 1 )
@@ -268,10 +272,19 @@ class Model_TourenDispoAuftraege extends MyProject_Model_Database
         
         $da = $this->getStorage();
         $rec = $da->find($mandant, $auftragsnr)->current();
-        
-        if ($rec) {
-            $rec->tour_abschluss_count = $dispo_count;
-            $rec->save();
+
+        try {
+            if ($rec) {
+                $rec->tour_abschluss_count = $dispo_count;
+                $rec->save();
+            }
+        } catch(Exception $e) {
+
+            throw new Exception(
+                $e->getMmessage() . '; '
+                . print_r( ['dispo_count'=>$dispo_count], 1)
+            );
+
         }
     }
 

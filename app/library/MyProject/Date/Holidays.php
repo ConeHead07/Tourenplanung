@@ -68,6 +68,11 @@ class MyProject_Date_Holidays {
            'Feiertag;           ALL;HALB;BW;BY;BE;BB;HB;HH;HE;MV;NI;NW;RP;SL;SN;ST;SH;TH'. PHP_EOL
           .'Neujahrstag;        1;  0;   1; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1' . PHP_EOL
           .'Heilige Drei Könige;0;  0;   1; 1; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 1; 0; 0' . PHP_EOL
+          .'Weiberfastnacht;    0;  0;   0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 1; 0; 0; 0' . PHP_EOL
+          .'Rosenmontag;        0;  0;   0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 1; 0; 0; 0' . PHP_EOL
+          .'Fastnacht;          0;  0;   0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 1; 0; 0; 0' . PHP_EOL
+          .'Aschermittwoch;     0;  0;   0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 1; 0; 0; 0' . PHP_EOL
+          .'Valentinstag;       0;  0;   0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 1; 0; 0; 0' . PHP_EOL
           .'Karfreitag;         1;  0;   1; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1' . PHP_EOL
           .'Ostermontag;        1;  0;   1; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1' . PHP_EOL
           .'1. Mai;             1;  0;   1; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1; 1' . PHP_EOL
@@ -105,7 +110,8 @@ class MyProject_Date_Holidays {
         return self::getGermanPublicHolidaysByYear($year);
     }
     
-    public static function getGermanPublicHolidaysByYear($year) {
+    public static function getGermanPublicHolidaysByYear($year)
+    {
         
         if(!$easter = easter_date($year)) {
             return false;
@@ -136,10 +142,15 @@ class MyProject_Date_Holidays {
             $holidays['2. Weihnachtstag']    = mktime(0,0,0,12,26,   $year);
             $holidays['Sylvester']           = mktime(0,0,0,12,31,   $year);
             $holidays['Buß- u. Bettag']      = strtotime("-11 days", strtotime("1 sunday", mktime(0,0,0,11,26,$year)));
-            $holidays['1. Advent']           = strtotime("1 sunday", mktime(0,0,0,11,26,$year));
-            $holidays['2. Advent']           = strtotime("2 sunday", mktime(0,0,0,11,26,$year));
-            $holidays['3. Advent']           = strtotime("3 sunday", mktime(0,0,0,11,26,$year));
-            $holidays['4. Advent']           = strtotime("4 sunday", mktime(0,0,0,11,26,$year));
+
+            /** @var \DateTime $dateOfFirstAdvent */
+            $dateOfFirstAdvent = self::firstAdvent( $year );
+            $timeOfFirstAdvent = $dateOfFirstAdvent->getTimestamp();
+            $holidays['1. Advent']           = $timeOfFirstAdvent;
+            $holidays['2. Advent']           = strtotime('+7 day', $timeOfFirstAdvent);
+            $holidays['4. Advent']           = strtotime('+14 day', $timeOfFirstAdvent);
+            $holidays['2. Advent']           = strtotime('+21 day', $timeOfFirstAdvent);
+
             return $holidays;
         }
     }
@@ -156,8 +167,18 @@ class MyProject_Date_Holidays {
             if ($_date == $test && $_props['frei']) return $_props;
         }        
         return null;
+
     }
-    
+
+    public static function firstAdvent(int $y):\DateTime {
+        $xTime = strtotime("$y-12-24");
+        $xDay = (int)date("N",$xTime);
+
+        return new \DateTime(date("Y-m-d", strtotime( '-' . (21 + ($xDay % 7)) . " day", $xTime)) );
+    }
+
+
+
     public function getHolidays($year = null) {
         if(is_null($year)) $year = $this->getYear();
         
@@ -234,8 +255,4 @@ class MyProject_Date_Holidays {
     }    
 }
 
-
-
-
-?>
 

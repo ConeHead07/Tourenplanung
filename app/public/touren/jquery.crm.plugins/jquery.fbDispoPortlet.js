@@ -75,7 +75,6 @@
             
             var portletContent = $( "div.portlet-content", $self.closest( "div.portlet" ) );
             portletContent.css('paddingLeft','15px');
-            
             if (editable) {
                 if (data.isSortable)
                     portletContent.sortable({
@@ -152,7 +151,7 @@
             // var m="Portlet Data:\n";for(var i in d ) m+=i+":"+d[i]+"\n";alert(m);
             
             if ('timelines' in $(this).data(dataKey).data) {
-//                alert('#98 ' + dataKey + ' timelines.length: ' + $(this).data(dataKey).data.timelines.length);
+                // console.log('#155 ' + dataKey + ' timelines.length: ' + $(this).data(dataKey).data.timelines.length);
                 methods.addTimelines.apply(self, [$(this).data(dataKey).data.timelines] );
                 delete $(this).data(dataKey).data.timelines;
             } else {
@@ -183,6 +182,7 @@
             
             var t = $('<div />');
             $self.append(t);
+
             t.fbDispoTimelineDropzone({
                              date: data.date,
 //                             data: $.extend({},{date: data.date, portlet_id:data.data.id },b),
@@ -190,6 +190,12 @@
                         '_parent': $self,
               '_parentJqFunction': dataKey
             });
+
+            if (!t.parent().length) {
+                // console.log("#196 " + dataKey + " remove added Timeline, since it returned with false");
+            } else {
+                // console.log("#198 " + dataKey + " added Timeline");
+            }
         },
         'getDataKey': function() {
             return dataKey;
@@ -345,6 +351,13 @@
             
             var data = $( self ).data(dataKey);
             var d=data.data;
+
+            if (d && typeof d === "object" && "settings" in d && d.settings) {
+                for(var _si in d.settings) {
+                    data[_si] = d.settings[ _si ];
+                }
+                delete d.settings;
+            }
             // var m="#245 fbDispoPortlet data.data.data:\n";for(var i in d ) m+=i+":"+d[i]+"\n";alert(m);
             
             if (typeof(options) == 'string') {

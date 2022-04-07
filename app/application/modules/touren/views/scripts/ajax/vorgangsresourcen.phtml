@@ -81,7 +81,7 @@ foreach($this->ajax_response->data->result as $key => $items) {
             }
             echo '<span style="clear:both">&nbsp;</span></li>';
         }
-        if ($this->ajax_response->allowResourceUpdate) {
+        if ($this->ajax_response->allowResourceUpdate && 'MA' == $key) {
             echo '<button id="rsrcUpdate">&Uuml;bernehmen</button>';
         }
         echo '</ul>';  
@@ -129,8 +129,17 @@ echo <<<EOT
                 type: 'GET', dataType: 'json', async: false, data: $(this).closest("form").serialize(),
                 url: "$updateUrl",
                 success:function(data) { 
-                    if (0) alert('#41 Fb.DispoCheckConcurrency callback data:' + data);
-                    re = data;
+                    if (typeof data === "object") {
+                        if ("error" in data && data["error"]) {
+                            return;
+                        }
+                        if ("type" in data && data.type === "error") {
+                            return;
+                        }
+                        if ("success" in data && data.success === false) {
+                            return;
+                        }
+                    }
                     alert('Daten wurden aktualisiert');
                 }
             });
@@ -138,7 +147,7 @@ echo <<<EOT
         });
         
         $("#{$treeId}").treeview({}); }
-    catch(e) { alert("Tree konnte nicht gerendert werden. jQuery treeview ist nicht verfügbar)!"); }
+    catch(e) { alert("Tree konnte nicht gerendert werden. jQuery treeview ist nicht verfï¿½gbar)!"); }
 </script>
 EOT;
 

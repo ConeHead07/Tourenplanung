@@ -15,10 +15,18 @@
               'move': 'moveRoute',
             'resize': 'resizeRoute',
             'select': 'selectRoute',
+     'setFarbklasse': 'setTourFarbklasse', //onSetTourFarbklasse
         'changeData': 'changeRouteData',
       'hoverDetails': 'hoverRouteDetails',
        'showDetails': 'showRouteDetails',
        'hideDetails': 'hideRouteDetails'
+    };
+
+    var dbglog = function(line, msg) {
+        // console.log(dataKey + "#" + line + " " + msg);
+    };
+    var errlog = function(line, err) {
+        // console.error(dataKey + "#" + line + " " + err);
     };
     
     var defaults = {
@@ -35,7 +43,7 @@
                  'test': 0,
               '_parent': null,
     '_parentJqFunction': null,
-                'onAdd': /*null*/ function(){alert(dataKey + '.onAdd Default-Dummie-Handler');},
+                'onAdd': null, // function(){alert(dataKey + '.onAdd Default-Dummie-Handler');},
              'onRemove': null, // function(){ alert(dataKey + '.onRemove Default-Dummie-Handler'); },
              'onSelect': null, //*null*/ function(){ alert( $(this).data(dataKey).data.ZeitVon + '.onSelect Default-Dummie-Handler'); },
                'onDrop': null, //*null*/ function(){ alert(dataKey + '.onDrop Default-Dummie-Handler'); },
@@ -45,7 +53,7 @@
         'onhideDetails': null, //*null*/ function(){ alert(dataKey + '.onHideDetails Default-Dummie-Handler'); },
 
        'onDropResource': null, //*null*/ function(){ alert("#40 " +dataKey + '.onDropResource Default-Dummie-Handler'); },
-       'onMoveResource': /*null*/ function(){alert(dataKey + '.onMoveResource Default-Dummie-Handler');},
+       'onMoveResource': null, //*null*/ function(){alert(dataKey + '.onMoveResource Default-Dummie-Handler');},
                 'route': null,
      'draggableOptions': Fb.DragRouteInstanceSettings,
      'droppableOptions': Fb.DropRsrcOnRouteSettings,
@@ -100,6 +108,10 @@
             methods.initHandler.apply( this );
             
             methods.setTimeSlot.apply( this );
+
+            if ($(this).data(dataKey).data.farbklasse) {
+                methods.renderFarbklasse.apply( this );
+            }
            
             methods._trigger.apply( this, [this, 'create']);
             if (!$(this).data(dataKey)) {
@@ -115,6 +127,7 @@
             }
             methods._trigger.apply( this, [this, 'changeData']);
         },
+
         'initHandler': function() {
             var self  = this;
             var $self = $( this );
@@ -193,7 +206,7 @@
                 $self.append( 
                     $("<div/>")
                     .text("A").attr("title","Avisiert: "  + (data.data.avisiert==1?"Ja":"Nein") )
-                    .css(iconOpts).css({top:"34px",textAlign:"center",fontSize:"10px"})
+                    .css(iconOpts).css({top:"34px",right:"15px",textAlign:"center",fontSize:"10px"})
                     .addClass("ui-corner-all ui-state-hover")
                 );
             
@@ -212,7 +225,58 @@
                 $( this ).bind('resource-dropped', methods.addDroppedResource);
                 $( this ).bind('resource-moved',   methods.addDroppedResource);
             }
+
+            // Color-Setting-Handler
+
+            $self.css({paddingLeft:20}).append(
+                $("<div/>").css(iconOpts).css("top","34px") //.css("right","15px")
+                    .addClass("ui-corner-all")
+                    .append( $("<span/>").addClass("ui-icon ui-icon-tag") )
+                    .click(function() {
+                        var btn = $(this);
+                        var aColors = ['schliessen','','Anker','Auffueller','Rot','Gruen','Gelb','Blau','Orange','Lila','Weiss','Grau','Braun'];
+                        var clickHandle = function(fk) {
+                            if (fk !== "schliessen") {
+                                methods.setFarbklasse.apply(self, [fk]);
+                            }
+                            $(this).parent().remove();
+                        };
+
+                        var dlgColPick = $("<div/>").css({
+                            border:"1px solid #aaa",
+                            zIndex:1,
+                            backgroundColor:'#fff',
+                            position:"absolute",
+                            top: btn.offset().top + btn.outerHeight(),
+                            left: btn.offset().left
+                        }).appendTo( "body" );
+
+                        for(var i in aColors) {
+                            var fk = aColors[ i ];
+
+                            var _itm = $("<span/>")
+                                .addClass("color-pick-item fk-"+fk)
+                                .attr("title", fk ? fk : "Keine Farbe")
+                                .css("cursor","pointer");
+                            if (fk == "schliessen") {
+                                _itm.text("x").css({
+                                    "textAlign":"center",
+                                    "color":"#888",
+                                    "fontSize":"10px",
+                                    "lineHeight":"100%",
+                                    "display":"block",
+                                    "float": "left",
+                                    "margin": "1px 0 0 0"
+                                })
+                            }
+                            _itm.click( clickHandle.bind(_itm, fk) ).appendTo(dlgColPick );
+                        }
+
+                    })
+            );
+
         },
+
         'addDroppedResource': function(e, objRsrc, ui) {
 //            alert('#142 '+dataKey+'.addDroppedResource!\narguments.length:'+arguments.length+'\n'+flatObjToString($.makeArray(arguments)));
             var resourceOpts = $(objRsrc).fbDispoResource('options');
@@ -224,12 +288,12 @@
             }
 
             if (objRsrc !== ui.draggable) {
-                // Neu hinzugefügt
+                // Neu hinzugefï¿½gt
                 // kann auch aus DefaultResource verschoben worden sein
                 objRsrc.fbDispoResource( resourceSetOpts );
                 objRsrc.fbDispoResource('_dropped', e, ui);
             } else {
-                // Ein bereits hinzugefügtes wurde verschoben
+                // Ein bereits hinzugefï¿½gtes wurde verschoben
                 objRsrc.fbDispoResource('options', resourceSetOpts );
                 objRsrc.fbDispoResource('_moved', e, ui);
             }
@@ -285,7 +349,7 @@
             var rsrcData = null;
             
             if  ( data.rsrcUrl ) {
-            // Prüfen, ob rsrcUrl gesetzt ist, wenn ja Daten von Url nachladen     
+            // Pruefen, ob rsrcUrl gesetzt ist, wenn ja Daten von Url nachladen
                  $.ajax({
                     type: 'GET', dataType: 'json', async: false, data: {id:data.data.id},
                     url: data.rsrcUrl,
@@ -367,6 +431,39 @@
             var data = $(this).data(dataKey);
             
             return (data && data._parent) ? $("div.fbDispoRoute,div.fbDispoRouteDefaults", data._parent) : $();
+        },
+        'setFarbklasse': function(fk) {
+            var $self = $(this);
+            var data = $self.data(dataKey);
+
+            console.log({'this':this, 'dataKey': dataKey, 'data': data});
+
+            data.data.farbklasse = fk;
+
+            methods._trigger.apply( this, [this, 'setFarbklasse', fk]);
+
+            methods.renderFarbklasse.apply(this);
+        },
+        'renderFarbklasse': function() {
+            var $self = $(this);
+            var data = $self.data(dataKey);
+
+            var aClasses = this.className.split(' ');
+
+            var aRemainingClasses = [];
+            for(var i = 0; i < aClasses.length; i++) {
+                var c = aClasses[ i ];
+                if (c.substr(0,3) === 'fk-') {
+                    continue;
+                }
+                aRemainingClasses.push( c );
+            }
+
+            if (data.data.farbklasse) {
+                aRemainingClasses.push( 'fk-' + data.data.farbklasse )
+            }
+
+            this.className = aRemainingClasses.join(" ");
         },
         'setTimeSlot': function(timeRange) {
 //            alert( '#137 '+dataKey+'.setTimeSlot [this.class:'+$(this).attr('class')+']\n data(dataKey): ' + $(this).data(dataKey) + ', ' + $(this).data(dataKey).data +"; " + $(this).data(dataKey)._parent);
@@ -547,31 +644,48 @@
             var ownEventName = methods._getOwnEventHandlerName(eventName);
             var args = $.makeArray(arguments).slice(1);
             var re = null;
-            
+            dbglog(629, " methods._trigger check triggerEventName " +triggerEventName);
+            dbglog(629, " methods._trigger check eventName " +eventName);
+            dbglog(630, " methods._trigger check methods[_"+ownEventName+"]");
             if (methods['_'+ownEventName]) {
+                dbglog(631, "true");
                 if (false === methods['_'+ownEventName].apply(this, arguments)) {
+                    dbglog(633, "return false");
                     return false;
                 }
             }
+            dbglog(637, " methods._trigger check data["+ownEventName+"]");
             if (ownEventName && ownEventName in data && typeof(data[ownEventName])=='function') {
+                dbglog(639, "true");
                 if (false === data[ownEventName].apply(obj, args.slice(1) )) {
+                    dbglog(641, "return false");
                     return false;
                 }
             }
             args[0] = triggerEventName;
+            dbglog(646, " check obj == this");
             if (obj == this) {
+
+                dbglog(649, "true");
                 if (false === $( this ).trigger.apply( $(this), args)) {
+                    dbglog(651, "return false");
                     return false;   
                 }
             }
-            
+
+            dbglog(656, " check data._parent && data._parentJqFunction");
             if (data._parent && data._parentJqFunction) {
+                dbglog(658, "true");
                 args.unshift(obj);
                 args.unshift('_trigger');
+                dbglog(663, " trigger data._parent["+data._parentJqFunction+"].apply(data._parent,args)");
+                console.log("664 args", args);
                 if ( false === data._parent[data._parentJqFunction].apply(data._parent, args) ) {
+                    dbglog(662, "return false");
                     return false;
                 }
             }
+            dbglog(666, "return true");
             return true;
         },
         '_getEventTriggerName': function(eventName) {
@@ -662,6 +776,15 @@
                 _callInit = true;
             }
             var data = $( self ).data(dataKey);
+            var d = data.data;
+
+            // Apply individual Settings
+            if (d && typeof d === "object" && "settings" in d && d.settings) {
+                for(var _si in d.settings) {
+                    data[_si] = d.settings[ _si ];
+                }
+                delete d.settings;
+            }
             
             // Default-Routine: Analyse Options-Settings and 
             // execute called Functions
@@ -688,7 +811,9 @@
                 }
             }
             
-            if (_callInit) methods['_init'].apply( self );
+            if (_callInit) {
+                methods['_init'].apply( self );
+            }
         });
     };
     

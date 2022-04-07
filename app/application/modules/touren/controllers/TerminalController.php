@@ -2,8 +2,8 @@
 
 class Touren_TerminalController extends Zend_Controller_Action {
     //put your code here
-    
-    public function indexAction() {        
+
+    public function indexAction() {
         $r = $this->getRequest();
         $dbg = (int)$r->getParam('dbg', '0' );
         $tag = $r->getParam('tag', '' );
@@ -28,7 +28,7 @@ class Touren_TerminalController extends Zend_Controller_Action {
             '12-26',
             $easterMonday,
         ];
-        
+
         switch ($tag) {
             case 'heute':
                 $date = date('Y-m-d');
@@ -47,8 +47,8 @@ class Touren_TerminalController extends Zend_Controller_Action {
                     $offsetTime = $morgenTime;
                 } while(
                     $loop < 10 && (
-                    in_array($morgenMT, $aFeiertage)
-                    || $morgenWT > 5
+                        in_array($morgenMT, $aFeiertage)
+                        || $morgenWT > 5
                     )
                 );
                 break;
@@ -57,16 +57,16 @@ class Touren_TerminalController extends Zend_Controller_Action {
                 $date = date('Y-m-d', strtotime($tag));
         }
         $tagTime = strtotime($date);
-        
+
         if (!preg_match('/^\d\d\d\d+-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[01])$/', $date)) {
             die('Ungültige Tagesangabe ' . $tag);
         }
-        
+
         if (in_array( $tag, array('heute', 'morgen')) && $iPlusDays === 1) $tagTitel = ucfirst ($tag);
         elseif ($date == date('Y-m-d')) $tagTitel = 'Heute';
         elseif ($date == date('Y-m-d', strtotime('+1 day'))) $tagTitel = 'Morgen';
         else $tagTitel = '';
-        
+
         $this->getHelper( 'layout' )->disableLayout();
         $modelDV = new Model_TourenDispoVorgaenge();
         $modelLG = new Model_Lager();
@@ -84,9 +84,9 @@ class Touren_TerminalController extends Zend_Controller_Action {
         $this->view->weekdays[ date( 'Y-m-d', strtotime( '+2 day', $this->view->thisKWMondayTime))] = 'Mi';
         $this->view->weekdays[ date( 'Y-m-d', strtotime( '+3 day', $this->view->thisKWMondayTime))] = 'Do';
         $this->view->weekdays[ date( 'Y-m-d', strtotime( '+4 day', $this->view->thisKWMondayTime))] = 'Fr';
-        
-        
-        
+
+
+
         $holiday = MyProject_Date_Holidays::getHolidayByDate($date);
         $w = array('Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag');
         $this->view->title= $tagTitel . ' ' . date('d.m.Y', strtotime($date)). ' / ' . $w[date('w', strtotime($date))];
@@ -97,6 +97,7 @@ class Touren_TerminalController extends Zend_Controller_Action {
         $this->view->nextDay = date('Y-m-d', strtotime('+1 day', $tagTime));
         $this->view->prevDay = date('Y-m-d', strtotime('-1 day', $tagTime));
         $this->view->lager = $modelLG->fetchEntry($lager_id);
+        $this->view->lagerList = $modelLG->getList();
         $this->view->data  = $modelDV->getFullDayData($date, $lager_id);
 
         if ($dbg) {

@@ -12,6 +12,7 @@ if (!Zend_Registry::isRegistered('pageTitel')) { // empty($this->pageTitel)) {
     $pageTitel = Zend_Registry::get('pageTitel');
 }
 $qRrefresh = '20140222';
+$hdBgColor = (APPLICATION_ENV === 'production') ? 'inherit' : '#b5f7a1';
 
 ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html>
@@ -76,8 +77,9 @@ $qRrefresh = '20140222';
 <script>$(function() { if (pageLayout) pageLayout.open( "west" ); });</script>
 <?php } ?>
 </head>
-<body>        
-<DIV class="ui-layout-north xui-widget-header" style="padding-top:8px;">
+
+<body class="env-<?= APPLICATION_ENV ?>">
+<DIV class="ui-layout-north xui-widget-header" style="padding-top:8px;background-color:<?= $hdBgColor; ?>">
         <?php echo $this->render('header.phtml') ?>        
 </DIV>
 
@@ -87,7 +89,7 @@ $qRrefresh = '20140222';
     
     <div id="content"><?php echo $this->layout()->content ?></div>
         <?php echo $this->render('footer.phtml') ?>
-        <?php echo $this->action('index', 'dbprofiler'); ?>
+        <?php if (0) echo $this->action('index', 'dbprofiler'); ?>
 </DIV>
     
 <DIV id="xLayoutWest" class="ui-layout-west" style="display: none;height:100%">

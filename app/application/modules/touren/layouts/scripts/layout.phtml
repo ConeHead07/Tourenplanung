@@ -1,6 +1,9 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html>
-<head><?php $qRrefresh = '20180924c'; ?>
+<head><?php
+    $qRefresh = '20190517b'; // -'.rand();
+    $hdBgColor = (APPLICATION_ENV === 'production') ? 'inherit' : '#b5f7a1';
+    ?>
     <title>UI-Tourenplaner</title>
     <style>
     .sticky {
@@ -8,13 +11,73 @@
       z-index:4000;
       top: 0;
     }
+    .color-pick-item {
+        display:inline-block;
+        height:14px;
+        width:14px;
+    }
+        .fk-Anker,
+        div.fk-Anker,
+        div.fbDispoRoute.fk-Anker {
+            background-color: #ff665f !important;
+        }
+        .fk-Auffueller,
+        div.fk-Auffueller,
+        div.fbDispoRoute.fk-Auffueller {
+            background-color: #fee1ff !important;
+        }
+        .fk-Rot,
+        div.fk-Rot,
+        div.fbDispoRoute.fk-Rot {
+            background-color: #ff6a59 !important;
+        }
+        .fk-Gruen,
+        div.fk-Gruen,
+        div.fbDispoRoute.fk-Gruen {
+            background-color: #96ff98 !important;
+        }
+        .fk-Gelb,
+        div.fk-Gelb,
+        div.fbDispoRoute.fk-Gelb {
+            background-color: #fcff85 !important;
+        }
+        .fk-Blau,
+        div.fk-Blau,
+        div.fbDispoRoute.fk-Blau {
+            background-color: #7cb2ff !important;
+        }
+        .fk-Orange,
+        div.fk-Orange,
+        div.fbDispoRoute.fk-Orange {
+            background-color: #ffc472 !important;
+        }
+        .fk-Lila,
+        div.fk-Lila,
+        div.fbDispoRoute.fk-Lila {
+            background-color: #d2a2ff !important;
+        }
+        .fk-Weiss,
+        div.fk-Weiss,
+        div.fbDispoRoute.fk-Weiss {
+            background-color: #fdf6fb !important;
+        }
+        .fk-Grau,
+        div.fk-Grau,
+        div.fbDispoRoute.fk-Grau {
+            background-color: #d3d3d3 !important;
+        }
+        .fk-Braun,
+        div.fk-Braun,
+        div.fbDispoRoute.fk-Braun {
+            background-color: #a5645e !important;
+        }
     </style>
 <?php if (0) echo $this->headTitle(); ?>
     <meta xhttp-equiv="Content-Type" xcontent="text/html; charset=UTF-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <base href="<?php echo $this->baseUrl(); ?>" />
 <?php if ($use_minified = 1): ?>
-    <link rel="stylesheet" type="text/css" href="<?php echo $this->baseUrl(); ?>/css/all-layout-touren.min.css?r=<?php echo $qRrefresh; ?>" />
+    <link rel="stylesheet" type="text/css" href="<?php echo $this->baseUrl(); ?>/css/all-layout-touren.min.css?r=<?php echo $qRefresh; ?>" />
 <?php else: ?>    
     <!-- start minify -->
     <link rel="stylesheet" type="text/css" href="<?php echo $this->baseUrl(); ?>/jquery/themes/redmond/jquery-ui-1.8.16.custom.css" />
@@ -27,7 +90,7 @@
     <link rel="stylesheet" type="text/css" href="<?php echo $this->baseUrl(); ?>/touren/jquery.crm.css/DragRoutes.css" />
     <link rel="stylesheet" type="text/css" href="<?php echo $this->baseUrl(); ?>/touren/jquery.crm.css/fbPortlet.css" />
     <link rel="stylesheet" type="text/css" href="<?php echo $this->baseUrl(); ?>/jquery/autocomplete_chooser/chooser.css" />
-    <link rel="stylesheet" type="text/css" href="<?php echo $this->baseUrl(); ?>/css/jquery.fbMultiSearchBox.css?r=<?php echo $qRrefresh; ?>" />
+    <link rel="stylesheet" type="text/css" href="<?php echo $this->baseUrl(); ?>/css/jquery.fbMultiSearchBox.css?r=<?php echo $qRefresh; ?>" />
     <link rel="stylesheet" type="text/css" href="<?php echo $this->baseUrl(); ?>/jquery/combobox/jquery.ui.combobox.css" />
     <link rel="stylesheet" type="text/css" href="<?php echo $this->baseUrl(); ?>/css/droplinebar.css" />
     <!-- end minify -->
@@ -45,12 +108,12 @@
     </style>
     
     <script>var APP_BASE_URL = <?php echo json_encode( $this->baseUrl() ); ?>;</script>
-    <script src="<?php echo $this->baseUrl(); ?>/jquery/jquery-1.5.1.js?r=<?php echo $qRrefresh; ?>"></script><!-- 1.5.1.js 1.7.2.min.js 1.8.3.js></script  -->
-    <script src="<?php echo $this->baseUrl(); ?>/jquery/jquery-ui-1.8.12.js?r=<?php echo $qRrefresh; ?>"></script><!-- ui/minified/jquery-ui.min.js jquery-ui-1.9.2.min.js -->
-    <script src="<?php echo $this->baseUrl(); ?>/jquery/ui/i18n/jquery.ui.datepicker-de.js?r=<?php echo $qRrefresh; ?>"></script><!-- ui/minified/jquery-ui.min.js jquery-ui-1.9.2.min.js -->
+    <script src="<?php echo $this->baseUrl(); ?>/jquery/jquery-1.5.1.js?r=<?php echo $qRefresh; ?>"></script><!-- 1.5.1.js 1.7.2.min.js 1.8.3.js></script  -->
+    <script src="<?php echo $this->baseUrl(); ?>/jquery/jquery-ui-1.8.12.js?r=<?php echo $qRefresh; ?>"></script><!-- ui/minified/jquery-ui.min.js jquery-ui-1.9.2.min.js -->
+    <script src="<?php echo $this->baseUrl(); ?>/jquery/ui/i18n/jquery.ui.datepicker-de.js?r=<?php echo $qRefresh; ?>"></script><!-- ui/minified/jquery-ui.min.js jquery-ui-1.9.2.min.js -->
 <?php    
     // jquery.treeview: http://bassistance.de/jquery-plugins/jquery-plugin-treeview/
-?>    <script src="<?php echo $this->baseUrl(); ?>/jquery/jquery.treeview/min/jquery.treeview-all.min.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
+?>    <script src="<?php echo $this->baseUrl(); ?>/jquery/jquery.treeview/min/jquery.treeview-all.min.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
 <?php
 /*
  * jquery-plugin ui.layout: 
@@ -62,56 +125,56 @@
  */
 ?>    <script>var droplinemenu_imgPath = '<?php echo $this->baseUrl(); ?>/css/';</script>    
 <?php if($use_minified = 1) { 
-?>    <script src="<?php echo $this->baseUrl(); ?>/jquery/ui/layout/min/jquery.layout-all.min.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
+?>    <script src="<?php echo $this->baseUrl(); ?>/jquery/ui/layout/min/jquery.layout-all.min.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
 <?php } else { 
-?>    <script src="<?php echo $this->baseUrl(); ?>/jquery/ui/layout/jquery.layout-latest.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
+?>    <script src="<?php echo $this->baseUrl(); ?>/jquery/ui/layout/jquery.layout-latest.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
 <?php } 
 ?><?php if ($use_minified = 1) { 
-?>    <script src="<?php echo $this->baseUrl(); ?>/jquery/util/min/jquery.util-all.min.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
+?>    <script src="<?php echo $this->baseUrl(); ?>/jquery/util/min/jquery.util-all.min.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
     <?php } else { 
-?>    <script src="<?php echo $this->baseUrl(); ?>/jquery/util/Fb.core.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
-    <script src="<?php echo $this->baseUrl(); ?>/jquery/util/droplinemenu.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
-    <script src="<?php echo $this->baseUrl(); ?>/jquery/util/jquery.chooser.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
-    <script src="<?php echo $this->baseUrl(); ?>/jquery/util/jquery.fbChooser.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
-    <script src="<?php echo $this->baseUrl(); ?>/jquery/util/jquery.fbIcon.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
-    <script src="<?php echo $this->baseUrl(); ?>/jquery/util/jquery.plugin.cookie.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
-    <script src="<?php echo $this->baseUrl(); ?>/jquery/util/jquery.fbMultiSearchBox.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
-    <script src="<?php echo $this->baseUrl(); ?>/jquery/util/jquery.ui.combobox.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
-    <script src="<?php echo $this->baseUrl(); ?>/jquery/waypoints/waypoints.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
+?>    <script src="<?php echo $this->baseUrl(); ?>/jquery/util/Fb.core.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/jquery/util/droplinemenu.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/jquery/util/jquery.chooser.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/jquery/util/jquery.fbChooser.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/jquery/util/jquery.fbIcon.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/jquery/util/jquery.plugin.cookie.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/jquery/util/jquery.fbMultiSearchBox.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/jquery/util/jquery.ui.combobox.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/jquery/waypoints/waypoints.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
 <?php } 
 if ($use_minified = 0) {
-?>    <script src="<?php echo $this->baseUrl(); ?>/touren/jquery.crm.plugins/min/jquery.touren-dispo-all.min.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
+?>    <script src="<?php echo $this->baseUrl(); ?>/touren/jquery.crm.plugins/min/jquery.touren-dispo-all.min.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
 <?php } else {
-?>    <script src="<?php echo $this->baseUrl(); ?>/touren/jquery.crm.plugins/fb.dnd.settings.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
-    <script src="<?php echo $this->baseUrl(); ?>/touren/jquery.crm.plugins/jquery.fbDispoCalendar.settings.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
-    <script src="<?php echo $this->baseUrl(); ?>/touren/jquery.crm.plugins/jquery.fbDispoPortlet.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
-    <script src="<?php echo $this->baseUrl(); ?>/touren/jquery.crm.plugins/jquery.fbDispoTimelineLineal.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
-    <script src="<?php echo $this->baseUrl(); ?>/touren/jquery.crm.plugins/jquery.fbDispoTimelineGrid.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
-    <script src="<?php echo $this->baseUrl(); ?>/touren/jquery.crm.plugins/jquery.fbDispoTimelineDropzone.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
-    <script src="<?php echo $this->baseUrl(); ?>/touren/jquery.crm.plugins/jquery.fbDispoTimelineDropzoneHandles.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
-    <script src="<?php echo $this->baseUrl(); ?>/touren/jquery.crm.plugins/jquery.fbDispoRoute.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
-    <script src="<?php echo $this->baseUrl(); ?>/touren/jquery.crm.plugins/jquery.fbDispoRouteDefaults.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
-    <script src="<?php echo $this->baseUrl(); ?>/touren/jquery.crm.plugins/jquery.fbDispoResource.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
-    <script src="<?php echo $this->baseUrl(); ?>/touren/jquery.crm.plugins/jquery.fbDispoCalendar.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
-    <script src="<?php echo $this->baseUrl(); ?>/touren/jquery.crm.plugins/fb.showRouteDetails.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
+?>    <script src="<?php echo $this->baseUrl(); ?>/touren/jquery.crm.plugins/fb.dnd.settings.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/touren/jquery.crm.plugins/jquery.fbDispoCalendar.settings.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/touren/jquery.crm.plugins/jquery.fbDispoPortlet.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/touren/jquery.crm.plugins/jquery.fbDispoTimelineLineal.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/touren/jquery.crm.plugins/jquery.fbDispoTimelineGrid.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/touren/jquery.crm.plugins/jquery.fbDispoTimelineDropzone.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/touren/jquery.crm.plugins/jquery.fbDispoTimelineDropzoneHandles.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/touren/jquery.crm.plugins/jquery.fbDispoRoute.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/touren/jquery.crm.plugins/jquery.fbDispoRouteDefaults.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/touren/jquery.crm.plugins/jquery.fbDispoResource.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/touren/jquery.crm.plugins/jquery.fbDispoCalendar.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/touren/jquery.crm.plugins/fb.showRouteDetails.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
 <?php }     
-?>    <script src="<?php echo $this->baseUrl(); ?>/touren/js_init/init_DispoCalendarEvents.base.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
+?>    <script src="<?php echo $this->baseUrl(); ?>/touren/js_init/init_DispoCalendarEvents.base.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
 <?php if ($this->user && in_array($this->user->user_role, array('admin','dispo'))) { /*print_r($this->user);*/ 
-?>    <script src="<?php echo $this->baseUrl(); ?>/touren/js_init/init_DispoCalendarEvents.dispo.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
+?>    <script src="<?php echo $this->baseUrl(); ?>/touren/js_init/init_DispoCalendarEvents.dispo.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
 <?php } 
       if ($this->user && $this->user->user_role == 'innendienst') { /*print_r($this->user);*/ 
-?>    <script src="<?php echo $this->baseUrl(); ?>/touren/js_init/init_DispoCalendarEvents.innendienst.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
+?>    <script src="<?php echo $this->baseUrl(); ?>/touren/js_init/init_DispoCalendarEvents.innendienst.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
 <?php } 
 
     if ($this->user && $this->user->user_role == 'controller') { /*print_r($this->user);*/ 
-?>    <script src="<?php echo $this->baseUrl(); ?>/touren/js_init/jquery.fbDispoCalendar.settings.controller.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
+?>    <script src="<?php echo $this->baseUrl(); ?>/touren/js_init/jquery.fbDispoCalendar.settings.controller.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
 <?php } 
 
     if ($this->user && $this->user->user_role == 'innendienst') { /*print_r($this->user);*/ 
-?>    <script src="<?php echo $this->baseUrl(); ?>/touren/js_init/jquery.fbDispoCalendar.settings.innendienst.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
+?>    <script src="<?php echo $this->baseUrl(); ?>/touren/js_init/jquery.fbDispoCalendar.settings.innendienst.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
 <?php } 
-?>    <script src="<?php echo $this->baseUrl(); ?>/touren/js_init/init_layout.js?r=<?php echo $qRrefresh; ?>" type="text/javascript"></script>
-    <script src="<?php echo $this->baseUrl(); ?>/touren/js_init/init_touren.js?r=<?php echo $qRrefresh; ?>"></script>
+?>    <script src="<?php echo $this->baseUrl(); ?>/touren/js_init/init_layout.js?r=<?php echo $qRefresh; ?>" type="text/javascript"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/touren/js_init/init_touren.js?r=<?php echo $qRefresh; ?>"></script>
 <?php 
     echo $this->jQuery() . PHP_EOL;
     JqGridHeader::enable(true);
@@ -119,8 +182,8 @@ if ($use_minified = 0) {
 <?php echo $this->headScript (); ?>
 <?php echo $this->headStyle();  ?>
 </head>
-<body>
-<DIV class="ui-layout-north xui-widget-header" style="padding-top:8px;">
+<body class="env-<?= APPLICATION_ENV ?>">
+<DIV class="ui-layout-north xui-widget-header" style="padding-top:8px;background-color:<?= $hdBgColor; ?>">
 <?php echo $this->render('header.phtml') ?>
 </DIV>
 
@@ -129,7 +192,7 @@ if ($use_minified = 0) {
 
     <div style="text-align:right;padding:10px;color:#6caad4;opacity:.7;">
     Branch: <?= Zend_Registry::get('BRANCH_NAME'); ?>
-    <?= Zend_Registry::get('BRANCH_COMMIT'); ?>
+    <?= Zend_Registry::get('BRANCH_COMMIT_SHORT'); ?><br>
     DB://<?= Zend_Registry::get('DB_HOST'); ?>:<?= Zend_Registry::get('DB_PORT'); ?>/<?= Zend_Registry::get('DB_NAME'); ?>
     </div>
 </DIV>
