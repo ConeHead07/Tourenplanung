@@ -166,9 +166,13 @@ class Model_TourenDispoVorgaengeText extends MyProject_Model_Database
         foreach($attribs as $k => $v) {
             $str_attribs.= ' ' . $k . '="'.$v.'"';
         }
-        
+
         $entryTime = date("Y-m-d H:i:s");
         $entryId = md5($uname . $entryTime);
+
+        if (strpos($bemerkung, '&') !== false) {
+            $bemerkung = preg_replace('|&(?![#a-zA-Z0-9]+;)|', '&amp;', $bemerkung);
+        }
         
         $entry = '<div class="entry" id="' . $entryId . '"'.$str_attribs.'>'
                 .'<div class="bemerkung-meta"><span class="user">'.$uname . '</span>, '

@@ -957,6 +957,7 @@ WHERE CONCAT("Mandant",\'-\',"Auftragsnummer") IN (\':IDS\')');
                             $insertSuccess = $record->save();
                             $num_inserted++;
                         }
+
                         ++$saved;
                         $varStorage->set($lastModVarName, max( $row['AngelegtAm'], $row['GeaendertAm']));
 
@@ -998,6 +999,9 @@ WHERE CONCAT("Mandant",\'-\',"Auftragsnummer") IN (\':IDS\')');
 
                         echo '<pre>' . $sql_set . '</pre>';
                         echo '<pre>' . $e->getTraceAsString() . '</pre>' . PHP_EOL;
+                        $errClass = get_class($e);
+                        $line = __LINE__;
+                        print_r(compact('line', 'errClass', 'saveMode', 'sql_set', 'num_inserted', 'num_updated', 'row', 'where'));
                         throw $e;
                         exit;
 
@@ -1007,12 +1011,18 @@ WHERE CONCAT("Mandant",\'-\',"Auftragsnummer") IN (\':IDS\')');
                                 . $e->getMessage()) . PHP_EOL;
                         echo '<pre>' . $sql_set . '</pre>';
                         echo '<pre>' . $e->getTraceAsString() . '</pre>' . PHP_EOL;
+                        $errClass = get_class($e);
+                        $line = __LINE__;
+                        print_r(compact('line', 'errClass', 'saveMode', 'sql_set', 'num_inserted', 'num_updated', 'row', 'where'));
                         throw $e;
                         exit;
 
                     } catch (Zend_Exception $e) {
                         echo $this->tlog('', '#' . __LINE__
                                 . ' Zend_Exception ' . $e->getMessage()) . PHP_EOL;
+                        $errClass = get_class($e);
+                        $line = __LINE__;
+                        print_r(compact('line', 'errClass', 'saveMode', 'sql_set', 'num_inserted', 'num_updated', 'row', 'where'));
                         throw $e;
                         exit;
 
@@ -1021,6 +1031,10 @@ WHERE CONCAT("Mandant",\'-\',"Auftragsnummer") IN (\':IDS\')');
                                 . ' Exception ' . $e->getMessage()) . PHP_EOL;
                         echo '<pre>' . $sql_set . '</pre>';
                         echo '<pre>' . $e->getTraceAsString() . '</pre>' . PHP_EOL;
+
+                        $errClass = get_class($e);
+                        $line = __LINE__;
+                        print_r(compact('line', 'errClass', 'saveMode', 'sql_set', 'num_inserted', 'num_updated', 'row', 'where'));
                         throw $e;
                         exit;
 

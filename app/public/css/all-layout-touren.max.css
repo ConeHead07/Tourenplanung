@@ -870,7 +870,7 @@ DIV.bookmarks {
 .grey		{ color: #777; }
 .red		{ color: #F00; }
 /**
-* Regel fï¿½r Tabs-Darstellung zur Einbindung von ui-icons in den Tab-Titel
+* Regel für Tabs-Darstellung zur Einbindung von ui-icons in den Tab-Titel
 */
 body, * {
     font-size:11px;
@@ -1833,10 +1833,26 @@ div.fbDispoRoute ul.resources li {
 }
 .Drag-Route.DragRoute-Focus {
     border: 1px solid #f00;
+    height: auto !important;
+    min-height: 19px;
 }
 div.DropZoneDefaults {
     border: 1px solid #f00;
     background:#fff;
+}
+div.DropZoneDefaults.Drag-Route {
+    position:absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 19px;
+    z-index: 3000;
+    display: block;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    background-image: none;
+    background-color: #fff;
 }
 div.DropZoneDefaults ul.resources {
     margin:0;
@@ -1876,7 +1892,7 @@ div.route-stat-finished {
 div.route-stat-dispo {
     background-color: #fbec88 !important;
 }
-div.route-stat-nodispo {r
+div.route-stat-nodispo {
     background-color: mistyrose;
 }
 
@@ -1916,7 +1932,7 @@ td div.xVorgangStatusBox span.v-stat-icon {
  }
         
 /* states and images */
-.v-stat-icon { display:block; width: 30px; height: 30px; background-image: url(../touren/img/round-icons-small.png); }
+.v-stat-icon { display:block; width: 30px; height: 30px; background-image: url(../touren/jquery.crm.css/<?php echo $this->baseUrl(); ?>/touren/img/round-icons-small.png); }
 .v-stat-gruen { background-position: -29px 0; }
 .v-stat-beauftragt, .v-stat-rot   { background-position: 0 0; }
 .v-stat-fertig,     .v-stat-blau  { background-position: -58px 0; }
@@ -1947,7 +1963,8 @@ td div.xVorgangStatusBox span.v-stat-icon {
     top: 45%;
     width: auto;
     z-index: 101;
-}
+}Hi
+
 /* 
     Document   : fbPortlet
     Created on : 24.11.2011, 16:11:14

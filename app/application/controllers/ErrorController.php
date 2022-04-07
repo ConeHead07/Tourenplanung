@@ -7,11 +7,17 @@ class ErrorController extends Zend_Controller_Action
     {
         $errors = $this->_getParam('error_handler');
         $priority = Zend_Log::NOTICE;
+
+        $this->view->output = ob_get_contents();
+        if ($this->view->output) {
+            ob_end_clean();
+        }
         
         if (!$errors || !$errors instanceof ArrayObject) {
             $this->view->message = 'You have reached the error page';
             return;
         }
+        $this->getResponse()->setHeader('Content-Type: text/html');
         
         switch ($errors->type) {
             case Zend_Controller_Plugin_ErrorHandler::EXCEPTION_NO_ROUTE:
