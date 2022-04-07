@@ -6,6 +6,7 @@
 (function($) {
     
     var dataKey  = 'fbDispoRoute';
+    var __FILE__ = "jquery." + dataKey + ".js";
     
     var eventTriggerMap = {
             'create': 'createRoute',
@@ -77,19 +78,40 @@
             var self = this;
             var obj = $( this );
             var data = obj.data(dataKey);            
-            if (data.data === null) data.data = {};
+            if (data.data === null) {
+                data.data = {};
+            }
             
             if (!obj.attr('id') && ('id' in data.data) ) {
                 obj.attr('id', dataKey + '_'+data.data.id);                
             }
+            console.log("route Element-ID #" + obj.attr("id"), { obj, data } );
             
             if (!obj.attr('class') || !obj.attr('class').match(/\bDrag-Route\b/)) obj.addClass('Drag-Route');
             obj.removeClass(dataKey).addClass(dataKey);
             
-            if (data.isDraggable) obj.draggable( data.draggableOptions );
+            if (data.isDraggable) {
+                console.log("Make Route draggable");
+                obj.draggable( data.draggableOptions );
+            } else {
+                console.log("Make Route NOT draggable");
+            }
+
 //              .fbDispoRouteDroppableOnClick()
-            if (data.isDraggable) obj.droppable( data.droppableOptions );
-            if (data.isDraggable) obj.resizable( data.resizableOptions );
+            if (data.isDroppable) {
+                console.log("Make Route droppable");
+                obj.droppable( data.droppableOptions );
+            } else {
+                console.log("Make Route NOT droppable");
+            }
+
+            if (data.isResizable) {
+                console.log("Make Route resizeable");
+                console.log("#93", "data.resizableOptions", data.resizableOptions);
+                obj.resizable( data.resizableOptions );
+            } else {
+                console.log("Make Route NOT resizable");
+            }
             
             obj.addClass("ui-corner-tr ui-corner-bottom")
                .append( $("<div class='resourcesStat' />"))
@@ -200,6 +222,9 @@
                     methods.destroy.apply( self );
                 })
                 );
+            else {
+                console.log({"line":225, "file": "jquery.fbDispoRoute.js", data});
+            }
             
             // Avisiert-flag
             if (data.data.avisiert == 1)
@@ -228,13 +253,20 @@
 
             // Color-Setting-Handler
 
-            $self.css({paddingLeft:20}).append(
+            var allowedColors = [];
+            if ("allowedColors" in Fb.DispoCalendarSettings.route
+                && Fb.DispoCalendarSettings.route.allowedColors.length) {
+                allowedColors = Fb.DispoCalendarSettings.route.allowedColors;
+            }
+            if (allowedColors.length) $self.append(
                 $("<div/>").css(iconOpts).css("top","34px") //.css("right","15px")
                     .addClass("ui-corner-all")
                     .append( $("<span/>").addClass("ui-icon ui-icon-tag") )
                     .click(function() {
                         var btn = $(this);
-                        var aColors = ['schliessen','','Anker','Auffueller','Rot','Gruen','Gelb','Blau','Orange','Lila','Weiss','Grau','Braun'];
+
+                        var aColors = ['schliessen',''].concat(allowedColors);
+
                         var clickHandle = function(fk) {
                             if (fk !== "schliessen") {
                                 methods.setFarbklasse.apply(self, [fk]);
@@ -253,10 +285,18 @@
 
                         for(var i in aColors) {
                             var fk = aColors[ i ];
+                            var ti = "Keine Farbe";
+                            
+                            if (fk == "Gruen") ti = "VIP";
+                            else if (fk == "Gelb") ti = "Anker";
+                            else if (fk == "Blau") ti = "Füll";
+                            else if (fk == "Weiss") ti = "Projekt";
+                            else if (fk) ti = fk;
+
 
                             var _itm = $("<span/>")
                                 .addClass("color-pick-item fk-"+fk)
-                                .attr("title", fk ? fk : "Keine Farbe")
+                                .attr("title", ti)
                                 .css("cursor","pointer");
                             if (fk == "schliessen") {
                                 _itm.text("x").css({
@@ -440,9 +480,12 @@
 
             data.data.farbklasse = fk;
 
-            methods._trigger.apply( this, [this, 'setFarbklasse', fk]);
+            var bCallbackOK = methods._trigger.apply( this, [this, 'setFarbklasse', fk]);
+            console.log("#465 jquery.fbDispoRoute setFarbklasse bCallbackOK", bCallbackOK);
 
-            methods.renderFarbklasse.apply(this);
+            if (bCallbackOK) {
+                methods.renderFarbklasse.apply(this);
+            }
         },
         'renderFarbklasse': function() {
             var $self = $(this);
@@ -679,7 +722,6 @@
                 args.unshift(obj);
                 args.unshift('_trigger');
                 dbglog(663, " trigger data._parent["+data._parentJqFunction+"].apply(data._parent,args)");
-                console.log("664 args", args);
                 if ( false === data._parent[data._parentJqFunction].apply(data._parent, args) ) {
                     dbglog(662, "return false");
                     return false;
@@ -761,18 +803,49 @@
             if (!$( self ).data(dataKey)) {
                 if (Fb.DispoCalendarSettings && Fb.DispoCalendarSettings.route) {
                     presets = $.extend({}, defaults, Fb.DispoCalendarSettings.route);
+                    console.log(["806 if-true", "defaults", $.extend({},defaults),
+                        "Fb.DispoCalendarSettings.route",Fb.DispoCalendarSettings.route,
+                        "presets", presets]);
                 } else {
                     presets = defaults;
+                    console.log([
+                        "812 if-false",
+                        "presets = defaults",
+                        "defaults", $.extend({},defaults),
+                        "presets", presets
+                    ]);
                 }
+
+                var before = $.extend({}, $( self ).data(dataKey) );
                 if (!options) {
                     $( self ).data(dataKey, $.extend({}, presets));
+                    var after = $.extend({}, $( self ).data(dataKey) );
+                    console.log({"line": "823", __FILE__, before, after});
                 }
                 else if (typeof(options) == "object") {
                     $( self ).data(dataKey, $.extend({}, presets, options) );
+                    var after = $.extend({}, $( self ).data(dataKey) )
+                    console.log({
+                        "line": "829", __FILE__,
+                        before,
+                        "presets": $.extend({}, presets),
+                        "options": $.extend({}, options),
+                        after});
                 }
                 else {
                     $( self ).data(dataKey, $.extend({}, presets));
+                    var after = $.extend({}, $( self ).data(dataKey) )
+                    console.log({"line": "838", __FILE__, before, after});
                 }
+                console.log({
+                    "line": 841,
+                    "file": __FILE__,
+                    "defaults": defaults,
+                    "Fb.DispoCalendarSettings.route": Fb.DispoCalendarSettings.route,
+                    "presets": $.extend({}, presets),
+                    "options": $.extend({}, options),
+                    "renderedData": $( {}, $( self ).data( dataKey ) )
+                });
                 _callInit = true;
             }
             var data = $( self ).data(dataKey);
@@ -781,9 +854,9 @@
             // Apply individual Settings
             if (d && typeof d === "object" && "settings" in d && d.settings) {
                 for(var _si in d.settings) {
-                    data[_si] = d.settings[ _si ];
+                    // data[_si] = d.settings[ _si ];
                 }
-                delete d.settings;
+                // delete d.settings;
             }
             
             // Default-Routine: Analyse Options-Settings and 

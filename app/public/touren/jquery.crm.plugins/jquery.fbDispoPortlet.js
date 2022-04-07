@@ -58,25 +58,33 @@
             .find( "div.portlet-header" )
                 .addClass( "ui-corner-all" )
             .end();
-            
+
             var editable = data.isEditable;
+            var printable = data.isEditable || data.isPrintable;
             
             var iconSet = $( "div.portlet-header span.ui-icon-set", $self.closest( "div.portlet" ) );
             iconSet.append( "<span class='ui-icon collapse ui-icon-triangle-1-s'></span>");
             
-            if (editable && data.isSortable)
+            if (editable && data.isSortable) {
                 iconSet.append( "<span class='ui-icon sortable ui-icon-arrow-4 handle'></span>");
-            if (editable && data.isAddable)
+            }
+
+            if (editable && data.isAddable) {
                 iconSet.append( "<span class='ui-icon addTrack ui-icon-plus'></span>");
-            if (editable && data.isRemovable) 
+            }
+
+            if (editable && data.isRemovable) {
                 iconSet.append( "<span class='ui-icon rmPortlet ui-icon-trash'></span>");
-            if (data.isPrintable)
+            }
+
+            if (printable) {
                 iconSet.append( "<span class='ui-icon prPortlet ui-icon-print'></span>");
+            }
             
             var portletContent = $( "div.portlet-content", $self.closest( "div.portlet" ) );
             portletContent.css('paddingLeft','15px');
             if (editable) {
-                if (data.isSortable)
+                if (data.isSortable) {
                     portletContent.sortable({
                        'cursor': "move",
                        'handle':'.DropZone-Sort',
@@ -93,8 +101,9 @@
                         }
                     // To-Do: Add EventHandler
                     });
+                }
                 
-                if (data.isDroppable)
+                if (data.isDroppable) {
                     portletContent.droppable({
                         accept:'.DropZone-Route',
                         drop: function(e, ui) {
@@ -109,28 +118,32 @@
 
                         }                
                     });
+                }
             
-                if (data.isAddable)
+                if (data.isAddable) {
                     iconSet
                     .find( "span.addTrack")
                     .click(function() {
                         methods.addTimeline.apply( self );
                     });
+                }
 
-                if (data.isRemovable)
+                if (data.isRemovable) {
                     iconSet
                     .find( "span.rmPortlet")
                     .click(function() {
                         //alert( ' [self=Portlet].class: ' + $(self).attr('class') );
                         methods.destroy.apply( self );
                     });
+                }
+            }
 
-                if (data.isPrintable) 
-                    iconSet
-                    .find( "span.prPortlet")
-                    .click(function() {
+            if (printable) {
+                iconSet
+                    .find("span.prPortlet")
+                    .click(function () {
                         //alert( ' [self=Portlet].class: ' + $(self).attr('class') );
-                        methods._trigger.apply( self, [self, "print" ]);
+                        methods._trigger.apply(self, [self, "print"]);
                     });
             }
             

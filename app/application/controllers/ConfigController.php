@@ -171,7 +171,7 @@ class ConfigController extends Zend_Controller_Action
        $controller = 'user';
        $module = 'default';
        $params = null;
-       $this->_forward($action, $controller, $module, $params);
+       $this->forward($action, $controller, $module, $params);
        
    }
    

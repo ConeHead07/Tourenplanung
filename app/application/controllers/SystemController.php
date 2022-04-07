@@ -466,6 +466,193 @@ class SystemController extends Zend_Controller_Action {
         die('finished successful!');
     }
 
+    public function wwssynccheckAction()
+    {
+        $this->_helper->layout->disableLayout();
+
+        /* @var $db Zend_Db_Adapter_Pdo_Mysql */
+        $db = Zend_Registry::get('db');
+
+        /** @var  $wwsdb MyProject_Db_Sqlsrv */
+        $wwsdb = Zend_Registry::get('wwsdb');
+        $wwsdb->setFetchMode(Sqlsrv::FETCH_ASSOC);
+        $wwsdb->setScrollableCursor( SQLSRV_CURSOR_STATIC );
+
+        $queryOpenTickets = <<<EOT
+        SELECT CONCAT(Mandant, '-', Auftragsnummer, '-', BearbeitungsStatus) AS statusid FROM scoffice7.dbo.AuftragsKoepfe 
+        WHERE BearbeitungsStatus BETWEEN 2 AND 5 
+        UNION SELECT CONCAT(Mandant, '-', Auftragsnummer, '-', BearbeitungsStatus) AS statusid FROM scoffice7_Mig.dbo.AuftragsKoepfe 
+        WHERE BearbeitungsStatus BETWEEN 2 AND 5
+EOT;
+
+        // works until here
+
+        echo '#' . __LINE__ . "<br>\n";
+        $rslt = $wwsdb->query($queryOpenTickets);
+        echo '#' . __LINE__ . "<br>\n";
+        // works until here
+        $aWwsOpenIds = [];
+        while($_row = $rslt->fetch(SQLSRV_FETCH_ASSOC)) {
+            $aWwsOpenIds[] = $_row['statusid'];
+        }
+        echo '#' . __LINE__ . "<br>\n";
+        flush();
+
+        // works until here
+        $iCountWwsOpen = count($aWwsOpenIds);
+
+        $sql = 'SELECT COUNT(1) ';
+        $sql.= ' FROM mr_auftragskoepfe_dispofilter ';
+        $sql.= ' WHERE Bearbeitungsstatus BETWEEN 2 AND 5 ';
+        $sql.= ' AND CONCAT(Mandant,"-", Auftragsnummer, "-", Bearbeitungsstatus) IN (';
+        $sql.= '"' . implode("\",\n\"", $aWwsOpenIds) . '"';
+        $sql.= ' )';
+        $iCountMatches = $db->fetchOne( $sql );
+        echo "#" . __LINE__ . "<br>\n";
+        flush();
+
+        $sql = 'SELECT Mandant, Auftragsnummer, Bearbeitungsstatus, "" AS WwsStat ';
+        $sql.= ' FROM mr_auftragskoepfe_dispofilter ';
+        $sql.= ' WHERE Bearbeitungsstatus BETWEEN 2 AND 5 ';
+        $sql.= ' AND CONCAT(Mandant,"-", Auftragsnummer, "-", Bearbeitungsstatus) NOT IN (';
+        $sql.= '"' . implode("\",\n\"", $aWwsOpenIds) . '"';
+        $sql.= ' ) LIMIT 200';
+        unset($aWwsOpenIds);
+        $aAppMissmatches = $db->fetchAll( $sql );
+        $iCountMissmatches = count($aAppMissmatches);
+        echo "#" . __LINE__ . "<br>\n";
+
+        $addWwsStat = function( $mid, $anr, $wstat ) use(&$aAppMissmatches, $db) {
+            $found = false;
+            foreach($aAppMissmatches as $_idx => $_row) {
+                // echo "#" . __LINE__ . "<br>\n";
+                // flush();
+                if ($_row['Mandant'] == $mid
+                    && $_row['Auftragsnummer'] == $anr
+                    && $wstat != $_row['Bearbeitungsstatus']) {
+                    echo "Found $mid, $anr, $wstat, Old-Stat: ". $_row['Bearbeitungsstatus'] . "<br>\n";
+                    $aAppMissmatches[$_idx]['WwsStat'] = $wstat;
+                    $db->query("UPDATE mr_auftragskoepfe_dispofilter SET Bearbeitungsstatus = $wstat WHERE Mandant = $mid AND Auftragsnummer = $anr");
+                    $found = true;
+                    break;
+                }
+            }
+            if (!$found) {
+                echo "NOT Found $mid, $anr, $wstat, Old-Stat: ". $_row['Bearbeitungsstatus'] . "<br>\n";
+            }
+        };
+
+        echo '#' . __LINE__ . "<br>\n";
+        $aCheckSCO7 = array_filter($aAppMissmatches,
+            function($row) {
+                return $row['Mandant'] != 10 || strlen($row['Auftragsnummer']) > 7;
+            }
+        );
+
+        echo '#' . __LINE__ . "<br>\n";
+        $aCheckSCO7Mig = array_filter($aAppMissmatches,
+            function($row) {
+                return $row['Mandant'] != 10 || strlen($row['Auftragsnummer']) < 8;
+            }
+        );
+
+        $aMissmatchIds = array_chunk(array_map( function($row) { return "{$row['Mandant']}-{$row['Auftragsnummer']}";}, $aCheckSCO7), 100);
+        $aMissmatchIdsMig = array_chunk(array_map( function($row) { return "{$row['Mandant']}-{$row['Auftragsnummer']}";}, $aCheckSCO7Mig), 100);
+
+        $iCountWwsMismatches = 0;
+        $iNumChunks = count($aMissmatchIds);
+        for($i = 0; $i < $iNumChunks; $i++) {
+            if (!count($aMissmatchIds[$i])) {
+                continue;
+            }
+            $sql = str_replace(':IDS', implode("','", $aMissmatchIds[$i]), 'SELECT Mandant, Auftragsnummer, Bearbeitungsstatus 
+FROM scoffice7.dbo.AuftragsKoepfe 
+WHERE CONCAT("Mandant",\'-\',"Auftragsnummer") IN (\':IDS\')');
+            echo '#' . __LINE__ . '; sql: ' . $sql . "<br>\n";
+
+            // works until here
+            $rslt = $wwsdb->query($sql);
+            echo '#' . __LINE__ . "<br>\n";
+            // works until here
+
+            while ($_row = $rslt->fetch(SQLSRV_FETCH_ASSOC)) {
+                // works until here
+                $iCountWwsMismatches++;
+                $addWwsStat($_row['Mandant'], $_row['Auftragsnummer'], $_row['Bearbeitungsstatus']);
+            }
+            // works until here
+        }
+        echo "#" . __LINE__ . "<br>\n";
+
+        $iNumChunksMig = count($aMissmatchIdsMig);
+        for($i = 0; $i < $iNumChunksMig; $i++) {
+            if (!count($aMissmatchIdsMig[$i])) {
+                continue;
+            }
+            $sql = str_replace(':IDS', implode("','", $aMissmatchIdsMig[$i]), 'SELECT Mandant, Auftragsnummer, Bearbeitungsstatus 
+FROM scoffice7_Mig.dbo.AuftragsKoepfe 
+WHERE CONCAT("Mandant",\'-\',"Auftragsnummer") IN (\':IDS\')');
+            unset($aMissmatchIdsMig);
+            echo '#' . __LINE__ . "<br>\n";
+            // works until here
+
+            $rslt = $wwsdb->query($sql);
+            echo '#' . __LINE__ . '; rows: ' . $rslt->num_rows() . " for $sql <br>\n";
+            // works until here
+            while ($_row = $rslt->fetch(SQLSRV_FETCH_ASSOC)) {
+                // die('#' . __LINE__);
+                $iCountWwsMismatches++;
+                $addWwsStat($_row['Mandant'], $_row['Auftragsnummer'], $_row['Bearbeitungsstatus']);
+            }
+            echo "#" . __LINE__ . "<br>\n";
+        }
+
+
+        die( '<pre>'
+            . "Num Open in WWS: " . $iCountWwsOpen . "\n"
+            . "Num App-Matches: " . $iCountMatches . "\n"
+            . "Num Missmatches: " . $iCountMissmatches . "\n"
+            . "WWS Missmatches: " . $iCountWwsMismatches . "\n"
+            . "<b>Missmatching Records in App:</b>\n"
+            . json_encode($aAppMissmatches, JSON_PRETTY_PRINT) . '</pre>'
+        );
+        die("Aborted in LINE " . __LINE__);
+
+    }
+
+    /**
+     * Compare open Vorgaenge in App with WWS, to find allready closed or removed Items
+     * and update APP-Items
+     * Note:
+     * - it updates only the status of App-Items by re-checking their Status by it's according WWS-Items
+     * - it does not remove Items in App, just set the status + 100, to close it and remember old status
+     * - it does not add new Item, this is part of cron-jobs
+     *
+     */
+    public function wwssyncbylibAction()
+    {
+
+        header('X-Accel-Buffering: no');
+        $this->_helper->layout->disableLayout();
+        ob_end_clean();
+
+        echo "Start Diff of open App and WWS-Items ...<br>\n";
+
+        $sync = new app\library\MyProject\Wwssync\Bearbeitungsstatus();
+
+        $aStat = $sync
+            ->runDiff()
+            ->saveChanges()
+            ->getProcessStatus()
+        // ->printDebugItemList()
+        ;
+
+        echo '<pre>aStat: ' . print_r($aStat, 1) . '</pre>' . "\n";
+
+        exit;
+
+    }
+
     public function wwsdirektimportAction() {
         startPID();
 

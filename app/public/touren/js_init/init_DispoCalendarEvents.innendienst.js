@@ -48,6 +48,24 @@ $.extend(Fb.DispoCalendarEvents, {
                 return false;
         }		
     },
+
+    'onSetTourFarbklasse': function(fk) {
+        var data = $(this).fbDispoRoute('getData');
+
+        if (data.id) {
+            var id = data.id;
+
+            return Fb.AjaxTourRequest({
+                    url: Fb.AppBaseUrl + '/touren/ajax/set-Tour-Farbklasse',
+                    data: {tour_id:id, fk:fk}
+                }, {
+                    defaultError: "Farbklasse konnte nicht gespeichert werden!"
+                }
+            );
+        }
+        return false;
+    },
+
     // 'onPrintPortlet': defined in ....base.js
     'onCreateTimeline': function() {
         // console.log('#53 js_init/init_DispoCalendarEvents.innendienst.js; onCreateTimeline');
@@ -100,6 +118,33 @@ $.extend(Fb.DispoCalendarEvents, {
                     }
                 }
              );
+        }
+        return false;
+    },
+    'onCreateRouteDefaults': function() {
+        var $self = $(this);
+        var data = $self.fbDispoRouteDefaults('getData');
+        data.datum = data.date;
+        data.IsDefault = 1;
+//        var m='';for(var i in data) m+= i+':'+data[i]+'\n';
+//        alert('#398 fbDispoCalendar a onCreateRouteDefaults\narguments.length:'+arguments.length+
+//              '\ntimeline_id:'+data.timeline_id+
+//              '\nid ('+typeof(data.id)+':'+data.id+
+//              '\n'+m);
+
+        if (data.timeline_id && (('id' in data)==false || !parseInt(data.id))) {
+
+            return Fb.AjaxTourRequest({
+                    data: {data:data},
+                    url: Fb.AppBaseUrl + '/touren/ajax/droproute'
+                }, {
+                    defaultError: "Interner Fehler beim Anlegen der Standard-Ressourcen-Leiste!",
+                    onsuccess: function(d){
+                        $self.fbDispoRouteDefaults('setData', 'id', d.id).fbDispoRouteDefaults('setData', 'tour_id', d.id);
+                    },
+                    onerror: function(xhr){}
+                }
+            );
         }
         return false;
     },
@@ -167,7 +212,101 @@ $.extend(Fb.DispoCalendarEvents, {
              );
         }
         return false;
-    }
+    },
+    'onMoveRoute': function() {
+        var $self = $(this);
+        var data = $self.fbDispoRoute('getData');
+        var tl = $self.fbDispoRoute('getTimeline');
+
+        data.timeline_id = tl.fbDispoTimelineDropzone('getData').id;
+
+        var timeStart = $self.fbDispoRoute('option', 'timeStart');
+        var timeDuration = $self.fbDispoRoute('option', 'timeDuration');
+
+        data.ZeitVon = $.minutesToTime(timeStart);
+        data.ZeitBis = $.minutesToTime(timeStart + timeDuration);
+
+        if (data.timeline_id && data.id) {
+
+            return Fb.AjaxTourRequest({
+                    data: {data:data},
+                    url: Fb.AppBaseUrl + '/touren/ajax/moveroute'
+                }, {
+                    defaultError: "Interner Fehler beim Verschieben der Tour!",
+                    onsuccess:function(d, textStatus, jqXHR) {
+                        $self.fbDispoRoute('setData', $.extend({}, data, d.data) );
+                    },
+                    onerror:function(jqXHR) {
+                        var d = '';
+                        if (jqXHR.responseText){
+                            try {
+                                d = $.parseJSON( jqXHR.responseText )
+                            } catch(e) {
+                                d = jqXHR.responseText;
+                            }
+                        }
+                        if (typeof(d)=="object" && d.data) {
+                            $self.fbDispoRoute('setData', $.extend({}, data, d.data) );
+                        }
+                    }
+                }
+            );
+        }
+        return false;
+    },
+    'onResizeRoute': function() {
+        var $self = $(this);
+        var data = $self.fbDispoRoute('getData');
+        var timeStart = $self.fbDispoRoute('option', 'timeStart');
+        var timeDuration = $self.fbDispoRoute('option', 'timeDuration');
+
+//        alert('#527 fbDispoCalendar timeStart:'+timeStart+', timeDuration:'+timeDuration);
+        data.ZeitVon = $.minutesToTime(timeStart);
+        data.ZeitBis = $.minutesToTime(timeStart + timeDuration);
+
+        if (data.timeline_id && data.id) {
+
+            return Fb.AjaxTourRequest({
+                    url: Fb.AppBaseUrl + '/touren/ajax/resizeroute',
+                    data: {data:data}
+                }, {
+                    defaultError: "Interner Fehler beim Skalieren der Tour!",
+                    onsuccess:function(d) {
+                        $self.fbDispoRoute('setData', $.extend({}, data, d.data) );
+                    },
+                    onerror:function(jqXHR) {
+                        var d = '';
+                        if (jqXHR.responseText){
+                            try {
+                                d = $.parseJSON( jqXHR.responseText )
+                            } catch(e) {
+                                d = jqXHR.responseText;
+                            }
+                        }
+                        if (typeof(d)=="object" && d.data) $self.fbDispoRoute('setData', $.extend({}, data, d.data) );
+                    }
+                }
+            );
+        }
+        return false;
+    },
+    'onRemoveRoute': function() {
+        var $self = $(this);
+        var data = $self.fbDispoRoute('getData');
+
+        if (data.id) {
+            if (confirm('Eintrag loeschen?')) {
+                return Fb.AjaxTourRequest({
+                        data: {id:data.id},
+                        url: Fb.AppBaseUrl + '/touren/ajax/removeroute'
+                    }, {
+                        defaultError: "Interner Fehler beim Entfernen der Tour!"
+                    }
+                );
+            }
+        }
+        return false;
+    },
 });
 
 

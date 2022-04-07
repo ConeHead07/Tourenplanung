@@ -25,11 +25,27 @@ class Model_TourenPortlets extends MyProject_Model_Database {
     protected $_tbl = null;
 
     public function __construct() {
+        parent::__construct();
         $this->_storage = $this->getStorage();
         $this->_db = $this->_storage->getAdapter();
         $this->_tbl = $this->_storage->info(Zend_Db_Table::NAME);
     }
+
+    public function dispoLog($portlet_id, $action, $aDetails) {
+        $uid = MyProject_Auth_Adapter::getUserId();
+        $this->getTourDispoLogger()->logTourenplan($portlet_id, $action, $uid, $aDetails);
+    }
     
+    public function operationIsAllowedById(int $id, object $userIdentity, string $action ) {
+
+        if ($userIdentity->user_role == 'innendienst') {
+            if (in_array($action, ['updateportlettitle'])) {
+                return true;
+            }
+        }
+        return true;
+    }
+
     public function updatepositions($datum = '')
     {
 //        die(__METHOD__);
@@ -106,6 +122,7 @@ class Model_TourenPortlets extends MyProject_Model_Database {
             $id = $this->insert($data);
             $this->movePosition($id, $toPos);
             $this->updatepositions($data['datum']);
+            $this->dispoLog($id, 'insert', ['DatumVon' => $data['datum'], 'bemerkunng' => json_encode($data)]);
             return $id;
         }
         if (!$id) {
@@ -147,20 +164,27 @@ class Model_TourenPortlets extends MyProject_Model_Database {
         $db       = $storage->getAdapter();
         $posFld   = $db->quoteIdentifier('position');
         $groupFld = $db->quoteIdentifier('datum');
+
+        $modelTL = new Model_TourenTimelines();
         
         try {
             $db->beginTransaction();
             $data = $this->fetchEntry($id);
 
-            $SqlDeleteDefaults = 
-                 'DELETE FROM mr_touren_dispo_vorgaenge WHERE timeline_id IN'
-                .'('
-                .' SELECT timeline_id FROM mr_touren_timelines '
-                .' WHERE portlet_id = :id'
-                .')'
-                .' AND IsDefault = 1';
-//            die(strtr($SqlDeleteDefaults, array(':id' => $id) ));
-            $db->query($SqlDeleteDefaults, array(':id' => $id));
+            $aTL = $this->getTimelines( $id );
+            $bDelOk = true;
+
+            foreach($aTL as $_tl) {
+
+                if (!$modelTL->delete( $_tl['timeline_id'], true)) {
+                    $bDelOk = false;
+                }
+
+            }
+
+            if (!$bDelOk) {
+                throw new Exception('Tourenleiste konnte nicht entfernt werden, da enthaltene Touren nicht gelöscht werden konnten!');
+            }
             
             parent::delete($id);
             

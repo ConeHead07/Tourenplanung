@@ -2,6 +2,21 @@
 
 class Bootstrap extends Zend_Application_Bootstrap_Bootstrap 
 {
+
+    protected function _initAutoloader()
+    {
+        spl_autoload_register(function(string $className) {
+
+            $appRoot = dirname(APPLICATION_PATH );
+            $classFile = $appRoot . '/' . substr(str_replace('\\', '/', $className), 4) . '.php';
+
+            if (file_exists( $classFile)) {
+                include $classFile;
+            }
+
+        });
+    }
+
     protected function _initCache()
     {
         $frontendOptions = array(

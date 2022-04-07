@@ -27,6 +27,13 @@ echo '</tr>';
 echo '</thead>';
 
 echo '<tbody>';
+
+if ($this->allowed->removeresourcedefault) {
+    $rsrcActionClass = 'del ';
+} else {
+    $rsrcActionClass = '';
+}
+
 foreach($defResources as $_rIdx => $_rows) {
     
     if (count($_rows)) {
@@ -44,7 +51,7 @@ foreach($defResources as $_rIdx => $_rows) {
         $_id = $_row[$_ky];    
         $IdList[$_rIdx][] = $_id;
 
-        echo '<tr><td><span class="del '.$_rIdx.'" rsrctype="'.$_rIdx.'" rsrcid="'.$_row['id'].'" style="float:left"></span>' . $_ti . '</td>';
+        echo '<tr><td><span class="' . $rsrcActionClass . $_rIdx.'" rsrctype="'.$_rIdx.'" rsrcid="'.$_row['id'].'" style="float:left"></span>' . $_ti . '</td>';
         foreach($vorgaenge as $_vIdx => $_vg) {        
             $IsSet = false;
             foreach($_vg['resources'][$_rIdx] as $_vgr) {
@@ -111,13 +118,14 @@ echo <<<EOT
         Fb.timerReloadRoutes = 0;
         $("#{$tableId}").find("td span.del").fbIcon({icon:'trash',css:{}}).css({marginRight:'3px'}).click(function(){
             var self = this;
+            
 //            alert("#114 Klick Delete Resource!");
             var data = {
                 id: $(this).attr('rsrcid'),
                 resourceType: $(this).attr('rsrctype'),
                 name: $(this).parent().find('span.text').text()
             };
-//            alert("#120 Klick Delete Resource!" + data.id+", "+data.resourceType+", "+data.name );
+            
             $("div.fbDispoRouteDefaults").each(function() {
                 var routeDefault = this;
 //                alert("#123 $tour_id == " + $(this).fbDispoRouteDefaults('getData', 'id') );
@@ -134,12 +142,7 @@ echo <<<EOT
                         Fb.timerReloadRoutes = setTimeout(
                             function() {
                                 Fb.ReloadTimelineResources( $(routeDefault).fbDispoRouteDefaults('getTimeline')  );
-//                                $(routeDefault).fbDispoRouteDefaults('getRoutes').each(function() {
-//                                    if ( $( this ).is( ".fbDispoRoute" ) )
-//                                        $(this).fbDispoRoute("reloadResources");
-//                                    else if( $( this ).is( ".fbDispoRouteDefaults" ) )
-//                                        $(this).fbDispoRouteDefaults("reloadResources");
-//                                 } );                                        
+                                     
                             },
                             800
                         );
@@ -149,7 +152,7 @@ echo <<<EOT
             });
         });
         
-    } catch(e) { alert("Löschbuttons konnten nicht gerendert werden. jQuery ist nicht verfügbar)!"); }
+    } catch(e) { alert("Lï¿½schbuttons konnten nicht gerendert werden. jQuery ist nicht verfï¿½gbar)!"); }
 </script>
 EOT;
 

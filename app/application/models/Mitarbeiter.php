@@ -10,6 +10,7 @@ class Model_Mitarbeiter extends MyProject_Model_Database
     
     
     public function __construct() {
+        parent::__construct();
         $this->_storage = $this->getStorage();
         $this->_db = $this->_storage->getAdapter();
         $this->_tbl = $this->_storage->info(Zend_Db_Table::NAME);

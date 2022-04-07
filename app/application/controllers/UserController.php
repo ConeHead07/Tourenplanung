@@ -213,6 +213,7 @@ class UserController extends Zend_Controller_Action
                     break;
 
                 case 'add':
+                    $data['ldap_user'] = $data['user_name'];
                     $modelUser->insert($data);
                     break;
 

@@ -5,6 +5,8 @@ nbproject/
 application/log/
 application/cache/
 application/tmp/
+application/data/attachments/
 **/*.local.*
 !application/log/.gitignore
 !**/.gitignore
+application/models/TourenDispoVorgaenge.php.rej

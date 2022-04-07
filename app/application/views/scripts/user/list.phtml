@@ -3,7 +3,7 @@
 $baseUrlUsrProfile = $this->url(
         array(
             'module' => $this->module,
-            'controller'=>$this->controller,
+            'controller'=>'user',
             'action'=>'profile'), null, FALSE); 
 
 /** @var $this Zend_View */
@@ -12,7 +12,7 @@ JqGridHeader::enable(true);
   
 // Cache frontendoptions
 $frontendOptions = array(
-   'lifetime' => 0 //24*60*60*3 // 3 Tage cachen
+   'lifetime' => 5 * 60, //24 * 60 * 60 * 3 // 3 Tage cachen // 0 //
 );
 // Cache backendoptions
 $backendOptions = array(
@@ -28,6 +28,7 @@ $cache = Zend_Cache::factory('Output',
 // Cache id
 $cacheID = md5($this->module .'/'.$this->controller.'/'.$this->action.':::allowed='.(int)$this->grideditAllowed);
 
+$appendGridScript = '';
 // everything before this is not cached
 if (!($appendGridScript = $cache->load($cacheID))) {
 // begin cache
@@ -82,7 +83,7 @@ if (!($appendGridScript = $cache->load($cacheID))) {
     ->on_loadError( new JsFunction("function(xhr,status,error){ alert(status+'\\n'+error);}") )
     ->addChainMethod('.jqGrid("filterToolbar",{stringResult: true,searchOnEnter : false})')
 //        ->addChainMethod( ".jqGrid('searchGrid', {sopt:['cn','bw','eq','ne','lt','gt','ew']} )")
-    ->colNames( array('profile', 'uid', 'name', 'pw', 'pw wh', 'role', 'standorte') )
+    ->colNames( array('profile', 'uid', 'name', 'pw', 'pw wh', 'role', 'standorte', 'ldap_user', 'email', 'vorname', 'nachname') )
     ->colModel(array('addFieldsProperties' => array(
             "profile" => array('key'=>false, 'editable'=>false, 'sortable'=>false, 'search'=>false, 'formatter' => new JsFunction(
                      'function(cellvalue, options, rowObject) { '
@@ -96,6 +97,10 @@ if (!($appendGridScript = $cache->load($cacheID))) {
             "user_pw_wh" => array('editable'=>$this->grideditAllowed, 'edittype'=>'text', 'hidden' => true, 'editrules' => array('edithidden'=>true) ),
             "user_role" => array('editable'=>$this->grideditAllowed, 'edittype'=>'select'),
             "standorte" => array('editable'=>$this->grideditAllowed, 'edittype'=>'select' ),
+        "ldap_user" => array('editable'=>$this->grideditAllowed, 'edittype'=>'text', 'editoptions'=>null),
+        "email" => array('editable'=>$this->grideditAllowed, 'edittype'=>'text', 'editoptions'=>null),
+        "vorname" => array('editable'=>$this->grideditAllowed, 'edittype'=>'text', 'editoptions'=>null),
+        "nachname" => array('editable'=>$this->grideditAllowed, 'edittype'=>'text', 'editoptions'=>null),
     )));
     
         
@@ -185,7 +190,7 @@ EOT;
             .(string) $JqGrid->getJsCode() 
             .'});';
     // end cache
-    $cache->save($appendGridScript);
+    $cache->save($appendGridScript, $cacheID);
 }
 
 if ( $this->layout()->isEnabled() )

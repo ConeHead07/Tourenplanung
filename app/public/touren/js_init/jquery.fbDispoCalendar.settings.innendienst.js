@@ -16,7 +16,7 @@ $.extend(Fb.DispoCalendarSettings, {
    portlet: {
        isEditable: false,
        isRemovable: false,
-       isPrintable: false,
+       isPrintable: true,
        isSortable: false,
        isDroppable: false
    },
@@ -31,11 +31,12 @@ $.extend(Fb.DispoCalendarSettings, {
    timelineGrid: {},
    
    route: {
-       isEditable: false,
+       isEditable: true,
        isDroppable: false,
-       isDraggable: false,
-       isResizable: false,
-       isRemovable: false
+       isDraggable: true,
+       isResizable: true,
+       isRemovable: true,
+       allowedColors: ['Gelb','Blau','Weiss', 'Reklamation', 'Service']
    },
    routeDefaults: {
        isDroppable: false

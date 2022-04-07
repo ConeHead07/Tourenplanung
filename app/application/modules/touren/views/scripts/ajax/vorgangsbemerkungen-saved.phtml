@@ -11,16 +11,27 @@ if (property_exists($this->vorgangsbemerkungen, 'error')) {
 
 if ($this->vorgangsbemerkungen->data 
     && array_key_exists('bemerkung', $this->vorgangsbemerkungen->data)) {
+
+    $avisiertChecked = ($this->vorgangsbemerkungen->data['avisiert'] ? ' checked="checked"' : '');
+    $attachesChecked = ($this->vorgangsbemerkungen->data['attachments'] ? ' checked="checked"' : '');
+    
+    echo '<div class="headBemerkungen">Avisiert:</div>';
+    echo '<input type="checkbox" name="avisiert" value="1"' . $avisiertChecked . '/>';
+    echo 'Termin wurde mit dem Kunden abgesprochen<br>' . PHP_EOL;
+    echo '<input type="checkbox" name="attachments" value="1"' . $attachesChecked . '/>';
+    echo 'Pläne vorhanden';
+    echo '</div>';
     
     if ( $this->vorgangsbemerkungen->data['bemerkung']) {
+
         echo '<div class="headBemerkungen">Bisherige Bemerkungen:</div>';
-        echo '<pre>'.htmlentities($this->vorgangsbemerkungen->data['bemerkung']).'</pre>';
+
         if ('<?xml ' != substr($this->vorgangsbemerkungen->data['bemerkung'], 0, 6)) {
             echo nl2br($this->vorgangsbemerkungen->data['bemerkung']);
         } else {
             $xml = simplexml_load_string( $this->vorgangsbemerkungen->data['bemerkung'] );
             $result = $xml->xpath('//div[@class="entry"]');
-            while(list( , $node) = each($result)) {
+            foreach($result as $_ => $node) {
                 echo $node->asXML();
             }
         }

@@ -17,7 +17,7 @@ $.extend(Fb.DispoCalendarSettings, {
        isEditable: false,
        isAddable: false,
        isRemovable: false,
-       isPrintable: false,
+       isPrintable: true,
        isSortable: false,
        isDroppable: false
    },
@@ -37,7 +37,8 @@ $.extend(Fb.DispoCalendarSettings, {
        isDroppable: false,
        isDraggable: false,
        isResizable: false,
-       isRemovable: false
+       isRemovable: false,
+       allowedColors: []
    },
    routeDefaults: {
        isDroppable: false

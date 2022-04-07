@@ -55,7 +55,7 @@ if ($this->vorgangsbemerkungen->data) {
         } else {
             $xml = simplexml_load_string( $this->vorgangsbemerkungen->data['bemerkung'] );
             $result = $xml->xpath('//div[@class="entry"]');
-            while(list( , $node) = each($result)) {
+            foreach($result as $_ => $node) {
                 echo $node->asXML();
             }
         }
