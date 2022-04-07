@@ -170,10 +170,11 @@ class Model_TourenDispoVorgaengeText extends MyProject_Model_Database
         $entryTime = date("Y-m-d H:i:s");
         $entryId = md5($uname . $entryTime);
         
+        $encodedBemerkung = htmlspecialchars($bemerkung, ENT_XML1, null, false);
         $entry = '<div class="entry" id="' . $entryId . '"'.$str_attribs.'>'
                 .'<div class="bemerkung-meta"><span class="user">'.$uname . '</span>, '
                 .'<span class="datetime">' . $entryTime . '</span></div>'
-                .'<div class="bemerkung">' . $bemerkung . '</div>'
+                .'<div class="bemerkung">' . $encodedBemerkung . '</div>'
                 .'</div>';
         
         $row = $this->getBemerkungen($tour_id);

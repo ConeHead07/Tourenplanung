@@ -8,11 +8,12 @@ jQuery(function() {jQuery("#gridDispoVorgaengeLst").jqGrid(
         "AW", 
         "Fix","LieferterminHinweisText",        
         "Touren",
-        "Stat"
+        "Stat",
+        "ANR"
     ],
     "colModel":[
-        {"name":"Mandant","index":"Mandant","editable":false,"hidden":true},
-        {"name":"Auftragsnummer","index":"Auftragsnummer","editable":false, "key":true, 
+        {"name":"Mandant","index":"Mandant","editable":false,"hidden":true, "key":false },
+        {"name":"Auftragsnummer","index":"Auftragsnummer","editable":false, "key":false, 
             "cellattr":function( rowId, value, rowObject, colModel, arrData){return ' colspan=11'},
             "formatter":function(value, options, rData) {                
                 //alert( rData['LieferungStrassePostfach'] );
@@ -38,7 +39,7 @@ jQuery(function() {jQuery("#gridDispoVorgaengeLst").jqGrid(
                        : '';
                 var JKW = (rData['Lieferwoche']>0 ? "KW " + rData['Lieferwoche'] : "") + (rData['Lieferjahr']>0 ? '-20' + (rData['Lieferjahr']>9 ? rData['Lieferjahr'] : "0"+rData['Lieferjahr']) : '' );
                 var terminTxt = (termin || JKW ? terminTitle + ": " + termin + " " + JKW + "<br/>" : "");
-                var re = '<div style="height:auto;" class="Drag-Route Is-Template"><span class="title">' +
+                var re = '<div data-Auftragsnummer="'+value+'" style="height:auto;" class="Drag-Route Is-Template"><span class="title">' +
                     terminTxt + 
 //                    ( rData['Fix'] ? "Fixtermin" : "Liefertermin") +
 //                    ( (rData['Liefertermin'] && !rData['Liefertermin'].match(/0000-/))
@@ -62,7 +63,11 @@ jQuery(function() {jQuery("#gridDispoVorgaengeLst").jqGrid(
                     '</span></div>'
                   ; 
                   return re;
-            }},        
+            },
+            "unformat": function(cellvalue, options, rowData) {
+                return $(cellvalue).data("Auftragsnummer");
+            }
+        },        
         
         {"name":"LieferungStrassePostfach","index":"LieferungStrassePostfach","editable":false,
             "cellattr":function( rowId, value, rowObject, colModel, arrData){return ' style="display:none"'; }},
@@ -93,7 +98,12 @@ jQuery(function() {jQuery("#gridDispoVorgaengeLst").jqGrid(
         
         {"name":"tour_count","index":"tour_count","editable":false,
             "formatter":function(value, options, rData) {
-                var re = '<div style="height:auto;" title="'+ rData['tour_date_first']+ ' bis ' +rData['tour_date_last']+'" onclick="alert(\''+rData['Auftragsnummer']+' '+ rData['tour_date_first']+ ' bis ' +rData['tour_date_last']+'\')">' +
+                var re = '<div style="height:auto;" title="' + 
+                rData['tour_date_first'] + ' bis ' + 
+                rData['tour_date_last'] +'" onclick="alert(\'' + 
+                rData['Auftragsnummer'] +' '+ 
+                rData['tour_date_first'] + ' bis ' + 
+                rData['tour_date_last'] +'\')">' +
                     value + 
                     '</div>'
                 ; 
@@ -107,11 +117,15 @@ jQuery(function() {jQuery("#gridDispoVorgaengeLst").jqGrid(
                        rData.Mandant+','+     
                        rData.Auftragsnummer+','+
                        '\''+rData.auftrag_wiedervorlage_am+'\')" class="v-stat-icon v-stat-'+value+'" title="'+ti+'"></span></div>';
-            }}
+            }},
+        {
+            "name": "ANR", "index": "Auftragsnummer", "editable": false, "hidden": true,
+            "formatter": function(value, options, rData) { return !isNaN(rData.Auftragsnummer) ? +rData.Auftragsnummer : null; }
+        }
 
      ],
     "height":"auto",
-    "jsonReader":{"repeatitems":false,"id":0},
+    "jsonReader":{"repeatitems":false,"id":null },
     "autowidth":true,
     "rowList":[10,20,30,40,50,100],
     "rowNum":100,
@@ -409,7 +423,11 @@ jQuery(function() {jQuery("#gridDispoVorgaengeLst").jqGrid(
         var $grid = $( this );
         $("tr", this).bind( "dragstart", function(e, ui) {
             var rData = $grid.jqGrid('getRowData', $(this).attr('id'));
-            ui.helper.data('dragdata', { Mandant:rData['Mandant'], Auftragsnummer:$(this).attr('id')});
+            rData.Auftragsnummer = rData.ANR;
+            if (isNaN(rData.ANR)) {
+                console.log("dispovorgaenge.jqgrid.js #412 jqGrid getRowData ", { rData });
+            }
+            ui.helper.data('dragdata', rData);
         });
         
         $('.ui-th-column', '#gview_' + $(this).attr('id') ).each(function() { 
@@ -451,7 +469,6 @@ jQuery(function() {jQuery("#gridDispoVorgaengeLst").jqGrid(
                     $(this).data( 'tooltipTimer', setTimeout(
                     
                         function(){
-                            var rowid = row.attr('id');
                             var rData = $grid.jqGrid('getRowData', row.attr('id'));
                             var url = APP_BASE_URL + "/touren/ajax/tourlinks";
 
@@ -464,11 +481,11 @@ jQuery(function() {jQuery("#gridDispoVorgaengeLst").jqGrid(
 
                             // Check-Cache
                             if (!row.data('tooltipData')) {
-                                $.get(url, {mandant:rData['Mandant'], auftrag:rowid}, function(data) {
+                                $.get(url, {mandant:rData['Mandant'], auftrag:rData.ANR}, function(data) {
                                     row.data('tooltipData', data);
                                 });
                                 $.ajax({
-                                    type: 'GET', dataType: 'html', async: false, data: {mandant:rData['Mandant'], auftrag:rowid},
+                                    type: 'GET', dataType: 'html', async: false, data: {mandant:rData.Mandant, auftrag:rData.ANR},
                                     url: url,
                                     success:function(data) { 
                                         row.data('tooltipData', data);
@@ -481,7 +498,7 @@ jQuery(function() {jQuery("#gridDispoVorgaengeLst").jqGrid(
                             
                             // Da das Laden der Tourdaten etwas dauert,
                             // kann es sein, dass der Tooltip bereits ein anderes Target hat
-                            // Daher erst prüfen, sonst werden im Tooltip falsche Daten angezeigt !!
+                            // Daher erst prï¿½fen, sonst werden im Tooltip falsche Daten angezeigt !!
                             if (my_tooltip.data('tooltipTarget') == row[0]) {
                                 my_tooltip.html( row.data('tooltipData') );
 
