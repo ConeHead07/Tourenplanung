@@ -82,6 +82,7 @@ class VorgaengeController extends Zend_Controller_Action
     public function editpoolAction()
     {
         $rq = $this->getRequest();
+        $this->view->params = $rq->getParams();
         
         $this->error = '';
         $this->view->data = array();
@@ -93,21 +94,35 @@ class VorgaengeController extends Zend_Controller_Action
         
         $this->view->format = $rq->getParam( 'format', '');
         $this->view->layout = (int)$rq->getParam( 'layout', 1);
-        if ($this->view->format == 'partial' || !$this->view->layout) 
-            $this->getHelper( 'layout' )->disableLayout();
-        
+        if ($this->view->format == 'partial' || !$this->view->layout) {
+            $this->getHelper('layout')->disableLayout();
+        }
+
+
+        $tour_id = $rq->getParam('tour_id');
         $mandant = $rq->getParam('Mandant', 110);
-        $anr = $rq->getParam('id');
-        if (!$anr) $rq->getParam('Auftragsnummer');
+        $anr = $rq->getParam('Auftragsnummer');
+
+        $this->view->tour = (object)[];
+        if ($tour_id) {
+            $modelDV = new Model_TourenDispoVorgaenge();
+            $tourData = $modelDV->fetchEntry($tour_id);
+            $this->view->tour = (object)$tourData;
+            if ($tourData) {
+                $anr = $tourData['Auftragsnummer'];
+                $mandant = $tourData['Mandant'];
+            }
+        }
+
         if (!$anr || !$mandant) {
-            $this->view->error = 'Fehlende ID!';
+            $this->view->error = 'Fehlende Vorgangs-ID!';
             return;
-        }        
+        }
         
         $model = new Model_Vorgaenge();
         try {
             $this->view->data = (object)$model->fetchEntry($mandant, $anr);
-            //die (print_r($this->view->data));
+            // die (print_r($this->view->data));
 
             $this->view->wwsRefItems = $model->getWwsRefItems($mandant, $anr);
         } catch(Exception $e) {
@@ -130,6 +145,23 @@ class VorgaengeController extends Zend_Controller_Action
         $data = $this->getRequest()->getParams();
         $data['AngelegtAm'] = new Zend_Db_Expr('NOW()');
         $data['Lieferjahr'] = substr($data['Liefertermin'], 2, 2);
+
+        if (!empty($data['tour'])) {
+            $tour = $data['tour'];
+            unset($data['tour']);
+
+            if (!empty($tour['tour_id'])) {
+                $tour_id = (int)$tour['tour_id'];
+                unset($tour['tour_id']);
+
+                if (!empty($tour['info_link'])) {
+                    $tour['info_link'] = strtr($tour['info_link'], [ "\n" => '', "\r"=> '', ' ' => rawurlencode(' ')]);
+                }
+
+                $modelDV = new Model_TourenDispoVorgaenge();
+                $modelDV->update($tour, $tour_id);
+            }
+        }
 
         $model = new Model_Vorgaenge();
         $modelDA = new Model_TourenDispoAuftraege();

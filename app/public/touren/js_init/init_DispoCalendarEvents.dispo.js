@@ -255,7 +255,9 @@ $.extend(Fb.DispoCalendarEvents, {
             $("#PoolAddDialog").dialog({autoOpen:false,width:550,modal:true});
         }
         $("#PoolAddContent", "#PoolAddDialog").load(
-            Fb.AppBaseUrl + '/vorgaenge/insertpool?mandant=110&tourNodeId='+$self.attr("id")+'&layout=0&'+decodeURIComponent($.param(data))
+            Fb.AppBaseUrl + '/vorgaenge/insertpool?mandant=110&tourNodeId=' +
+            $self.attr("id") +
+            '&layout=0&'+decodeURIComponent($.param(data))
         );
         $("#PoolAddDialog").dialog('open');
         $("#PoolAddDialog").dialog('option', 'close', function(){

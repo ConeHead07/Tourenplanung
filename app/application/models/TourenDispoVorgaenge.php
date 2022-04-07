@@ -649,7 +649,8 @@ if ($orderby) {
                                 'id','tour_id', 'Mandant', 'Auftragsnummer', 'DatumVon', 'DatumBis', 'ZeitVon', 'ZeitBis',
                                 'IsDefault', 'avisiert', 'farbklasse', 'locked', 'name', 'Vorgangstitel',
                                 'LieferungName', 'LieferungOrt', 'dispoStatus',
-                                'created_uid', 'modified_uid', 'created_role', 'modified_role'
+                                'created_uid', 'modified_uid', 'created_role', 'modified_role',
+                                'info', 'info_link'
         ]);
 
         $portletSql = "SELECT 
@@ -659,7 +660,7 @@ if ($orderby) {
               tl.timeline_id, tl.position tl_position, tl.start, tl.end, tl.interval, tl.title tl_title, tl.interval stepWidth,
               
               t.tour_id id, t.tour_id, t.Mandant, t.Auftragsnummer, t.DatumVon, t.DatumBis, t.ZeitVon, t.ZeitBis,
-              t.IsDefault, t.avisiert, t.farbklasse, t.locked,
+              t.IsDefault, t.avisiert, t.farbklasse, t.locked, t.info, t.info_link,
               
               CONCAT(ak.Auftragsnummer,', ',ak.LieferungOrt) name, 
               ak.Vorgangstitel, ak.LieferungName, ak.LieferungOrt,
@@ -895,6 +896,8 @@ if ($orderby) {
                  ." DV.ZeitBis, " . PHP_EOL
                  ." DV.DatumVon, " . PHP_EOL
                  ." DV.DatumBis, " . PHP_EOL
+                 ." DV.info, ". PHP_EOL
+                 ." DV.info_link, ". PHP_EOL
                  ." DV.IsDefault, " . PHP_EOL
                  ." DV.avisiert, " . PHP_EOL
                  ." DV.farbklasse, " . PHP_EOL

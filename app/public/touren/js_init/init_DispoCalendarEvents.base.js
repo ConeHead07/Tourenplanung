@@ -88,14 +88,88 @@ $.extend(Fb.DispoCalendarEvents, {
         var d = $(this).fbDispoRoute('getData'); //var m = 'data:\n'; for(var i in d) m+= i+': ' + d[i] + '\n'; alert(m);
         
         var t = '';
-        if (d.Auftragsnummer) t = "<span class=\"anr\">" + d.Auftragsnummer + "</span>";
+        var name = ("LieferungName" in d && d.LieferungName) ? d.LieferungName : "";
+        var ort = ("LieferungOrt" in d && d.LieferungOrt) ? d.LieferungOrt : "";
+        var info = ("info" in d && d.info) ? d.info : "";
+        var link = ("info_link" in d && d.info_link) ? d.info_link : "";
+        var mid = ("Mandant" in d && d.Mandant) ? d.Mandant : "";
+
+        var uiPencilCss = {
+            backgroundImage: "url(/jquery/themes/redmond/images/ui-icons_217bc0_256x240.png)",
+            display:"inline-block",
+            height:"12px"
+        };
+
+        if (d.Auftragsnummer) {
+            t = "<span class=\"anr\">" + d.Auftragsnummer;
+            if (mid == "110") {
+                t+= "<span class=\"ui-icon ui-icon-pencil btn-pool-info-edit\" " +
+                    "style='background-image:url(/jquery/themes/redmond/images/ui-icons_217bc0_256x240.png);" +
+                    "height:12px;" +
+                    "display: inline-block'></span>";
+            }
+            t += "</span>";
+        }
         try {
-            if (d.LieferungName)  t+= (t ? ', ' : '') + d.LieferungName;
-            if (d.LieferungOrt)   t+= (t ? ', ' : '') + d.LieferungOrt;
+            if (name) {
+                t+= (t ? ', ' : '') + name;
+            }
+            if (ort) {
+                t+= (t ? ', ' : '') + ort;
+            }
+            if (mid == "110") {
+                if (d.Auftragsnummer == "5852") {
+                    // prompt("data", JSON.stringify(d));
+                }
+                if (info) {
+                    if (link) {
+                        info = "<a href=\"" + link + "\" target='infoLink'>" + info + "</a>";
+                    }
+                    t += (t ? ', ' : '') + info;
+                }
+                if (link) {
+                    t += " <a href=\"" + link + "\" target='infoLink'>[Link]</a>";
+                }
+            }
         } catch(e) {
             alert(e);
         }
         $(this).fbDispoRoute('setTitle', t);
+
+        if (mid == "110") {
+            console.log('#140 ',  $(this).find("span.title span.anr").length );
+            var $self = $(this);
+            $(this).find("span.title span.anr").bind("click", function (e) {
+                var data = $self.fbDispoRoute('getData');
+
+                console.log('#141 pool-click');
+                if (!$("#PoolAddDialog").length) {
+                    $("body").append(
+                        $("<div/>").attr({
+                            id: "PoolAddDialog",
+                            title: "Poolvorgang"
+                        }).append($("<div/>").attr({id: "PoolAddContent"}))
+                    );
+
+                    $("#PoolAddDialog").dialog({autoOpen: false, width: 550, modal: true});
+                }
+                $("#PoolAddContent", "#PoolAddDialog").load(
+                    Fb.AppBaseUrl + '/vorgaenge/editpool?mandant=110&tourNodeId=' +
+                    $self.attr("id") +
+                    '&layout=0&' + decodeURIComponent($.param(data)),
+                    function() {
+                        $("#PoolAddDialog").dialog('open');
+                        $("#PoolAddDialog").dialog('option', 'close', function () {
+                            //alert( "#191 init_DispoCalendarEvents.dispo.js onclose Dialog!");
+                            if ($self.attr("id").match(/Drop-Pool-Route-Tmp/)) $self.remove();
+                        });
+                        $("#PoolAddDialog").dialog('option', 'position', { my: "center top ", at: "center top", of: window });
+                        $("#PoolAddDialog").dialog('widget').css({top: "43px"});
+                    }
+                );
+
+            });
+        }
     },
     'onClickRoute': function() {
 //        Fb.DispoCalendarEvents.onHoverRouteDetails.apply(this, arguments);

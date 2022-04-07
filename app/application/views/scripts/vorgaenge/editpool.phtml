@@ -18,9 +18,15 @@ $defaultData = array(
     'LieferterminHinweisText' => '',
 );
 
-if (!isset($this->wwsRefItems)) $this->wwsRefItems = array();
-if (!$this->data) $this->data = array();
+if (!isset($this->wwsRefItems)) {
+    $this->wwsRefItems = array();
+}
+if (!$this->data) {
+    $this->data = array();
+}
+
 $d = (object)array_merge( $defaultData, (array)$this->data);
+$tour = !empty($this->tour) ? $this->tour : (object)[];
 
 $wwsRefs = array();
 foreach($this->wwsRefItems as $_item) {
@@ -114,9 +120,30 @@ foreach($this->mandantList as $_id => $_label) {
                 </select></td>
         </tr>
         <tr>
-            <td class="lbl"><label>LieferterminHinweisText (varchar(255))</label></td>
-            <td class="val"><textarea class="maxWidth" name="LieferterminHinweisText"><?=@htmlentities($d->LieferterminHinweisText);?></textarea></td>
+            <td class="lbl" colspan="2"><label>LieferterminHinweisText (varchar(255))</label></td>
         </tr>
+        <tr>
+            <td class="val" colspan="2"><textarea class="maxWidth" name="LieferterminHinweisText"><?=@htmlentities($d->LieferterminHinweisText);?></textarea></td>
+        </tr>
+        <?php if (!empty($tour) && property_exists($tour, 'tour_id')): ?>
+        <tr>
+            <td colspan="2"><b>Tourspezifische Angaben</b></td>
+        </tr>
+            <tr>
+                <td class="lbl" colspan="2"><label>Tour-Info</label></td>
+            </tr>
+            <tr>
+                <td class="val" colspan="2"><textarea class="maxWidth" name="tour[info]"><?=@htmlentities($tour->info);?></textarea>
+                    <input type="hidden" name="tour[tour_id]" value="<?=@htmlentities($tour->tour_id)?>">
+                </td>
+            </tr>
+            <tr>
+                <td class="lbl" colspan="2"><label>Tour-Info-Link</label></td>
+            </tr>
+            <tr>
+                <td class="val" colspan="2"><textarea placeholder="https://link.to/more/infos" rows="1" wrap="soft" style="resize:vertical;width:100%;" name="tour[info_link]"><?=@htmlentities($tour->info_link);?></textarea></td>
+            </tr>
+        <?php endif; ?>
     </table>
     
     <div style="margin:15px 0">
@@ -181,6 +208,10 @@ $(function(){
     
     $("#savePool").button().bind( 'click', function(){
         //alert( '#164 savePool '  );
+        if ($("#savePool").is(".ui-state-disabled")) {
+            return false;
+        }
+        $("#savePool").addClass("ui-state-disabled");
         
         $("#frmInsertPoolVorgang").serialize();
         $.ajax({
@@ -188,6 +219,7 @@ $(function(){
             url: APP_BASE_URL + '/vorgaenge/savepool',
             data: $("#frmInsertPoolVorgang").serialize(),
             success: function(data){
+                $("#savePool").removeClass("ui-state-disabled");
                 //alert( data.Mandant + ', ' + data.Auftragsnummer + '; l:'+ $("#PoolEditAuftrag").length );
                 var isInsert = ( !$("#PoolEditAuftrag").val() );
                 $("#PoolEditMandant").val(data.Mandant);
@@ -202,13 +234,18 @@ $(function(){
                             tour.attr("id", "fbDispoRoute_" + data.Auftragsnummer);
                             
                         Fb.DispoCalendarEvents.onDropRoute.apply(tour.get(0));
-                        $("#PoolAddDialog").dialog('close');
+
                     } else {
                         alert( 'Tour mit ID ' + tourNodeId + ' (length:'+$("#"+tourNodeId+".fbDispoRoute").length+') nicht gefunden!');
                     }
                 } else {
-//                    alert( 'Not in InsertMode!' );
+//                    On-Update-Mode
                 }
+                $("#PoolAddDialog").dialog('close');
+            },
+            error: function() {
+                $("#savePool").removeClass("ui-state-disabled");
+                alert("Beim Speichern sind Fehler aufgetreten!");
             },
             dataType: 'json',
             async: false

@@ -20,13 +20,24 @@ if ($this->vorgangsdaten->data) {
     echo $data['LieferungPostleitzahl'] . " " . $data['LieferungOrt'] . "<br>" . PHP_EOL;
     echo $data['LieferungName'] . "<br>" . PHP_EOL;
     if ($data['LieferterminHinweisText'] ) {
-        echo '<div style="border-top:1px solid #ccc;margin-top:4px;padding-top:4px; ">'
+        echo '<div style="border-top:1px solid #ccc;margin-top:4px;padding-top:4px; ">' . "\n"
             .'<div class="ui-state-hover" style="display: inline-block; width: 15px; height: 15px;margin-right:5px;">'
-            .'<span class="ui-icon ui-icon-alert" title="Direkt-Lieferinfo"></span>'
-            .'</div>'
-            .'</div>'
-            .'<div>' . $data['LieferterminHinweisText'] . '</div>'
-            .'</div>' . PHP_EOL;
+            .'<span class="ui-icon ui-icon-alert" title="Direkt-Lieferinfo"></span>' . "\n"
+            .'</div>' . "\n"
+            .'</div>' . "\n"
+            .'<div>' . $data['LieferterminHinweisText'] . '</div>' . PHP_EOL;
+    }
+    if (!empty($data['info']) || !empty($data['info_link'])) {
+        echo '<div style="border-top:1px solid #ccc;margin-top:4px;padding-top:4px; ">' . "\n"
+            .'</div>' . "\n"
+            .'<div><b>Tourinfos</b></div>' . "\n" . PHP_EOL;
+
+        if (!empty($data['info']) ) {
+            echo '<div>' . $data['info'] . '</div>' . "\n";
+        }
+        if (!empty($data['info_link']) ) {
+            echo '<div><a href="' . $data['info_link'] . '" target="TourLink' . $data['tour_id'] . '" style="color: #fec61f;">[Info-Link]</a></div>' . "\n";
+        }
     }
     $cuser = $data['created_user'];
     $muser = $data['modified_user'];
