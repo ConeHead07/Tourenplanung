@@ -14,7 +14,9 @@ $.extend(Fb.DispoCalendarSettings, {
    },
    timelineGrid: {},   
    route: {
-       allowedColors: ['Gruen', 'Gelb','Blau','Weiss', 'Reklamation', 'Service']
+//       allowedColors: ['Gruen', 'Gelb','Blau','Weiss', 'Reklamation', 'Service']
+       allowedColors: ['VIP',   'Anker', 'Fuell', 'Projekt',    'Reklamation', 'Service', 'Specials']
+       //              'Gruen', 'Gelb',  'Blau',  'Rot',        'Creme',       'Grau',    'Weiss',
    },
    routeDefaults: {
        askForApplyDefaults: false,

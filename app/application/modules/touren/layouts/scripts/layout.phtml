@@ -1,87 +1,16 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html>
 <head><?php
-    $qRefresh = '20190517b'; // -'.rand();
+    $qRefresh = '20190912_' . (Zend_Registry::get('BRANCH_COMMIT_SHORT') ?? ''); // -'.rand();
     $hdBgColor = (APPLICATION_ENV === 'production') ? 'inherit' : '#b5f7a1';
     ?>
     <title>UI-Tourenplaner</title>
+    <link rel="stylesheet" type="text/css" href="/css/fontawesome/5.3.1/css/all.css" />
     <style>
     .sticky {
       position: sticky;
       z-index:4000;
       top: 0;
     }
-    .color-pick-item {
-        display:inline-block;
-        height:14px;
-        width:14px;
-    }
-
-        .fk-Anker,
-        div.fk-Anker,
-        div.fbDispoRoute.fk-Anker {
-            background-color: #ff665f !important;
-        }
-        .fk-Auffueller,
-        div.fk-Auffueller,
-        div.fbDispoRoute.fk-Auffueller {
-            background-color: #fee1ff !important;
-        }
-        .fk-Rot,
-        div.fk-Rot,
-        div.fbDispoRoute.fk-Rot {
-            background-color: #ff6a59 !important;
-        }
-        .fk-Gruen,
-        div.fk-Gruen,
-        div.fbDispoRoute.fk-Gruen {
-            background-color: #96ff98 !important;
-        }
-        .fk-Gelb,
-        div.fk-Gelb,
-        div.fbDispoRoute.fk-Gelb {
-            background-color: #fcff85 !important;
-        }
-        .fk-Blau,
-        div.fk-Blau,
-        div.fbDispoRoute.fk-Blau {
-            background-color: #00ffff !important;
-        }
-        .fk-Orange,
-        div.fk-Orange,
-        div.fbDispoRoute.fk-Orange {
-            background-color: #ffc472 !important;
-        }
-        .fk-Lila,
-        div.fk-Lila,
-        div.fbDispoRoute.fk-Lila {
-            background-color: #d2a2ff !important;
-        }
-        .fk-Weiss,
-        div.fk-Weiss,
-        div.fbDispoRoute.fk-Weiss {
-            background-color: #fdf6fb !important;
-        }
-        .fk-Grau,
-        div.fk-Grau,
-        div.fbDispoRoute.fk-Grau {
-            background-color: #d3d3d3 !important;
-        }
-        .fk-Braun,
-        div.fk-Braun,
-        div.fbDispoRoute.fk-Braun {
-            background-color: #a5645e !important;
-        }
-        .fk-Reklamation,
-        div.fk-Reklamation,
-        div.fbDispoRoute.fk-Reklamation {
-            background-color: #F5ECCE  !important;
-        }
-        .fk-Service,
-        div.fk-Service,
-        div.fbDispoRoute.fk-Service {
-            background-color: #D8D8D8 !important;
-        }
     </style>
 <?php if (0) echo $this->headTitle(); ?>
     <meta xhttp-equiv="Content-Type" xcontent="text/html; charset=UTF-8">

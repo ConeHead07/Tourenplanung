@@ -70,6 +70,9 @@ class Model_TourenDispoLog extends MyProject_Model_Database implements Model_Tou
         }
 
         $aLogData = [
+            'lager_id' => $aDetails['lager_id'] ?? 0,
+            'portlet_id' => $aDetails['portlet_id'] ?? 0,
+            'timeline_id' => $aDetails['timeline_id'] ?? 0,
             'tour_id' => $tour_id,
             'user_id' => (int)$uid,
             'object_type' => $oType,
@@ -81,10 +84,10 @@ class Model_TourenDispoLog extends MyProject_Model_Database implements Model_Tou
 
         if (count($aDetails)) {
             $_anr = ($aDetails['Auftragsnummer'] ?? '');
-            $_dd = $aDetails['DatumVon'] ?? '';
+            $_dd = $aDetails['datum'] ?? $aDetails['DatumVon'] ?? '';
             $_zv = $aDetails['ZeitVon'] ?? '';
             $_zb = $aDetails['ZeitBis'] ?? '';
-            $_bm = $aDetails['bemerkung'] ?? '';
+            $_bm = $aDetails['bemerkung'] ?? json_encode($aDetails);
 
             if (is_numeric($_anr) && (int)$_anr > 0) {
                 $aLogData['tour_anr'] = (int)$_anr;
@@ -118,14 +121,12 @@ class Model_TourenDispoLog extends MyProject_Model_Database implements Model_Tou
         if (!empty($aLogData['bemerkung']) && strlen($aLogData['bemerkung']) > 200) {
             $aLogData['bemerkung'] = substr($aLogData['bemerkung'], 0, 197) . '...';
         }
-
         $this->insert( $aLogData );
         
         if ($tour_id) {
             // $tourLogger = MyProject_Model_Database::loadModel('tourenDispoAktivitaet');
             $tourLogger = new Model_TourenDispoAktivitaet();
-            $tourLogger->log($tour_id, $action, $uid);
-            $tourLogger->log($tour_id, $action.'-'.$oType, $uid);
+            $tourLogger->log($tour_id, $action.'-'.$oType, $uid, $aDetails);
         }
     }
 
@@ -143,6 +144,9 @@ class Model_TourenDispoLog extends MyProject_Model_Database implements Model_Tou
 
         $aInsertValues = array_map(function($itm) use ($db, $qDatum, $qRsrcType, $qRsrcId, $qAction, $qRsrcInfo) {
             return [
+                'lager_id' => $itm['lager_id'] ?? 0,
+                'portlet_id' => $itm['portlet_id'] ?? 0,
+                'timeline_id' => $itm['timeline_id'] ?? 0,
                 'tour_id' => (int)$itm['tour_id'],
                 'object_type' => $qRsrcType,
                 'object_id' => $qRsrcId,
@@ -215,12 +219,13 @@ class Model_TourenDispoLog extends MyProject_Model_Database implements Model_Tou
         $this->log(self::OBJ_TOUR, $tour_id, $action, $tour_id, $uid, null, $aDetails);
     }
 
-    public function logTimeline($timeline_id, $action, $uid = null) {
-        $this->log(self::OBJ_TIMELINE, $timeline_id, $action, 0, $uid);
+    public function logTimeline($timeline_id, $action, $uid = null, array $aDetails = []) {
+        $aDetails['timeline_id'] = $timeline_id;
+        $this->log(self::OBJ_TIMELINE, $timeline_id, $action, 0, $uid, null, $aDetails);
     }
 
-    public function logPortlet($portlet_id, $action, $uid = null) {
-        $this->logTourenplan($portlet_id, $action, $uid);
+    public function logPortlet($portlet_id, $action, $uid = null, array $aDetails = []) {
+        $this->logTourenplan($portlet_id, $action, $uid, $aDetails);
     }
     
     public function logTourenplan($portlet_id, $action, $uid = null, array $aDetails = []) {
@@ -300,6 +305,7 @@ class Model_TourenDispoLog extends MyProject_Model_Database implements Model_Tou
 
     public function getHistorie(array $queryOptions = [])
     {
+        $db = $this->_db;
         $iPage = (int)($queryOptions['page'] ?? 1);
         $iRows  = (int)($queryOptions['rows'] ?? 100);
         
@@ -313,11 +319,18 @@ class Model_TourenDispoLog extends MyProject_Model_Database implements Model_Tou
         $sModifiedDateFrom = $aSearch['lastModifiedFrom'] ?? '';
         $sModifiedDateTo = $aSearch['lastModifiedTo'] ?? '';
         $sTourId     = $aSearch['tour_id'] ?? '';
+        $sTourAnr     = $aSearch['tour_anr'] ?? '';
         $sObjectType = $aSearch['object_type'] ?? '';
         $sObjectId   = $aSearch['object_id']   ?? '';
         $sObjectName = $aSearch['resource'] ?? '';
+        $sBmkgJsonInfo = $aSearch['bemerkung'] ?? '';
         $sActionType = $aSearch['action'] ?? '';
         $joinIsRequiredForCountQuery = true;
+
+        $dVon = $queryOptions['datumVon'] ?? '';
+        $dBis = $queryOptions['datumBis'] ?? '';
+        if ($dBis && !$dVon) $dVon = $dBis;
+        $lager_id = $queryOptions['lager_id'] ?? '';
 
         $qb = $this->buildQuery([]);
         $qb->setSelect(
@@ -336,42 +349,59 @@ class Model_TourenDispoLog extends MyProject_Model_Database implements Model_Tou
             l.dispo_zeit_bis,
             l.bemerkung,' . PHP_EOL
             .' if (m.mid is not null, m.mid, if (f.fid is not null,f.fid, \'\')) AS `Rsrc-ID`' . PHP_EOL)
-            ->setFrom('mr_touren_dispo_log l')
+            ->setFrom('mr_touren_dispo_log l' . "\n")
             ->setJoin('LEFT JOIN mr_user u ON (l.user_id = u.user_id)' . PHP_EOL
-//                .' LEFT JOIN mr_touren_dispo_mitarbeiter dm ON (l.object_type = \'MA\' AND l.tour_id = dm.tour_id AND l.object_id = dm.id)' . PHP_EOL
                 .' LEFT JOIN mr_mitarbeiter m ON (l.object_type = \'MA\' AND l.object_id = m.mid )' . PHP_EOL
-//                .' LEFT JOIN mr_touren_dispo_fuhrpark df ON (l.object_type = \'FP\' AND l.tour_id = df.tour_id AND l.object_id = df.id)' . PHP_EOL
-                .' LEFT JOIN mr_fuhrpark f ON ( l.object_type = \'FP\' AND l.object_id = f.fid  )',
+                .' LEFT JOIN mr_fuhrpark f ON ( l.object_type = \'FP\' AND l.object_id = f.fid  )' . "\n",
                 $joinIsRequiredForCountQuery);
 
 
         if ($sModifiedDateFrom) {
-            $qb->andWhere('action_time >= ' . $this->_db->quote(date('Y-m-d H:i', strtotime($sModifiedDateFrom))));
+            $qb->andWhere('action_time >= ' . $this->_db->quote(date('Y-m-d H:i', strtotime($sModifiedDateFrom))) . "\n");
         }
         if ($sModifiedDateTo) {
-            $qb->andWhere('action_time <= ' . $this->_db->quote(date('Y-m-d H:i', strtotime($sModifiedDateTo))));
+            $qb->andWhere('action_time <= ' . $this->_db->quote(date('Y-m-d H:i', strtotime($sModifiedDateTo))) . "\n");
         }
         if ((int)$sTourId){
-            $qb->andWhere('tour_id = LIKE ' . (int)$sTourId);
+            $qb->andWhere('tour_id = ' . (int)$sTourId . "\n");
         }
-        if (!empty($sObjectType)){
-            $qb->andWhere('object_type = ' . $this->_db->quote($sObjectType));
+        if ((int)$sTourAnr){
+            $qb->andWhere('tour_anr LIKE ' . $this->_db->quote((int)$sTourAnr . '%') . "\n");
+        }
+        if (!empty($sBmkgJsonInfo)){
+            $qb->andWhere('bemerkung LIKE ' . $this->_db->quote( '%' . $sBmkgJsonInfo . '%') . "\n");
         }
         if (!empty($sObjectName)){
             $_qy = $this->_db->quote("%$sObjectName%");
-            $qb->andWhere("m.name LIKE $_qy OR f.kennzeichen LIKE $_qy");
+            $qb->andWhere("m.name LIKE $_qy OR f.kennzeichen LIKE $_qy" . "\n");
         }
+        if (!empty($sObjectName)){
+            $_qy = $this->_db->quote("%$sObjectName%");
+            $qb->andWhere("m.name LIKE $_qy OR f.kennzeichen LIKE $_qy" . "\n");
+        }
+
         if (!empty($sObjectId)){
-            $qb->andWhere('object_id LIKE ' . $this->_db->quote("%$sObjectId%") );
+            $qb->andWhere('object_id LIKE ' . $this->_db->quote("%$sObjectId%") . "\n" );
         }
         if (!empty($sActionType)){
-            $qb->andWhere('action LIKE ' . $this->_db->quote("%$sActionType%") );
+            $qb->andWhere('action LIKE ' . $this->_db->quote("%$sActionType%") . "\n" );
         }
         if (!empty($aSearch['user'])) {
-            $qb->andWhere('u.user_name LIKE ' . $this->_db->quote("%{$aSearch['user']}%") );
+            $qb->andWhere('u.user_name LIKE ' . $this->_db->quote("%{$aSearch['user']}%") . "\n" );
         }
         if (!empty($aSearch['user_id'])) {
-            $qb->andWhere('l.user_id = ' . (int)$aSearch['user_id'] );
+            $qb->andWhere('l.user_id = ' . (int)$aSearch['user_id'] . "\n" );
+        }
+
+        if ($dVon) {
+            if ($dBis && $dVon < $dBis) {
+                $qb->andWhere(
+                    'dispo_datum BETWEEN ' . $db->quote($dVon) . ' AND ' . $db->quote($dBis) . "\n"
+                    . 'OR action_time BETWEEN ' . $db->quote($dVon) . ' AND ' . $db->quote($dBis) . "\n"
+                );
+            } else {
+                $qb->andWhere('dispo_datum = ' . $db->quote($dVon) . ' OR action_time = ' . $db->quote($dVon) . "\n");
+            }
         }
 
         $qb
@@ -379,6 +409,11 @@ class Model_TourenDispoLog extends MyProject_Model_Database implements Model_Tou
             ->setOrderDir($sSortDir)
             ->setOffset($iOffset)
             ->setLimit($iLimit);
+
+//        echo '<pre>' . $qb->assemble();
+//        exit;
+
+
 
         return [
             'total' => $this->_db->fetchOne( $qb->assembleCount() ),

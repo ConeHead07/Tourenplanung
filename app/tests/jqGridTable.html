@@ -1,0 +1,157 @@
+
+<script>
+//<![CDATA[
+jQuery(function() {
+    jQuery("#gridExternLst")
+        .jqGrid({
+            "colNames":["ID","Typ","Leistung","Kosten"],
+            "colModel":[
+                {"label":"leistungs_id","name":"leistungs_id","index":"leistungs_id","editable":false,"edittype":null,"hidden":false,
+                    "editoptions":{},"editrules":null,"formatoptions":null,"formoptions":null,"formatter":null,"key":true,"width":20,
+                    "searchoptions":{"searchhidden":true}},
+                {"label":"ressourcen_typ","name":"ressourcen_typ","index":"ressourcen_typ","editable":true,"edittype":"select","hidden":false,
+                    "editoptions":{"value":"FP:FP;MA:MA;WZ:WZ"},"editrules":null,"formatoptions":null,"formoptions":null,"formatter":null,"width":20,
+                    "searchoptions":{"searchhidden":true}},
+                {"label":"leistungs_name","name":"leistungs_name","index":"leistungs_name","editable":true,"edittype":"text","hidden":false,
+                    "editoptions":{"size":20,"maxlength":80},"editrules":null,"formatoptions":null,"formoptions":null,"formatter":null,
+                    "searchoptions":{"searchhidden":true}},
+                {"label":"kosten_pro_einheit","name":"kosten_pro_einheit","index":"kosten_pro_einheit","editable":true,"edittype":"text","hidden":false,
+                    "editoptions":{},"editrules":null,"formatoptions":null,"formoptions":null,"formatter":null,
+                    "searchoptions":{"searchhidden":true}
+                    }
+            ],
+            "height":"auto",
+            "jsonReader":{"repeatitems":false,"id":0},
+            "width":1000,"rowList":[10,20,30,40,50,100],
+            "rowNum":10,
+            "rownumbers":true,
+            "resizable":true,
+            "sortable":true,
+            "datatype":"json",
+            "url":"/leistung/gridresponsedata",
+            "editurl":"/leistung/grideditdata",
+            "caption":"Test-Grid",
+            "shrinkToFit":true,
+            "pager":"#gridExternLst_pager",
+            "loadError":function(xhr,status,error){ 
+                alert(status+'\n'+error);
+            },
+            "onSelectRow":function(id, status) { 
+                var lastSel = $( this ).data("lastSel");
+        
+                if (lastSel && lastSel != id) {
+                    $( this ).jqGrid(
+                            "saveRow", 
+                            lastSel, 
+                            {
+                                "successfunc":function(re)  { 
+                                    var re = (re.responseText) ? $.parseJSON( re.responseText ) : re; 
+                                    if (re.err) alert(re.err); 
+                                    return (typeof(re)=="object" && re.type !== 'error' && re.success !== false);
+                                },
+                                "url":null,"extraparam":null,
+                                "aftersavefunc":null,
+                                "errorfunc":null,
+                                "afterrestorefunc":null,
+                                "succesfunc":function(re)  { 
+                                    var re = (re.responseText) ? $.parseJSON( re.responseText ) : re; 
+                                    if (re.err) alert(re.err); 
+                                    return (typeof(re)=="object" && re.type !== 'error' && re.success !== false);
+                                }
+                    });
+                    
+                    $( this ).jqGrid(
+                        "restoreRow", 
+                        lastSel, 
+                        {"afterrestorefunc":null}
+                    );
+                }
+    
+                if (!lastSel || lastSel != id) {
+                    $( this ).jqGrid(
+                        "editRow", 
+                        id, {
+                            "keys":true,
+                            "oneditfunc":function(re)  { 
+                                var re = (re.responseText) ? $.parseJSON( re.responseText ) : re; 
+                                if (re.err) alert(re.err); 
+                                return (typeof(re)=="object" && re.type !== 'error' && re.success !== false );
+                            },
+                            "successfunc":function(re)  { 
+                                var re = (re.responseText) ? $.parseJSON( re.responseText ) : re; 
+                                if (re.err) alert(re.err); 
+                                return (typeof(re)=="object" && re.type !== 'error' && re.success !== false);
+                            },
+                            "aftersavefunc":null,
+                            "errorfunc":null,
+                            "afterrestorefunc":null
+                        });
+                    $( this ).data("lastSel", id);
+                } else {
+                    $( this ).jqGrid("restoreRow", id, {"afterrestorefunc":null});
+                    jQuery( this ).jqGrid("resetSelection" );
+                    $( this ).data("lastSel", 0);
+                }
+            }
+        })
+        .jqGrid("navGrid","#gridExternLst_pager", {
+            "edit":true,
+            "search": {
+                    multipleSearch:true,
+                    overlay:false,
+                    beforeShowSearch:function() {  $("#gridExternLst")[0].toggleToolbar(); },
+                    onClose:function() {    	
+                        $("#gridExternLst")[0].toggleToolbar();   
+                    }
+                }
+            },{
+                "onInitializeForm":null
+            },{
+                "onInitializeForm":null
+            },
+            {},
+            {
+                "sopt":["eq"],
+                "beforeShowSearch":function() {  $("#gridExternLst")[0].toggleToolbar(); },
+                "onClose":function() { $("#gridExternLst")[0].toggleToolbar();   },
+                "multipleSearch":true},
+            {}
+        )
+        .navButtonAdd(
+            "#gridExternLst_pager",{
+                "id":"btnTbarSearch",
+                "buttonicon":"ui-icon-pin-s",
+                "caption":"ColSearch",
+                "title":"Toggle Searching Toolbar",
+                "onClickButton":function() { 
+                    $("#gridExternLst")[0].toggleToolbar(); 
+                }
+            }
+        )
+        .navButtonAdd(
+            "#gridExternLst_pager", {
+                "id":"btnColCh",
+                "caption":"Spalten",
+                "title":"Spalten",
+                "onClickButton":function() {
+                    jQuery("#gridExternLst").jqGrid("columnChooser", {"done":function (perm) {
+                    if (perm) {
+                        // "OK" button are clicked
+                        this.jqGrid("remapColumns", perm, true);
+                        // the grid width is probably changed co we can get new width
+                        // and adjust the width of other elements on the page
+                        var gwdth = this.jqGrid("getGridParam","width");
+                        this.jqGrid("setGridWidth",gwdth);
+                    } else {
+                        // we can do some action in case of "Cancel" button clicked
+                    }
+                }})
+                }
+            }
+        )
+        .jqGrid("filterToolbar",{stringResult: true,searchOnEnter : false})
+        .jqGrid('gridResize', [])
+        ;
+    }
+);    //]]>
+</script>

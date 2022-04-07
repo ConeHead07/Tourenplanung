@@ -36,7 +36,7 @@ root {
 .DropZone-Route {
     position: relative;
     border: 1px solid #bbb;
-    height: 85px;
+    min-height: 85px;
     margin:2px;
 }
 .DropZone {
@@ -58,8 +58,6 @@ div.fbDispoRoute ul.resources li {
 .Drag-Route {
     border: 1px solid #bbf;
     background-color: #ddf;
-    height: 30px;
-    xwidth: 30px;
     overflow: hidden;
     margin-top:2px;
     padding:0 2px 0 2px;
@@ -75,6 +73,7 @@ div.fbDispoRoute ul.resources li {
 div.DropZoneDefaults {
     border: 1px solid #f00;
     background:#fff;
+    word-break: break-all;
 }
 div.DropZoneDefaults ul.resources {
     margin:0;
@@ -154,7 +153,7 @@ td div.xVorgangStatusBox span.v-stat-icon {
  }
         
 /* states and images */
-.v-stat-icon { display:block; width: 30px; height: 30px; background-image: url(<?php echo $this->baseUrl(); ?>/touren/img/round-icons-small.png); }
+.v-stat-icon { display:block; width: 30px; height: 30px; background-image: url("../touren/img/round-icons-small.png"); }
 .v-stat-gruen { background-position: -29px 0; }
 .v-stat-beauftragt, .v-stat-rot   { background-position: 0 0; }
 .v-stat-fertig,     .v-stat-blau  { background-position: -58px 0; }
@@ -185,4 +184,147 @@ td div.xVorgangStatusBox span.v-stat-icon {
     top: 45%;
     width: auto;
     z-index: 101;
+}
+
+.fbDispoTimelineLineal {
+    position:absolute;
+    width:100%;
+    top:0;
+    left:0;
+}
+
+.DropZoneDefaults {
+    position:relative;
+    margin-top:65px;
+    min-height:19px;
+    background-color:#fff !important;
+    border-left:0;
+    border-right:0;
+    border-bottom:0;
+    padding-left:20px;
+    z-Index:9009;
+    background-image:none !important;
+}
+
+.fbDispoRoute {
+    position:absolute;
+    top:11px;
+    height:52px;
+}
+
+.color-pick-item {
+    display:inline-block;
+    height:14px;
+    width:14px;
+}
+
+.fk-VIP,
+div.fk-VIP,
+div.fbDispoRoute.fk-VIP,
+.fk-Gruen,
+div.fk-Gruen,
+div.fbDispoRoute.fk-Gruen {
+    background-color: #02ff1f !important;
+}
+
+.fk-Anker,
+div.fk-Anker,
+div.fbDispoRoute.fk-Anker,.fk-Gelb,
+div.fk-Gelb,
+div.fbDispoRoute.fk-Gelb {
+    background-color: #fffc03 !important;
+}
+
+.fk-Fuell,
+div.fk-Fuell,
+div.fbDispoRoute.fk-Fuell,
+.fk-Blau,
+div.fk-Blau,
+div.fbDispoRoute.fk-Blau {
+    background-color: #05b2ff !important;
+}
+
+.fk-Rot,
+div.fk-Rot,
+div.fbDispoRoute.fk-Rot,
+.fk-Projekt,
+div.fk-Projekt,
+dif.fbDispoRoute.fk-Projekt {
+    background-color: #ff272d !important;
+    color:#fff;
+}
+
+.fk-Reklamation,
+div.fk-Reklamation,
+div.fbDispoRoute.fk-Reklamation {
+    background-color: #f5e69b !important;
+}
+.fk-Service,
+div.fk-Service,
+div.fbDispoRoute.fk-Service {
+    background-color: #a2a2a2 !important;
+}
+
+
+.fk-Orange,
+div.fk-Orange,
+div.fbDispoRoute.fk-Orange {
+    background-color: #ffb601 !important;
+}
+.fk-Lila,
+div.fk-Lila,
+div.fbDispoRoute.fk-Lila {
+    background-color: #d2a2ff !important;
+}
+.fk-Weiss,
+div.fk-Weiss,
+div.fbDispoRoute.fk-Weiss,
+.fk-Specials,
+div.fk-Specials,
+div.fbDispoRoute.fk-Specials {
+    background-color: #fdf6fb !important;
+}
+.fk-Grau,
+div.fk-Grau,
+div.fbDispoRoute.fk-Grau {
+    background-color: #d3d3d3 !important;
+}
+
+.fk-Braun,
+div.fk-Braun,
+div.fbDispoRoute.fk-Braun {
+    background-color: #a5645e !important;
+}
+
+.team.fa-tshirt {
+    overflow: hidden;
+    text-overflow: clip;
+    width: 1.65em;
+    margin-right:0.2em;
+    margin-bottom:-.1em;
+    position: relative;
+}
+
+.team.fa-tshirt:after {
+    content: attr(data-letter);
+    color: rgba(255,255,255,1);
+    display: block;
+    top: .3em;
+    left: 0;
+    width: 1.65em;
+    position: absolute;
+    font-size: .75em;
+    font-family: Arial;
+    font-weight: 100;
+    text-align: center;
+}
+
+.team.team-1 {
+    color: red;
+}
+.team.team-2 {
+    color: blue;
+}
+.team.team-3 {
+    color: green;
 }

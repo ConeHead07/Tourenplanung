@@ -254,6 +254,16 @@ Fb.CalendarSurveyLoad = function(surveyID, context, baseUrl, interval) {
 
 (function($) {
     $(function(){
+        var dateToIso = function(date) {
+            if (date instanceof Date) {
+                var m = date.getMonth()+1;
+                if (m < 10) m = "0" + m.toString();
+                var d = date.getDate();
+                if (d < 10) d = "0" + d.toString();
+                return date.getFullYear() + "-" + m + "-" + d;
+            }
+            return "";
+        };
         
         $( "#fbDispoCalendarTabs" ).tabs({
             create: function() { //event, ui
@@ -266,13 +276,25 @@ Fb.CalendarSurveyLoad = function(surveyID, context, baseUrl, interval) {
                 var _BASEURL = $(ui.tab).attr('rel');
                 switch(_ID) {
                     case 'tabs-historie':
+                        if (!$(ui.panel).data('allreadyLoaded')) {
+                            $(ui.panel).data('allreadyLoaded', 1);
+                        }
+                        var startDate = $("div.fbDispoCalendar:first").fbDispoCalendar('getDate');
+                        // Fb.CalendarSurveyLoad(_ID, pager, _BASEURL, $("div.fbDispoCalendar:first").fbDispoCalendar('getDate'));
+                        $('#'+_ID +'-content').load( _BASEURL + "/date/" + dateToIso(startDate) );
+                        break;
+
                     case 'tabs-woche':
                     case 'tabs-monat':
                     case 'tabs-einsatz':
                         if (!$(ui.panel).data('allreadyLoaded')) {
+                            $(ui.panel).data('allreadyLoaded', 1);
+
                             var startDate = $("div.fbDispoCalendar:last").fbDispoCalendar('getDate');
+
                             var pager = $("<div class='DispoCalendarPager' />").attr('id', 'fbDispoCalendarPager'+_ID);
                             $(ui.panel).prepend(pager);
+
                             pager.append( $(
                                 "<div style='float:left;margin-left:0px'>" +
                                 "<span class='DispoLager'><select id='DispoLager"+_ID+"' style='font-weight:bold;padding:0;background:inherit;color:inherit;border:0;'>" +
@@ -288,6 +310,7 @@ Fb.CalendarSurveyLoad = function(surveyID, context, baseUrl, interval) {
                                 "</div>"
                                 )
                             );
+
                             $( "button.browse-prev", pager).button({icons: {primary: "ui-icon-circle-triangle-w"}, text: true});
                             $( "button.browse-next", pager).button({icons: {primary: "ui-icon-circle-triangle-e"}, text: true});
                             $( "button.browse-refresh", pager).button({icons: {primary: "ui-icon-refresh"}, text: true});
@@ -307,7 +330,6 @@ Fb.CalendarSurveyLoad = function(surveyID, context, baseUrl, interval) {
                             $( "button#DispoDate"+_ID, pager).click(function() {
                                 $("input#DispoDateTxt"+_ID, pager).datepicker( "show" );
                             });
-                            $(ui.panel).data('allreadyLoaded', 1);
                             
                             $( "#DispoLager"+_ID).bind('change', function() {
                                 Fb.CalendarSurveyLoad(_ID, pager, _BASEURL, 0);

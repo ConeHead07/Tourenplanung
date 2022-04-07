@@ -38,7 +38,7 @@ jQuery(function() {jQuery("#gridDispoVorgaengeLst").jqGrid(
                        : '';
                 var JKW = (rData['Lieferwoche']>0 ? "KW " + rData['Lieferwoche'] : "") + (rData['Lieferjahr']>0 ? '-20' + (rData['Lieferjahr']>9 ? rData['Lieferjahr'] : "0"+rData['Lieferjahr']) : '' );
                 var terminTxt = (termin || JKW ? terminTitle + ": " + termin + " " + JKW + "<br/>" : "");
-                var re = '<div style="height:auto;" class="Drag-Route Is-Template"><span class="title">' +
+                var re = '<div class="Drag-Route Is-Template"><span class="title">' +
                     terminTxt + 
 //                    ( rData['Fix'] ? "Fixtermin" : "Liefertermin") +
 //                    ( (rData['Liefertermin'] && !rData['Liefertermin'].match(/0000-/))
@@ -481,7 +481,7 @@ jQuery(function() {jQuery("#gridDispoVorgaengeLst").jqGrid(
                             
                             // Da das Laden der Tourdaten etwas dauert,
                             // kann es sein, dass der Tooltip bereits ein anderes Target hat
-                            // Daher erst prüfen, sonst werden im Tooltip falsche Daten angezeigt !!
+                            // Daher erst prï¿½fen, sonst werden im Tooltip falsche Daten angezeigt !!
                             if (my_tooltip.data('tooltipTarget') == row[0]) {
                                 my_tooltip.html( row.data('tooltipData') );
 

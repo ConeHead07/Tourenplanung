@@ -14,7 +14,7 @@ interface Model_TourenDispoLogInterface
 
     public function logTour($tour_id, $action, $uid = null, array $aDetails = []);
 
-    public function logTimeline($timeline_id, $action, $uid = null);
+    public function logTimeline($timeline_id, $action, $uid = null, array $aDetails = []);
 
     public function logPortlet($portlet_id, $action, $uid = null);
 

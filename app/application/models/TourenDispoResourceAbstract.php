@@ -144,27 +144,38 @@ implements MyProject_Model_TourenResourceInterface
      */
     public function drop($data, array $tourData = [])
     {
-        if (!empty($data[$this->tourKey]) && empty($data[$this->_prmTourKey])) 
+        if (!empty($data[$this->tourKey]) && empty($data[$this->_prmTourKey])) {
             $data[$this->_prmTourKey] = $data[$this->tourKey];
+        }
         
         // Pre-Condition
         if (!array_key_exists($this->_prmRsrcKey, $data)) {
-            throw new Exception('#'.__LINE__.' Missing ' . $this->_prmRsrcKey . ' in data: '. print_r($data,1));
+            throw new Exception(
+                ' Missing data[' . $this->_prmRsrcKey . '] in '. print_r($data,1)
+            );
         }
+
         if (!array_key_exists($this->_prmTourKey, $data)) {
-            throw new Exception('#'.__LINE__.' Missing ' . $this->_prmTourKey . ' in data: '. print_r($data,1));
+            throw new Exception(
+                ' Missing data[' . $this->_prmTourKey . '] in '. print_r($data,1)
+            );
         }
 
         $missing = array();
         if (!(int)$data[$this->_prmRsrcKey]) {
-            $missing[] = 'Fehlende oder leere Resource ('.$this->_resourceName.') '.$this->_prmRsrcKey.'!';
+            $missing[] = 'Missing Resource (' . $this->_resourceName . ') ' . $this->_prmRsrcKey.'!';
         }
+
         if (!(int)$data[$this->_prmTourKey]) {
-            $missing[] = 'Fehlende oder leere TourId '.$this->_prmTourKey.'!';
+            $missing[] = 'Missing TourId ' . $this->_prmTourKey . '!';
         }
         
         if (count($missing)){
-            throw new Exception(implode('\n', $missing) . PHP_EOL . ' data:' . print_r($data, 1));
+            throw new Exception(
+                implode('\n', $missing)
+                . PHP_EOL . ' data:'
+                . print_r($data, 1)
+            );
         }
         
         $rsrcId = (int)$data[$this->_prmRsrcKey];
@@ -176,10 +187,11 @@ implements MyProject_Model_TourenResourceInterface
         $rsrc = new $modelClass();
         $rsrcEntry = $rsrc->fetchEntry( $rsrcId );
         
-        if (!$rsrcEntry)
+        if (!$rsrcEntry) {
             throw new Exception(
-                "Ungueltige Resource-ID (".$this->_resourceName."): `".$rsrcId."`. "
-               ."Eintrag wurde nicht gefunden");
+                "Resource Not Found By Rsrc-ID " . $rsrcId
+            );
+        }
 
         if (empty($tourData)) {
             // Hole Tour-Record
@@ -188,8 +200,11 @@ implements MyProject_Model_TourenResourceInterface
         } else {
             $tourEntry = $tourData;
         }
+
         if (!$tourEntry) {
-            throw new Exception("Ungueltige Tour-ID `" . $tourId . "`. Toureneintrag wurde nicht gefunden");
+            throw new Exception(
+                "Tour Not Found By Tour-ID `" . $tourId
+            );
         }
         
         $db = $this->_db;
@@ -207,7 +222,10 @@ implements MyProject_Model_TourenResourceInterface
             'ZeitVon'  => $tourEntry['ZeitVon'],
             'ZeitBis'  => $tourEntry['ZeitBis']);
 
-        $check = $this->checkResourceIsFree($rsrcId, $filter, $tourId, ($IsDefault)?$tourEntry['timeline_id']:0);
+        $check = $this->checkResourceIsFree(
+            $rsrcId, $filter, $tourId,
+            ($IsDefault)?$tourEntry['timeline_id']:0
+        );
 
         if ($check->free) {
             $id = $this->insert(array(
@@ -220,9 +238,11 @@ implements MyProject_Model_TourenResourceInterface
                     $tourEntry + ['bemerkung' => json_encode($rsrcEntry)]
                 );
                 return $id;
-            }
-            else {
-                throw new Exception('Ungueltige Daten. Tour konnte nicht gespeichert werden!' . PHP_EOL . print_r($data,1));
+            } else {
+                throw new Exception(
+                    'Ungueltige Daten. Tour konnte nicht gespeichert werden!'
+                    . PHP_EOL . print_r($data,1)
+                );
             }
         } else {
             throw new Exception( $check->message . PHP_EOL . $check->sql );
@@ -319,7 +339,7 @@ implements MyProject_Model_TourenResourceInterface
      * @return int|null new id or null if error
      * @throws Exception
      */
-    public function move($data) 
+    public function move($data, array $aSrcData = [])
     {
         $returnObject = new stdClass();
         $returnObject->gebuchteTouren = array();
@@ -340,35 +360,42 @@ implements MyProject_Model_TourenResourceInterface
         $tour = new Model_TourenDispoVorgaenge();
         $tourTbl = $tour->getStorage()->info(Zend_Db_Table::NAME);
         
-        
         $rsrcDispo = MyProject_Model_Database::loadModel($this->_storageName);
         $rsrcDispoTbl = $rsrcDispo->getStorage()->info(Zend_Db_Table::NAME);
         $rsrcDispoEntry = $rsrcDispo->fetchEntry($data['id']);
+
         if (!$rsrcDispoEntry)
-            throw new Exception("Ungueltige Resourcen-Dispo-ID (".$this->_storageName."): `".$data['id']."`. Eintrag wurde nicht gefunden");
+            throw new Exception(
+                "Ungueltige Resourcen-Dispo-ID (".$this->_storageName."): `"
+                . $data['id']."`. Eintrag wurde nicht gefunden"
+            );
         
-        if (!$rsrcEntry)
-            throw new Exception("Ungueltige Resource-ID (".$this->_resourceName."): `".$rsrcId."`. Eintrag wurde nicht gefunden");
+        if (!$rsrcEntry) {
+            throw new Exception(
+                "Ungueltige Resource-ID (" . $this->_resourceName . "): `"
+                . $rsrcId . "`. Eintrag wurde nicht gefunden"
+            );
+        }
         
         // Hole Record der bisher zugeordneten Tour
-        $srcTourEntry = $tour->fetchEntry( $rsrcDispoEntry['tour_id'] );
-//        die(print_r($srcTourEntry,1));
+        $srcTourEntry = $tour->getTourWithPortlet( $rsrcDispoEntry['tour_id'] );
         
         // Hole Record der neu zugeordneten Tour
-        $dstTourEntry = $tour->fetchEntry( $tourId );
+        $dstTourEntry = $tour->getTourWithPortlet( $tourId );
         
         if ($srcTourEntry['IsDefault']) {
-            // L�sungsidee f�r Default-Resourcen
-            // Erst alle Buchungs-ID f�r die Resource aus alter Timeline holen
-            // Resourcen-Pr�fung mit Ausnahme f�r ermittelte Buchungs-IDs
+            // Loesungsidee fuer Default-Resourcen
+            // Erst alle Buchungs-ID fuer die Resource aus alter Timeline holen
+            // Resourcen-Pruefung mit Ausnahme fuer ermittelte Buchungs-IDs
             // Wenn frei:
-            // Eintr�ge mit den alten Buchungs-IDs l�schen
-            // Neue Eintr�ge anlegen: Die Aufgabe kann wieder die Methode drop �bernehmen
-            $tdaTbl = MyProject_Model_Database::loadStorage('tourenDispoAuftraege')->info(Zend_Db_Table::NAME);
+            // Eintraege mit den alten Buchungs-IDs loe
+            // Neue Eintraege anlegen: Die Aufgabe kann wieder die Methode drop uebernehmen
+            $tdaTbl = Model_Db_TourenDispoAuftraege::obj()->tableName();
 
             $sql = 'SELECT * FROM '.$tourTbl . ' t '
                   .' LEFT JOIN '.$rsrcDispoTbl . ' r ON (t.tour_id = r.tour_id) '
-                  .' LEFT JOIN '.$tdaTbl . ' a ON (t.Mandant = a.Mandant AND t.Auftragsnummer = a.Auftragsnummer) '
+                  .' LEFT JOIN '.$tdaTbl . ' a '
+                  .' ON (t.Mandant = a.Mandant AND t.Auftragsnummer = a.Auftragsnummer) '
                   .' WHERE t.timeline_id = ' . $srcTourEntry['timeline_id']
                   .' AND r.'.$this->rsrcLnkKey . ' = ' . $rsrcEntry[$this->_prmRsrcKey];
             $gebuchteTouren = $this->_db->fetchAll($sql);
@@ -405,22 +432,39 @@ implements MyProject_Model_TourenResourceInterface
         $returnObject->lockedTouren   = $lockedTouren;
         
         if (count($lockedTouren)) {
-            $returnObject->message = 'Resource befindet sich in bereits geschlossenen oder gesperrten Vorgaengen:' . PHP_EOL;
+            $returnObject->message =
+                'Resource befindet sich in bereits geschlossenen '
+                . 'oder gesperrten Vorgaengen:' . PHP_EOL;
+
             foreach($lockedTouren as $_tour_id => $_tour) {
-                $returnObject->message.= '-' .$_tour['lockType'] . ': ' . $_tour['Auftragsnummer'] . ' '.$_tour['DatumVon'].' '.$_tour['ZeitVon'] . PHP_EOL;
+                $returnObject->message.= '-' . $_tour['lockType'] . ': '
+                    . $_tour['Auftragsnummer'] . ' '
+                    . $_tour['DatumVon'] . ' '
+                    . $_tour['ZeitVon'] . PHP_EOL;
             }
-            if ($checkStrict = 0) return $returnObject;
+
+            if ($checkStrict = 0) {
+                return $returnObject;
+            }
         }
         
         $returnObject->rsrcConflictData = array();
         $filter = array_merge( $dstTourEntry, array('ignoreTourIds' => $filterTourIds));
         $_chckFree = $this->checkResourceIsFree($rsrcId, $filter, $dstTourEntry['tour_id']);
-        if (!$_chckFree->free) $returnObject->rsrcConflictData = $_chckFree->data;
+
+        if (!$_chckFree->free) {
+            $returnObject->rsrcConflictData = $_chckFree->data;
+        }
         
         if (count($returnObject->rsrcConflictData)) {
-            $returnObject->message = 'Konflikt: Resource ist f�r den Zielzeitraum bereits gebucht oder gesperrt!' . PHP_EOL;
+            $returnObject->message =
+                'Konflikt: Resource ist fuer den Zielzeitraum bereits gebucht oder gesperrt!' . PHP_EOL;
+
             foreach($returnObject->rsrcConflictData as $_tour) {
-                $returnObject->message.= '-' . $_tour['Auftragsnummer'] . ' '.$_tour['DatumVon'].' '.$_tour['ZeitVon'] . PHP_EOL;
+                $returnObject->message.=
+                    '-' . $_tour['Auftragsnummer'] . ' '
+                    . $_tour['DatumVon'] . ' '
+                    . $_tour['ZeitVon'] . PHP_EOL;
             }
             return $returnObject;
         }
@@ -429,17 +473,25 @@ implements MyProject_Model_TourenResourceInterface
         
         try {
             $db->beginTransaction();
-            $sql = 'DELETE FROM ' . $this->_tbl . ' WHERE ' . $this->tourKey . ' IN ('.implode(',', $filterTourIds) . ') AND ' . $this->rsrcLnkKey . ' = '.$rsrcId;
+            $sql = 'DELETE FROM ' . $this->_tbl
+                . ' WHERE ' . $this->tourKey
+                . ' IN ('.implode(',', $filterTourIds) . ') '
+                . ' AND ' . $this->rsrcLnkKey . ' = '.$rsrcId;
+
             $db->query($sql);
+
             foreach($filterTourIds as $_tour_id) {
                 $this->dispoLog(
-                    $rsrcId, 'remove-move', $_tour_id,
+                    $rsrcId, 'move-away', $_tour_id,
                     $data + ['bemerkung' => json_encode($data)]
                 );
             }
 
             $newId = $this->drop(
-                array_merge($dstTourEntry, $rsrcEntry, array('route_id'=>$dstTourEntry['tour_id']))
+                array_merge(
+                    $dstTourEntry,
+                    $rsrcEntry, ['route_id'=>$dstTourEntry['tour_id']]
+                )
             );
 
             if ($newId) {
@@ -454,10 +506,12 @@ implements MyProject_Model_TourenResourceInterface
             $db->commit();
         } catch(Exception $e) {
             $db->rollBack();
-            throw new Exception('Logik-Fehler: Resourcen konnten nicht verschoben werden: ' . $e->getMessage() . '; sql:'.$sql);
+            throw new Exception(
+                'Logik-Fehler: Resourcen konnten nicht verschoben werden: '
+                . $e->getMessage() . '; sql:'.$sql
+            );
         }
-//        die('<pre>#'.__LINE__ . ' ' . __METHOD__ . ' gebuchteTouren: ' . print_r($gebuchteTouren).'</pre>');
-        
+
         return $returnObject;
     }
     
@@ -478,7 +532,6 @@ implements MyProject_Model_TourenResourceInterface
     {
         // Hole Ids der Resourcen, die als Default der Timeline zugewiesen wurden
         $rsrcIds = $this->getDefaultsIds( $tourData['timeline_id'] );
-        //echo '#' . __LINE__ . ' rsrcIds:' . print_r($rsrcIds,1) . PHP_EOL;
         
         // Default-Resourcen der Tour zuweisen
         foreach($rsrcIds as $_rid) {
@@ -487,6 +540,18 @@ implements MyProject_Model_TourenResourceInterface
                 $this->_tblTourKey => $tourData['tour_id']
             ));
         }        
+    }
+
+    public function getLinkDataWithPortlet( int $iRsrcLnkId ) {
+        $db = $this->_db;
+        $sql = 'SELECT tr.id, p.portlet_id, p.lager_id, p.datum, t.timeline_id, t.tour_id '
+        . ' FROM ' . $this->rsrcLnkTbl . ' tr '
+        . ' LEFT JOIN mr_touren_dispo_vorgaenge t ON (tr.tour_id = t.tour_id) '
+        . ' LEFT JOIN mr_touren_timelines l ON (t.timeline_id = l.timeline_id) '
+        . ' LEFT JOIN mr_touren_portlets p ON (l.portlet_id = p.portlet_id) '
+        . ' WHERE tr.id = ' . $iRsrcLnkId;
+
+        return $db->fetchRow($sql, [], Zend_Db::FETCH_ASSOC);
     }
 
     /**
@@ -543,7 +608,7 @@ implements MyProject_Model_TourenResourceInterface
         $ptlTbl = Model_Db_TourenPortlets::obj()->tableName();
 
         $sqlTourenList = "SELECT 
-             pt.datum, 
+             pt.datum, pt.portlet_id, pt.lager_id,
              dv2.timeline_id, dv2.IsDefault, dv2.tour_id, dv2.ZeitVon, dv2.ZeitBis, dv2.locked, dv2.Auftragsnummer
              FROM $tourTbl dv
              JOIN $tlTbl tl ON(dv.timeline_id = tl.timeline_id)
@@ -730,19 +795,21 @@ implements MyProject_Model_TourenResourceInterface
 
         $aReturnVars[] = 'aPossibleTouren';
 
-        $aRsrcBelegteZeiten = $this->getBelegteZeitenForRsrcByDatumZeit(
-            $iRsrcId,
-            $aTourenStat['datum'],
-            $aTourenStat['MinZeitVon'],
-            $aTourenStat['MaxZeitBis']
-        );
+        $aRsrcBelegteZeiten =
+            (!$aRsrcInfo['extern_id'])
+            ? $this->getBelegteZeitenForRsrcByDatumZeit(
+                $iRsrcId,
+                $aTourenStat['datum'],
+                $aTourenStat['MinZeitVon'],
+                $aTourenStat['MaxZeitBis']
+            )
+            : [];
         $aReturnVars[] = 'aRsrcBelegteZeiten';
 
 
 
         if (count($aRsrcBelegteZeiten) > 0) {
             // Touren mit Konflikt ausfiltern
-
 
             $aPossibleTouren = array_filter($aPossibleTouren, function($_t)
             use($aRsrcBelegteZeiten, &$aKonfliktTouren, &$aExistingTouren) {
@@ -1160,8 +1227,8 @@ implements MyProject_Model_TourenResourceInterface
     
     /**
      * @abstract
-     * Pr�ft, ob Resource f�r Ziel-Slot (siehe Param $filter) frei und gibt ergebnis-Objekt mit Details zur�ck
-     * tourData enth�lt rows mit den Feldern ResourceId, Resource und allen tour-Feldern
+     * Prueft, ob Resource fuer Ziel-Slot (siehe Param $filter) frei und gibt ergebnis-Objekt mit Details zurueck
+     * tourData enthaelt rows mit den Feldern ResourceId, Resource und allen tour-Feldern
      * @param int $rsrc_id
      * @param array $filter assoc (DatumVon=>YYYY-MM-DD,DatumBis=>YYYY-MM-DD,ZeitVon=>HH:MM,ZeitBis=>HH:MM
      * @param int $tour_id
@@ -1284,9 +1351,11 @@ implements MyProject_Model_TourenResourceInterface
                     $re->message.= '-Gesperrt von '.$_d['gesperrt_von'].' bis '.$_d['gesperrt_bis'] . PHP_EOL;
                 }
             }
-            echo $re->sql;
-            try { throw new Exception('DEBUG Stacktrace');} catch(Exception $e) { echo $e->getTraceAsString(); }
-            exit;
+
+            try { throw new Exception('DEBUG Stacktrace');
+            } catch(Exception $e) {
+                $re->stackTrace = $e->getTraceAsString();
+            }
         }
         return $re;
     }
@@ -1422,15 +1491,22 @@ implements MyProject_Model_TourenResourceInterface
         $rsrcTbl = $this->rsrcTbl;
         $rsrcLblExpr = $this->getSqlSelectExprAsLabel();
 
-        $oQueryOpts->setSelect($rsrcLblExpr . " AS label, $rsrcTbl.*, e.*, l.*")
+        $selectFlds = $rsrcLblExpr . " AS label, $rsrcTbl.*, e.*, l.*";
+        if ($rsrcType == 'MA') {
+            $selectFlds.= ', tms.team ';
+        }
+
+        $oQueryOpts->setSelect($selectFlds )
             ->setFrom($rsrcTbl)
             ->setJoin("LEFT JOIN $extrnTbl e ON (e.extern_id = $rsrcTbl.extern_id)", true)
             ->addJoin( " LEFT JOIN $lstgTbl l ON(l.leistungs_id = $rsrcTbl.leistungs_id)", true)
             ;
-
-        $sqlInTouren = $this->getSqlSelectIdsInDisponiert($aDateTimeRange);
-        $oQueryOpts->andWhere($this->_tblRsrcKey . " NOT IN ($sqlInTouren)");
-
+        if ($rsrcType == 'MA') {
+            $oQueryOpts->addJoin(
+                " LEFT JOIN mr_teams tms ON ($rsrcTbl.team_id = tms.team_id)",
+                false
+            );
+        }
 
         if (!empty($aFilter['categoryTerm'])) {
             $sqlInCtg = $this->getSqlSelectIdsInCategorie($aFilter['categoryTerm']);
@@ -1440,6 +1516,9 @@ implements MyProject_Model_TourenResourceInterface
         }
 
         if ($sExternFilter == 'int') {
+            $sqlInTouren = $this->getSqlSelectIdsInDisponiert($aDateTimeRange);
+            $oQueryOpts->andWhere($this->_tblRsrcKey . " NOT IN ($sqlInTouren)");
+
             $sqlInSperre = $this->getSqlSelectIdsInSperrzeiten($aDateTimeRange['DatumVon'], $aDateTimeRange['DatumBis']);
 
             $oQueryOpts->andWhere(
@@ -1452,8 +1531,10 @@ implements MyProject_Model_TourenResourceInterface
         } elseif ($sExternFilter == 'ext') {
             $tblDz   = Model_Db_ResourcesDispozeiten::obj()->tableName();
             $sqlInExtern = $this->getSqlSelectIdsInDispozeiten($aDateTimeRange);
-            $oQueryOpts->addJoin(
-                "LEFT JOIN $tblDz dz ON( dz.ressourcen_typ = '$rsrcType' AND $rsrcKey = dz.ressourcen_id)", true
+            if (0) $oQueryOpts->addJoin(
+                "LEFT JOIN $tblDz dz "
+                . " ON( dz.ressourcen_typ = '$rsrcType'"
+                . " AND $rsrcKey = dz.ressourcen_id)", true
             );
             $oQueryOpts->andWhere(
                 'IFNULL(' . $this->rsrcTbl . '.extern_id, 0) > 0'
@@ -1471,6 +1552,7 @@ implements MyProject_Model_TourenResourceInterface
             $result->setOrder( "{$oQueryOpts->getOrder()} {$oQueryOpts->getOrderDir()}" );
         }
         // die( $oQueryOpts->assemble() );
+        // MyProject_Response_Json::sendDebug(__FUNCTION__, [ 'sql' => $oQueryOpts->assemble()]);
         $result->setSql( $oQueryOpts->assemble() );
         $result->setOffset( (int)$oQueryOpts->getOffset() );
         $result->setLimit( (int)$oQueryOpts->getLimit() );

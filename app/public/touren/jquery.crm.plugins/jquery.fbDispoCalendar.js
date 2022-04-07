@@ -232,7 +232,6 @@ Fb.AjaxTourRequest = function(requestOpts, responseOpts) {
     }, requestOpts);
     
     do {
-        console.log('#243 jquery.fbDispoCalendar.js return ', returnVal);
         Fb.DispoLoading(1);
         $.ajax(requestOpts);
     } while(interact);

@@ -277,6 +277,7 @@
                             else if (fk == "Gelb") ti = "Anker";
                             else if (fk == "Blau") ti = "Füll";
                             else if (fk == "Weiss") ti = "Projekt";
+                            else if (fk == "Rot") ti = "Specials";
                             else if (fk) ti = fk;
 
 
@@ -508,14 +509,8 @@
             routeData.duration = routeData.end - routeData.start;
 //            alert('#355 reset to ' + routeData.start);
             if (routeData.duration < ts._stepWidthM) routeData.duration = ts._stepWidthM;
-            
-            this.style.position   = 'absolute';
-            this.style.top   = $(lineal).height();
             this.style.left  = ((routeData.start-ts._startM)*100/ts._totalM)+"%";
             this.style.width = (routeData.duration*100/ts._totalM)+"%";
-            this.style.height= ($self.parent().height() - $(lineal).height() - 22 )+'px';
-            
-//            alert('#189 '+dataKey+' '+this.style.left +"=("+(routeData.start-ts._startM)+"*"+100+"/"+ts._totalM+")+%");
         },
         
         // Will be call from procedures in script fb.dnd.settings.js

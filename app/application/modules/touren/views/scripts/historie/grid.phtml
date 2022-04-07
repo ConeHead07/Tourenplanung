@@ -6,6 +6,19 @@
  * Time: 16:07
  */
 
+/*
+ * Beispiel: Request-Data vorm Versenden erweitern
+            $("#gridDispoHistoryLst")
+                .bind("jqGridBeforeRequest", function() {
+                    var data = $(this).jqGrid("getGridParam", "postData");
+                    data['datumVon']=$("#historieDFrom").val();
+                    data['datumBis']=$("#historieDTo").val();
+                    data['lager_id']=$("#DispoLagertabs-historie").val();
+                    $(this).jqGrid("setGridParam", "postData", data);
+                    console.log("Event before Request", "data", data);
+                 });
+ */
+
 if ($this->disableLayout) {
     $this->layout()->disableLayout();
 }
@@ -67,6 +80,17 @@ if (1 || !$appendGridScript) {
         ->shrinkToFit(true)
         ->pager($GridIdPager)
         ->on_loadError(new JsFunction("function(xhr,status,error){ alert(status+'\\n'+error);}"))
+        ->on_beforeRequest(new JsFunction(<<<EOT
+            function() { 
+                var data = $(this).jqGrid("getGridParam", "postData"); 
+                data['datumVon']=$("#historieDFrom").val(); 
+                data['datumBis']=$("#historieDTo").val();
+                data['lager_id']=$("#DispoLagertabs-historie").val();
+                $(this).jqGrid("setGridParam", "postData", data); 
+                console.log("Event before Request", "data", data); 
+            }            
+EOT
+        ))
         ->addChainMethod('.jqGrid("filterToolbar",{stringResult: true,searchOnEnter : false})')
 //        ->addChainMethod( ".jqGrid('searchGrid', {sopt:['cn','bw','eq','ne','lt','gt','ew']} )")
         ->colNames([
@@ -87,7 +111,7 @@ if (1 || !$appendGridScript) {
         ])
         ->colModel(array('addFieldsProperties' => array(
             "id" => array('key' => true),
-            "tour_id" => array('label'=>'TourID','index'=>'tour_id','editable' => false, 'hide' => true, 'edittype' => 'text'),
+            "tour_id" => array('label'=>'TourID','index'=>'tour_id','editable' => false, 'hide' => false, 'edittype' => 'text'),
             "resource" => array('editable' => false, 'hide' => true, 'edittype' => 'text'),
             "object_type" => array('editable' => false, 'hide' => true, 'edittype' => 'text'),
             "object_id" => array('editable' => false, 'hide' => true, 'edittype' => 'text', 'editoptions' => null),
@@ -117,10 +141,10 @@ if (1 || !$appendGridScript) {
     $colModelList = $JqGrid->colModel();
 
     $colModelList->getItem('id')->set_hidden(true);
-    $colModelList->getItem('tour_id')->set_hidden(true);
+    $colModelList->getItem('tour_id')->set_hidden(false);
     $colModelList->getItem('object_id')->set_hidden(true);
     $colModelList->getItem('user_id')->set_hidden(true);
-    $colModelList->getItem('action_time')->getInstanceSearchOptions()->set_defaultValue(date('Y-m-d'));
+    // $colModelList->getItem('action_time')->getInstanceSearchOptions()->set_defaultValue(date('Y-m-d'));
 
     $navGrid = $JqGrid->getInstanceNavGrid($GridIdPager);
     $navGrid->set_add(false);
@@ -205,13 +229,14 @@ if (!$disableLayout) {
 
 <div>
     Zeitraum:
-    <input type="date" id="historieDFrom" name="dateRangeFrom"> bis <input type="date" id="historieDTo" name="dateRangeTo">
+    <input type="date" id="historieDFrom" name="dateRangeFrom" class="date" value="<?=$this->datumVon?>">
+    bis <input type="date" id="historieDTo" name="dateRangeTo" value="<?=$this->datumBis?>">
 </div>
 
 <table id="<?=$GridIdBasename?>"></table>
 <div id="<?=$GridIdBasename?>_pager"></div>
 
 <script>
-    $("#historieDFrom").datepicker();
-    $("#historieDTo").datepicker();
+    $("#historieDFrom").datepicker({dateFormat: "yy-mm-dd"});
+    $("#historieDTo").datepicker({dateFormat: "yy-mm-dd"});
 </script>

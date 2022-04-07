@@ -17,6 +17,7 @@ class Model_TourenDispoMitarbeiter extends Model_TourenDispoResourceAbstract
     protected $_tblCtgLnkRsrcKey = 'mitarbeiter_id'; // mitarbeiter_id | fuhrpark_id | werkzeug_id
 
     public function getSqlSelectExprAsLabel(): string {
+        return "CONCAT( SUBSTR(vorname, 1, 1), '.', name )";
         return "CONCAT( SUBSTR(vorname, 1, 1), '.', name, IF(eingestellt_als NOT BETWEEN '0' AND '999999',CONCAT(',', eingestellt_als), '') )";
     }
         

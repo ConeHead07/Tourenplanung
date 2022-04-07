@@ -50,8 +50,7 @@ class Model_TourenDispoVorgaenge extends MyProject_Model_Database
     }
 
     public function dispoLog($tour_id, $action, $aDetails) {
-        $uid = MyProject_Auth_Adapter::getUserId();
-        $this->getTourDispoLogger()->logTour($tour_id, $action, $uid, $aDetails);
+        $this->getTourDispoLogger()->logTour($tour_id, $action, null, $aDetails);
     }
     
     public function statusTourenZeitenErfassung($mandant, $auftragsnr) {
@@ -260,7 +259,7 @@ if ($orderby) {
      * @return int|null new id or null if error
      * @throws Exception
      */
-    public function move($checkdata) 
+    public function move($checkdata, array $sourceData = [])
     {
         $fields4UpdateOnly = array(
             'DatumVon'=>null,'DatumBis'=>null,'ZeitVon'=>null,'ZeitBis'=>null,'timeline_id'=>null,'id'=>null
@@ -274,22 +273,29 @@ if ($orderby) {
         $portlet = $this->getPortletByTimelineId($data['timeline_id']);
         $data['DatumVon'] = $portlet['datum'];
         $data['DatumBis'] = $portlet['datum'];
-        
-//        die( '<pre>' . print_r( array($data, $fields4UpdateOnly, $checkdata), 1 ));
-        
-        $id = null;
-        $rgxIsoDate = ':^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[0-2])$:';
-        if (array_key_exists('DatumVon', $data) && preg_match($rgxIsoDate, $data['DatumVon'])) {
-            $updateSuccess = $this->update($data, $data['id']);
-            $this->dispoLog($data['id'], 'moved', $data + ['bemerkung'=>json_encode($data)]);
-            return $updateSuccess;
+
+        if (!empty($sourceData['timeline_id']) && $data['timeline_id'] != $sourceData['timeline_id']) {
+            $checkdata['moved-from'] = [
+                'timeline_id' => $sourceData['timeline_id'],
+                'DatumVon' => $sourceData['DatumVon'] ?? '',
+                'ZeitVon' => $sourceData['ZeitVon'] ?? '',
+                'ZeitBis' => $sourceData['ZeitBis'] ?? '',
+            ];
+
+            $this->dispoLog($data['id'], 'moved-away-from',
+                $sourceData + ['bemerkung'=>json_encode([
+                    'moved-to' => [
+                        'timeline_id' => $data['timeline_id'],
+                        'DatumVon' => $data['DatumVon'],
+                        'ZeitVon' => $data['ZeitVon'],
+                        'ZeitBis' => $data['ZeitBis'],
+                    ]])]);
         }
 
-        if (!$id) {
-            throw new Exception('ungueltige Daten. Route konnte nicht gespeichert werden!' . PHP_EOL . print_r($checkdata,1));
-            
-        }
-        return null;
+        $updateSuccess = $this->update($data, $data['id']);
+        $this->dispoLog($data['id'], 'moved', $data + $checkdata);
+
+        return $updateSuccess;
     }
     
     public function resize($d) 
@@ -324,7 +330,14 @@ if ($orderby) {
         $db = $storage->getAdapter();
         $where = ' `tour_id` ='.(int)$id . ' ';        
         
-        $tour = $storage->find($id)->current();        
+        $tour = $storage->find($id)->current();
+
+        $sql = 'SELECT p.portlet_id, p.lager_id, p.datum, t.* '
+            . ' FROM ' . $this->_tbl . ' t '
+            . ' JOIN mr_touren_timelines tl ON (t.timeline_id = tl.timeline_id) '
+            . ' JOIN mr_touren_portlets p ON (tl.portlet_id = p.portlet_id) '
+            . ' WHERE tour_id = :id';
+        $tourData = $db->fetchRow( $sql, ['id'=>$id], Zend_Db::FETCH_ASSOC );
         
         $da = new Model_TourenDispoAuftraege();
         $fp = new Model_Db_TourenDispoFuhrpark();
@@ -332,6 +345,7 @@ if ($orderby) {
         $wz = new Model_Db_TourenDispoWerkzeug();
         $dp = new Model_Db_TourenDispoPositionen();
         $dpt = new Model_Db_TourenDispoPositionenText();
+        $modelLogger = new Model_TourenDispoLog();
         
         $status = $da->isLocked($tour->Mandant, $tour->Auftragsnummer);
         $error  = '';
@@ -348,7 +362,7 @@ if ($orderby) {
         if ($error) {
             throw new Exception($error);
         }
-        
+
         $db->beginTransaction();
         try {
             $fp->delete($where);
@@ -357,17 +371,24 @@ if ($orderby) {
             $dp->delete($where);
             $dpt->delete($where);
             $storage->delete($where);
+
+            $tourData['bemerkung'] = json_encode([
+                'portlet_id' => $tourData['portlet_id'],
+                'lager_id' => $tourData['lager_id'],
+                'timeline_id' => $tourData['timeline_id'],
+                'datum' => $tourData['datum'],
+            ]);
+
+            $modelLogger->logTour($id, 'remove', null, $tourData);
             
             $da->refreshTourDispoCount($tour->Mandant, $tour->Auftragsnummer);
             $da->refreshTourFinishCount($tour->Mandant, $tour->Auftragsnummer);
             
             $db->commit();
             return true;
-        } catch(Zend_Db_Exception $e) {
+        } catch(xception $e) {
             $db->rollBack();
-            echo $e->getMessage();
-            echo $e->getTraceAsString();
-            die(__METHOD__ . print_r([' id' => $id ],1));
+            throw $e;
         }
     }
     
@@ -586,7 +607,8 @@ if ($orderby) {
                             $data['ZeitBis']);
             
             if (!$validation->ok) {
-                $this->_error = "Tour konnte wegen Resourcen-Ueberschneidungen nicht aktualisiert werden:" . PHP_EOL . $validation->msg;
+                $this->_error = "Tour konnte wegen Resourcen-Ueberschneidungen nicht aktualisiert werden!";
+                // . PHP_EOL . $validation->msg;
                 return false;
             }            
         }
@@ -644,7 +666,7 @@ if ($orderby) {
                                 'portlet_id', 'lager_id', 'date', 'datum',
                                 'position', 'tagesnr', 'topcustom', 'title']);
         $tlFields = array_flip([
-                                'portlet_id', 'timeline_id', 'start', 'end', 'interval', 'stepWidth']);
+                                'portlet_id', 'timeline_id', 'start', 'end', 'interval', 'stepWidth', 'tl_position']);
         $tFields = array_flip([
                                 'id','tour_id', 'Mandant', 'Auftragsnummer', 'DatumVon', 'DatumBis', 'ZeitVon', 'ZeitBis',
                                 'IsDefault', 'avisiert', 'farbklasse', 'locked', 'name', 'Vorgangstitel',
@@ -656,7 +678,7 @@ if ($orderby) {
               p.portlet_id, p.lager_id, p.datum date, p.datum, 
               p.position, p.tagesnr, p.topcustom, p.title,
               
-              tl.timeline_id, tl.start, tl.end, tl.interval, tl.title tl_title, tl.interval stepWidth,
+              tl.timeline_id, tl.position tl_position, tl.start, tl.end, tl.interval, tl.title tl_title, tl.interval stepWidth,
               
               t.tour_id id, t.tour_id, t.Mandant, t.Auftragsnummer, t.DatumVon, t.DatumBis, t.ZeitVon, t.ZeitBis,
               t.IsDefault, t.avisiert, t.farbklasse, t.locked,
@@ -710,7 +732,7 @@ if ($orderby) {
                 ON (t.created_uid = cu.user_id) 
               LEFT JOIN mr_user mu 
                 ON (t.modified_uid = mu.user_id) 
-              ORDER BY p.position, tl.position, t.ZeitVon";
+              ORDER BY p.position, p.portlet_id, tl_position, tl.timeline_id, t.ZeitVon";
 
         $sql = strtr($portletSql, [':datum'=>$db->quote($date), ':lager_id'=>(int)$lager_id]);
         $rows = $db->fetchAll($sql);
@@ -755,27 +777,47 @@ if ($orderby) {
 
         $rsrcSql = "
             SELECT 
-             tour_id, 'MA' resourceType, tm.id, $maLabelExp label, $maLabelExp name, 
-             mid resourceId, extern_id, leistungs_id, tmt.einsatz_ab
+             tm.tour_id, 'MA' resourceType, tm.id, $maLabelExp label, $maLabelExp name, 
+             m.mid resourceId, extern_id, leistungs_id, tmt.einsatz_ab,
+             m.name nachname, '' kennzeichen, '' fahrzeugart, '' modell, '' bezeichnung
             FROM $tourMaTbl tm JOIN $maTbl m ON (tm.mitarbeiter_id = m.mid)
             LEFT JOIN mr_touren_dispo_mitarbeiter_txt tmt ON(tm.id = tmt.id)
             WHERE tm.tour_id IN (:tour_ids)
             UNION SELECT 
-             tour_id, 'FP' resourceType, id, $fpLabelExp label, $fpLabelExp name, 
-             fid resourceId, extern_id, leistungs_id, '' einsatz_ab
+             tf.tour_id, 'FP' resourceType, tf.id, $fpLabelExp label, $fpLabelExp name, 
+             f.fid resourceId, f.extern_id, f.leistungs_id, '' einsatz_ab,
+            '' nachname, f.kennzeichen, f.fahrzeugart, f.modell, '' bezeichnung
             FROM $tourFpTbl tf JOIN $fpTbl f ON (tf.fuhrpark_id = f.fid)
             WHERE tf.tour_id IN (:tour_ids)
             UNION SELECT 
-             tour_id, 'WZ' resourceType, id, $wzLabelExp label, $wzLabelExp name, 
-             wid resourceId, extern_id, leistungs_id, '' einsatz_ab
+             tw.tour_id, 'WZ' resourceType, id, $wzLabelExp label, $wzLabelExp name, 
+             w.wid resourceId, w.extern_id, w.leistungs_id, '' einsatz_ab,
+            '' nachname, '' kennzeichen, '' fahrzeugart, '' modell, w.bezeichnung
             FROM $tourWzTbl tw JOIN $wzTbl w ON (tw.werkzeug_id = w.wid)
             WHERE tw.tour_id IN (:tour_ids)
             ORDER BY tour_id, resourceType, resourceId
         ";
 
-        $rows = $db->fetchAll( str_replace(':tour_ids', implode(',', array_keys($aTourId2Row)), $rsrcSql));
+        $rows = count($aTourId2Row)
+                ? $db->fetchAll( str_replace(':tour_ids', implode(',', array_keys($aTourId2Row)), $rsrcSql))
+                : [];
+
         foreach($rows as $row ) {
             $_tid = $row['tour_id'];
+            $_rid = $row['resourceId'];
+            switch($row['resourceType']) {
+                case 'MA':
+                    $row['mid'] = $_rid;
+                    $row['mitarbeiter_id'] = $_rid;
+                    break;
+                case 'FP':
+                    $row['fid'] = $_rid;
+                    $row['fuhrpark_id'] = $_rid;
+                    break;
+                case 'WZ':
+                    $row['wid'] = $_rid;
+                    $row['werkzeug_id'] = $_rid;
+            }
             $aTourId2Row[ $_tid ]['resources'][] = $row;
         }
 
@@ -923,7 +965,7 @@ if ($orderby) {
                  ." LEFT JOIN $tblUsr cu ON (DV.created_uid = cu.user_id) " . PHP_EOL
                  ." LEFT JOIN $tblUsr mu ON (DV.modified_uid = mu.user_id) " . PHP_EOL
                  ." WHERE p.datum = :date AND p.lager_id = :lager_id "
-                 ." ORDER BY p.position, tl.position, ZeitVon";
+                 ." ORDER BY p_position, p.portlet_id, tl_position, tl.timeline_id, ZeitVon";
             
 //            die('#'.__LINE__ . ' <pre>' . strtr($sql, array(':date'=>$date, ':lager_id'=>$lager_id)) . '</pre>' .PHP_EOL);
             $rows =  $db->fetchAll($sql, array(':date'=>$date, ':lager_id'=>$lager_id));
@@ -1183,9 +1225,11 @@ if ($orderby) {
             WHERE tw.tour_id IN(:tour_ids)
             ORDER BY tour_id, resourceType
         ";
-        $aResources = $this->_db->fetchAll(
-            str_replace(':tour_ids', implode(',', $aTourIds), $resourcenSql),
-            [], Zend_Db::FETCH_ASSOC);
+
+        $aResources = count($aTourIds)
+            ? $this->_db->fetchAll(str_replace(':tour_ids', implode(',', $aTourIds), $resourcenSql),
+                                    [], Zend_Db::FETCH_ASSOC)
+            : [];
 
         foreach($aResources as $_rsrc) {
             $_tid = $_rsrc['tour_id'];
@@ -1285,9 +1329,10 @@ if ($orderby) {
             WHERE tw.tour_id IN(:tour_ids)
             ORDER BY tour_id, resourceType
         ";
-        $aResources = $this->_db->fetchAll(
-            str_replace(':tour_ids', implode(',', $aTourIds), $resourcenSql),
-            [], Zend_Db::FETCH_ASSOC);
+        $aResources = count($aTourIds)
+            ? $this->_db->fetchAll( str_replace(':tour_ids', implode(',', $aTourIds), $resourcenSql),
+                [], Zend_Db::FETCH_ASSOC)
+            : [];
 
         $aReObj->tourResources = [];
 
@@ -2448,6 +2493,27 @@ if ($orderby) {
                 u.user_role, u.user_role created_role, u.user_name
                 FROM ' . $this->_tbl . ' t '
             . ' LEFT JOIN mr_user u ON (t.created_uid = u.user_id) WHERE tour_id = ' . (int)$tourid;
+
+        return $this->_db->fetchRow($sql, [], Zend_Db::FETCH_ASSOC);
+    }
+
+    /**
+     * @param int $tourid
+     * @return array|false
+     * @throws Zend_Db_Table_Exception
+     */
+    public function getTourWithPortlet(int $tourid)
+    {
+        $sql = 'SELECT t.tour_id, t.Mandant, t.Auftragsnummer, farbklasse,
+                t.timeline_id, t.DatumVon, t.ZeitVon, t.DatumBis, t.ZeitBis, 
+                t.IsDefault, t.locked, t.created_uid,  t.modified_uid, 
+                u.user_role, u.user_role created_role, u.user_name,
+                p.lager_id, p.portlet_id, p.datum
+                FROM ' . $this->_tbl . ' t '
+            . ' JOIN mr_touren_timelines l ON (t.timeline_id = l.timeline_id) '
+            . ' JOIN mr_touren_portlets p ON (l.portlet_id = p.portlet_id) '
+            . ' LEFT JOIN mr_user u ON (t.created_uid = u.user_id) '
+            . ' WHERE tour_id = ' . (int)$tourid;
 
         return $this->_db->fetchRow($sql, [], Zend_Db::FETCH_ASSOC);
     }

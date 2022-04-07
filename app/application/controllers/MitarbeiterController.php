@@ -11,21 +11,32 @@
  */
 class MitarbeiterController extends MyProject_Controller_RestAbstract
 {
+    /** @var null|Model_Mitarbeiter  */
+    private $_model = null;
+
+    /** @var null|Model_Db_Mitarbeiter */
+    private $_storage = null;
+
+    /** @var null|Model_TourenDispoVorgaenge  */
+    private $_tourModel = null;
+
+    /** @var null|Model_Db_TourenDispoVorgaenge */
+    private $_tourStorage = null;
 
     // Initialize ActionController
     public function init()
     {
         $this->_db = Zend_Registry::get('db');
-        $this->_model = MyProject_Model_Database::loadModel('mitarbeiter');
+        $this->_model = new Model_Mitarbeiter();
         $this->_storage = $this->_model->getStorage();
         
         /* @var $this->_tourModel Model_TourenDispoVorgaenge */
-        $this->_tourModel = MyProject_Model_Database::loadModel('tourenDispoVorgaenge');
+        $this->_tourModel = new Model_TourenDispoVorgaenge();
         
         /* @var $this->_tourStorage Model_Db_TourenDispoVorgaenge */
         $this->_tourStorage = $this->_tourModel->getStorage();
 
-        // response-Objekt f�r den View
+        // response-Objekt für den View
         $this->_rsp = new stdClass();
 
         /* @var $request Zend_Controller_Request_Abstract */
@@ -42,6 +53,9 @@ class MitarbeiterController extends MyProject_Controller_RestAbstract
     public function listAction() {
         $modelLg = new Model_Lager();
         $this->view->lagerOptionsList = $modelLg->getAssocLagerNames();
+
+        $modelTeams = new Model_Teams();
+        $this->view->teamOptions = $modelTeams->getAssocTeams();
     }
 
     public function datalistAction() {
@@ -393,12 +407,6 @@ class MitarbeiterController extends MyProject_Controller_RestAbstract
         $modelLstg = new Model_Leistung();
         $tblLstg   = $modelLstg->getStorage()->info(Zend_Db_Table::NAME);
         
-        $modelDz = new Model_ResourcesDispozeiten();
-        $tblDz   = $modelDz->getStorage()->info(Zend_Db_Table::NAME);
-        
-        $modelSz = new Model_ResourcesSperrzeiten();
-        $tblSz   = $modelSz->getStorage()->info(Zend_Db_Table::NAME);
-        
         $mainTbl = $this->_storage->info(Zend_Db_Table::NAME);
         $mainKey = current($this->_storage->info(Zend_Db_Table::PRIMARY));
         
@@ -410,7 +418,6 @@ class MitarbeiterController extends MyProject_Controller_RestAbstract
         $limit   = (int) $rq->getParam('rows', 100);
         $sidx    = $rq->getParam('sidx', null);
         $sord    = $rq->getParam('sord', 'ASC');
-        $pid     = $rq->getParam('pid', '');
         $filters = $rq->getParam('filters', '');
         $extFilter = $rq->getParam('extFilter', 'all');
         $objFilters = null;
@@ -427,23 +434,6 @@ class MitarbeiterController extends MyProject_Controller_RestAbstract
             }            
             $rq->setParam('filters', $objFilters );
         }
-
-        $dVon = $rq->getParam('DatumVon');
-        $dBis = $rq->getParam('DatumBis');
-        $zVon = $rq->getParam('ZeitVon', '');
-        $zBis = $rq->getParam('ZeitBis', '');
-
-        //die(print_r($objFilters, 1));
-        //die(print_r($rq->getParam('filters'), 1));
-        
-        $tourId = $rq->getParam('tour', '');
-        $filter = $rq->getParams();
-        if ($tourId) {
-            $filter['tour_id'] = $tourId;
-        }
-        if (!$rq->getParam('DatumVon') && $rq->getParam('date')) {
-            $filter['DatumVon'] = $dVon = $rq->getParam('date');
-        }
         
         // Get Category-Term and create Sub-Sql
         $categoryTerm = '';
@@ -456,62 +446,49 @@ class MitarbeiterController extends MyProject_Controller_RestAbstract
                 if ($_v->field == 'kategorie')  { $categoryTerm = $_v->data; break; }
             }
         }
-
-        $rsrcModel = new Model_TourenDispoMitarbeiter();
         
         if ($categoryTerm) {
             /* @var $ctgLink Model_FuhrparkCategoriesLnk */
             $ctgLink = MyProject_Model_Database::loadModel('mitarbeiterCategoriesLnk');
             $categorieSubSql = $ctgLink->getCategorySubSql($categoryTerm);
         }
-
-        $dBisDate = $dBis ? new DateTime($dBis) : null;
-
-        $subSql = $rsrcModel->getTourResourceFilterSql0($filter);
-        // $subSql = $rsrcModel->getTourResourceFilterSqlNEU20190823($filter);
-        $this->_rsp->subSqlNew = $subSql;
         
-        if (!in_array(strtoupper($sord), array('ASC', 'DESC'))) 
+        if (!in_array(strtoupper($sord), array('ASC', 'DESC'))) {
             $sord = 'ASC';
+        }
         
         $opt = array("additionalFields" => array($mainTbl.'.extern_id', 'extern_firma',$mainTbl.'.leistungs_id', 'leistungs_name') ); //
         $sqlWhere = JqGridSearch::getSqlBySearch($TblCnf, $opt);
         if ($categorieSubSql) {
             $sqlWhere.= ($sqlWhere?' AND ':'') . ' mid IN(' . $categorieSubSql . ') ';
         }
-        
+        $joinExtern  = 'LEFT JOIN `mr_extern` AS `e` ON e.extern_id = mr_mitarbeiter.extern_id';
+        $extFirmaExp = ($extFilter == 'int') ? ' "" extern_firma' : ' e.extern_firma';
+        $extWhere    = ($extFilter == 'int') ? '(mr_mitarbeiter.extern_id IS NULL OR mr_mitarbeiter.extern_id = 0)' : '1';
+
         /* @var $select Zend_Db_Table_Select */
         $select = $db->select();
         $select->from( $mainTbl, new Zend_Db_Expr('COUNT(*) AS count'));
         $select->joinLeft(array('e'=>'mr_extern'), "e.extern_id = $mainTbl.extern_id", '');
         $select->joinLeft(array('l'=> $tblLstg), "l.leistungs_id = $mainTbl.leistungs_id", '');
-        if ($sqlWhere) $select->where ($sqlWhere);
-
-        $select2 = clone $select;
+        if ($sqlWhere) {
+            $select->where ($sqlWhere);
+        }
 		
         if ($extFilter == 'int') {
-            if ($subSql) {
-                $select->where($mainKey. ' NOT IN('.$subSql.')');
-            }
             $select->where(
                 '('.$mainTbl. '.extern_id IS NULL OR ' . $mainTbl. '.extern_id = 0)' );
         }
-        if ($extFilter == 'ext') {
+        else if ($extFilter == 'ext') {
             $select->where( $mainTbl. '.extern_id > 0' );
-            if ($dVon || $dBis) {
-                $select->joinLeft(array('dz' => $tblDz), " dz.ressourcen_typ = 'MA' AND mid = dz.ressourcen_id");
-                if ($dVon) $select->where($db->quoteInto(
-                    ' gebucht_von <= ? AND gebucht_bis >= ? ', $dVon));
-
-                if ($dBis) $select->where($db->quoteInto(
-                    ' gebucht_von <= ? AND gebucht_bis >= ? ', $dBis ));
-            }
         }
 		
         $count = $db->fetchOne($select);
 
         $total_pages = ($count > 0) ? ceil($count / $limit) : 0;
-        if ($page > $total_pages) $page = $total_pages;
+        if ($page > $total_pages) {
+            $page = $total_pages;
+        }
         
         $start = max(0, $limit * $page - $limit); // do not put $limit*($page - 1)
         
@@ -520,26 +497,21 @@ class MitarbeiterController extends MyProject_Controller_RestAbstract
         $select->from( $mainTbl );
         $select->joinLeft(array('e'=>'mr_extern'), "e.extern_id = $mainTbl.extern_id", 'extern_firma');
         $select->joinLeft(array('l'=> $tblLstg),   "l.leistungs_id = $mainTbl.leistungs_id", 'leistungs_name');
-        if ($sqlWhere)  $select->where ($sqlWhere);
+        if ($sqlWhere)  {
+            $select->where ($sqlWhere);
+        }
         
         if ($extFilter == 'int') {
-            if ($subSql)    $select->where($mainKey. ' NOT IN('.$subSql.')');
             $select->where(
                 '('.$mainTbl. '.extern_id IS NULL OR ' . $mainTbl. '.extern_id = 0)' );
         }
         
         if ($extFilter == 'ext') {
             $select->where( $mainTbl. '.extern_id > 0' );
-            if ($dVon || $dBis) {
-                $select->joinLeft(array('dz' => $tblDz), " dz.ressourcen_typ = 'MA' AND mid = dz.ressourcen_id");
-                if ($dVon) $select->where($db->quoteInto(
-                    ' gebucht_von <= ? AND gebucht_bis >= ? ', $dVon));
-
-                if ($dBis) $select->where($db->quoteInto(
-                    ' gebucht_von <= ? AND gebucht_bis >= ? ', $dBis ));
-            }
         }
-        if ($sidx)      $select->order( $sidx . ' ' . $sord );
+        if ($sidx){
+            $select->order( $sidx . ' ' . $sord );
+        }
         $select->limit($limit, $start);
         //echo '#' . __LINE__ . '<pre>' . $select->assemble() . '</pre>' . PHP_EOL;
         header('X-Debug-GetWherePartBySearch: '.json_encode($sqlWhere));
@@ -548,18 +520,27 @@ class MitarbeiterController extends MyProject_Controller_RestAbstract
         
         /* @var $result Zend_Db_Statement */
         $result = $db->query($select);
-        $num_fields = $result->columnCount();
 
         $this->_rsp->page = $page;
         $this->_rsp->total = $total_pages;
         $this->_rsp->records = $count;
         $this->_rsp->rows = $result->fetchAll(Zend_Db::FETCH_ASSOC);
+        $aRsrcIds = array_column($this->_rsp->rows, 'mid');
+
+        $sqlCTpl = "SELECT cl.mitarbeiter_id, c.category_id, c.name FROM mr_mitarbeiter_categories_lnk cl JOIN mr_mitarbeiter_categories c USING(category_id) WHERE mitarbeiter_id IN (:rsrcIds)";
+        $sqlCtg = str_replace(':rsrcIds', implode(',', $aRsrcIds), $sqlCTpl);
+        $aCtg = $db->fetchAll($sqlCtg, [], Zend_Db::FETCH_ASSOC);
+        $aCtgsByRsrc = [];
+        foreach($aCtg as $_c) {
+            $aCtgsByRsrc[ $_c['mitarbeiter_id'] ][] = ['category_id' => $_c['category_id'], 'name'=>$_c['name']];
+        }
         
         foreach($this->_rsp->rows as $i => $row ) {
-            $this->_rsp->rows[$i]['categories'] = $this->_model->fetchCategoriesByRow( $row )->toArray();
+            $this->_rsp->rows[$i]['categories'] = $aCtgsByRsrc[ $row['mid']] ?? []; // $this->_model->fetchCategoriesByRow( $row )->toArray();
         }
         $this->_rsp->executionTime = microtime(true) - $timeIn;
-        
+
+        $this->_rsp->queries = MyProject_Db_Profiler::getProfiledQueryList();
         $this->view->gridresponsedata = $this->_rsp;
     }
 }

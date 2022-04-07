@@ -47,7 +47,7 @@ refreshIfExists: false
                     if (data && data.gridRulers) return data.gridRulers;
                     return [];
                 case "refresh":
-                    // Kein Return, damit GridRulers neu aufgebaut werden können!
+                    // Kein Return, damit GridRulers neu aufgebaut werden kï¿½nnen!
                     this.each(function() {
                         var data = $(this).data(dataKey);
                         if (data && 'gridRulers' in data) data.gridRulers = null;
@@ -57,6 +57,7 @@ refreshIfExists: false
 
         return this.each(function(index) {
             var $self = $(this);
+            $self.addClass(dataKey);
             if (!$(this).data(dataKey)) $(this).data(dataKey, {});
             var data = $(this).data(dataKey);            
             
@@ -106,7 +107,7 @@ refreshIfExists: false
                  );
             });
             
-            $self.css("height", $("div.tl-grid-step:first", $self).height());
+            // $self.css("height", $("div.tl-grid-step:first", $self).height());
             data.gridRulers = $("div.tl-grid-step", $self);
         });
         

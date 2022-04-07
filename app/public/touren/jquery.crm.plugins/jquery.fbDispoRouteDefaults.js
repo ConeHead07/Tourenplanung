@@ -73,21 +73,21 @@
             
             
             $self.addClass('DropZoneDefaults Drag-Route ' + dataKey + '')
-            .css({
-                position:'absolute',
-                left:0,
-                bottom:0,
-                width:'100%',
-                height:19,
-                zIndex:3000,
-//                opacity:0.5,
-                display:'block', //'none'
-                borderLeft:0,
-                borderRight:0,
-                borderBottom:0,
-                backgroundImage:'none',
-                backgroundColor:'#fff'
-            })
+//             .css({
+//                 position:'absolute',
+//                 left:0,
+//                 bottom:0,
+//                 width:'100%',
+//                 // height:19,
+//                 zIndex:3000,
+// //                opacity:0.5,
+//                 display:'block', //'none'
+//                 borderLeft:0,
+//                 borderRight:0,
+//                 borderBottom:0,
+//                 backgroundImage:'none',
+//                 backgroundColor:'#fff'
+//             })
             .addClass('ui-state-default')
 //            .droppable(Fb.DropRsrcOnRouteSettings)
             .droppable($.extend({}, Fb.DropRsrcOnRouteSettings, {accept: Fb.DropRsrcOnRouteSettings.accept+',.is-default-resource'}) )
@@ -134,7 +134,7 @@
                }
             )
             .bind('dblclick', function() {
-                Fb.showRouteDetails( $self, {pages:{Resources: 'Ressourcen',Options:'Einstellungen'}} );
+                Fb.showRouteDetails( $self, {pages:{Resources: 'Ressourcen',Options:'Einstellungen',Historie: 'Historie'}} );
             });
             $self.bind('mouseleave', function() {
                 methods._trigger.apply( self, [self, 'leave', self]);                
@@ -144,7 +144,9 @@
                top:0, width:"15px", height:"15px", background:"#fff" 
             }
             // Detail-Info-Handler
-            $self.css({paddingLeft:20}).append(
+            $self
+                // .css({paddingLeft:20})
+                .append(
                 $("<div/>").css(iconOpts)
                 .addClass("ui-corner-all")
                 .append( $("<span/>").addClass("ui-icon ui-icon-info") )
@@ -163,7 +165,7 @@
                            $(this).removeClass("ui-state-hover");
                    } )
                 .click(function() {
-                    Fb.showRouteDetails( $self, {pages:{Resources: 'Ressourcen',Options:'Einstellungen'}} );
+                    Fb.showRouteDetails( $self, {pages:{Resources: 'Ressourcen',Options:'Einstellungen',Historie: 'Historie'}} );
                 })
             );
             
@@ -321,11 +323,9 @@
             if (!this || !$(this).length) return false;
             
             methods.sortResources.apply( this );
-            methods.refreshResourcesStat.apply( this );            
-//          var m = 'dragdata: ';for(var i in resourceSetOpts.data) m+= i+', '; alert(m);
+            methods.refreshResourcesStat.apply( this );
         },
         'addResources': function(resources) {
-//            alert("#314 "+dataKey+".addResources [this.class:"+$(this).attr("class")+"\nresources: "+resources.length);
             for(var ti in resources) {
                 methods.addResource.apply(this, [ resources[ti] ] );
             }
@@ -335,10 +335,6 @@
             methods.refreshResourcesStat.apply( this );
         },
         'addResource': function(addData) {
-//            alert("#107 "+dataKey+".addResource [this.class:"+$(this).attr("class")+"\naddData: "+addData.length);
-            
-//            var xdata = addData;
-//            var m='#163 '+dataKey+' addResource addData: '; for(var i in xdata) m+= i+':'+xdata[i]+'\n'; alert(m);
             var self = this;
             var $self = $(self);
             if (!addData) addData = {name: '??'};
@@ -349,7 +345,7 @@
                 alert('Unbekannter Systemfehler. Ressource konnte nicht initialisiert werden!');
                 return false;
             }
-            
+
             $("ul.resources:first", $self).append( $("<li/>").css({display:'inline',marginLeft:5}).append( t )  );
             t.addClass('is-default-resource');
             // Hier wird das Parent-Element an fbDispoResource uebergeben

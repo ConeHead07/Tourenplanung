@@ -13,10 +13,10 @@ class Model_Lager extends MyProject_Model_Database
         $cache = Zend_Registry::get( 'cache' );
         $this->_list = $cache->load($cacheId);
         $test = [ 0,1,2,3,4,5,6,7,8,9]; // = [0];
-
+        $this->_list = [];
 
         if (empty($this->_list)) {
-            $this->_list = $this->fetchEntries();
+            $this->_list = $this->fetchEntries([ 'order' =>  'IFNULL(ordnungszahl, lager_id) ASC ']);
             $cache->save($this->_list, $cacheId, [], 600);
             $test = $cache->load($cacheId);
         }

@@ -265,6 +265,7 @@ class MyProject_Model_Database extends MyProject_Model_Abstract
 
         // Fange Exception ab
         try {
+
             // Lade Zeile
             $s = $this->getStorage();
             $rowset = call_user_func_array(array($s, 'find'), func_get_args());
@@ -273,14 +274,11 @@ class MyProject_Model_Database extends MyProject_Model_Abstract
             // Lösche Zeile, returns num rows deleted
             return ($row) ? $row->delete() : false;
 
-//            $t = new Zend_Db_Table();
-//            $t->delete( /* where */ );
-        } catch (Zend_Db_Exception $e) {
+        } catch (Exception $e) {
             // Werfe eigene Exception
-//            die('#'.__LINE__ . ' ' . __METHOD__ . $e->getMessage() . PHP_EOL . $e->getTraceAsString());
-            throw new MyProject_Model_Exception('Löschen war nicht erfolgreich' . PHP_EOL . $e->getMessage() );
-        } catch(Exception $e) {
-            die('#' . __LINE__ . ' ' . __METHOD__ . ': ' . $e->getMessage() );
+            throw new MyProject_Model_Exception(
+                'Löschen war nicht erfolgreich ' . PHP_EOL
+                . $e->getMessage() );
         }
 
         // Loeschen war erfolgreich

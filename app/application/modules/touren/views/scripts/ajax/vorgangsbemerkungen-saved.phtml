@@ -3,33 +3,89 @@ $this->layout()->disableLayout();
 $r = Zend_Controller_Front::getInstance()->getResponse();
 $r->setHeader('Content-Type', 'text/html; charset=UTF-8', true);
 
-//echo '#' . __LINE__ . ' ' . basename(__FILE__). '<br>' . PHP_EOL;
+$data = $this->vorgangsbemerkungen->data;
+$controllerUrl = $this->vorgangsbemerkungen->controllerUrl;
 
 if (property_exists($this->vorgangsbemerkungen, 'error')) {
     echo '<div class="err">' . $this->vorgangsbemerkungen->error . "</div>\n";
 }
 
-if ($this->vorgangsbemerkungen->data 
-    && array_key_exists('bemerkung', $this->vorgangsbemerkungen->data)) {
+if ($data && array_key_exists('bemerkung', $data)) {
 
-    $avisiertChecked = ($this->vorgangsbemerkungen->data['avisiert'] ? ' checked="checked"' : '');
-    $attachesChecked = ($this->vorgangsbemerkungen->data['attachments'] ? ' checked="checked"' : '');
+    $avisiertChecked = ($data['avisiert'] ? ' checked="checked"' : '');
+    $attachesChecked = ($data['attachments'] ? ' checked="checked"' : '');
+
+    $avisiertZeitgenauChecked = ($data['avisiertZeitgenau'] ? ' checked="checked"' : '');
+    $attachesChecked = ($data['attachments'] ? ' checked="checked"' : '');
+
+    $avisiertDatum = $data['avisiertDatum'] ?: $data['DatumVon'];
+    $avisiertZeitVon = substr($data['avisiertZeitVon'] ?: $data['ZeitVon'], 0, 5);
+    $avisiertZeitBis = substr($data['avisiertZeitBis'] ?: $data['ZeitBis'], 0, 5);
     
     echo '<div class="headBemerkungen">Avisiert:</div>';
-    echo '<input type="checkbox" name="avisiert" value="1"' . $avisiertChecked . '/>';
-    echo 'Termin wurde mit dem Kunden abgesprochen<br>' . PHP_EOL;
+    echo '<input type="checkbox" id="checkAvisiert" name="avisiert" value="1"'
+        . $avisiertChecked . '/>';
+
+    echo '<label for="checkAvisiert">Termin wurde mit dem Kunden abgesprochen</label><br>' . PHP_EOL;
+    echo '<div id="avisiertDetailBox" style="padding-left:1.8rem">' . "\n";
+    echo ' Datum: <input type="text" name="avisiertDatum" size="10" value="'
+        . $avisiertDatum . '"/> ' . PHP_EOL;
+
+    echo ' <label for="checkAvisiertZeitgenau">'
+        . '<input type="checkbox" id="checkAvisiertZeitgenau" '
+        . 'style="width:.8em;height:.8em;margin-right:.15em" name="avisiertZeitgenau" value="1"'
+        . $avisiertZeitgenauChecked . '">'
+        . 'Tageszeit:</label> ';
+
+    echo '<span id="avisiertTageszeitBox">'
+        . '<input type="text" name="avisiertZeitVon" size="5" placeholder="08:00" value="'
+        . $avisiertZeitVon . '"/>';
+
+    echo ' bis <input type="text" name="avisiertZeitBis" size="5" placeholder="11:30" value="'
+        . $avisiertZeitBis . '"/>'
+        . '</span>' . PHP_EOL;
+
+    echo '</div>' . "\n";
+
     echo '<input type="checkbox" name="attachments" value="1"' . $attachesChecked . '/>';
     echo 'Pläne vorhanden';
     echo '</div>';
-    
-    if ( $this->vorgangsbemerkungen->data['bemerkung']) {
+
+    if ($data['bemerkung_json']) {
+        echo '<div class="headBemerkungen" src="json" style="margin-top:15px;">Bisherige Bemerkungen:</div>';
+
+        $bList= json_decode( $data['bemerkung_json'] );
+        if (json_last_error()) {
+        } else {
+
+            foreach($bList as $_bem) {
+                if (!empty($_bem->removed)) {
+                    continue;
+                }
+                $_id = $_bem->id ?? '';
+                $_pr = $_bem->print ?? '';
+                $_us = $_bem->user ?? '';
+                $_ts = $_bem->datetime ?? '';
+                $_bm = $_bem->bemerkung ?? '';
+                $_removable = $this->userName == $_us ? ' removable' : '';
+
+                echo '<div class="entry" src="json" id="' . $_id . '" print="' . $_pr . '">' . "\n"
+                    .'<div class="bemerkung-meta' . $_removable. '">' . "\n"
+                    .'<span class="user">' . $_us . '</span>, <span class="datetime">' . $_ts . '</span>' . "\n"
+                    .'</div>' . "\n"
+                    .'<div class="bemerkung">' . $_bm . '</div>' . "\n"
+                    .'</div>';
+            }
+        }
+    }
+    elseif ( $data['bemerkung']) {
 
         echo '<div class="headBemerkungen">Bisherige Bemerkungen:</div>';
 
-        if ('<?xml ' != substr($this->vorgangsbemerkungen->data['bemerkung'], 0, 6)) {
-            echo nl2br($this->vorgangsbemerkungen->data['bemerkung']);
+        if ('<?xml ' != substr($data['bemerkung'], 0, 6)) {
+            echo nl2br($data['bemerkung']);
         } else {
-            $xml = simplexml_load_string( $this->vorgangsbemerkungen->data['bemerkung'] );
+            $xml = simplexml_load_string( $data['bemerkung'] );
             $result = $xml->xpath('//div[@class="entry"]');
             foreach($result as $_ => $node) {
                 echo $node->asXML();
@@ -45,36 +101,5 @@ if ($this->vorgangsbemerkungen->data
     
 if (!Fb) Fb = {};
 
-Fb.RenderBemerkungenPrintFlag = function() {
-    $("div.entry", "#boxBemerkungen").each(function() {
-        var self = this;
-        var p = $(this).attr('print');        
-        var id = $(this).attr("id");        
-        
-        $("div.bemerkung-meta", this).prepend(
-            $("<input type='checkbox' name='attr["+id+"][print]' value='1' />")
-            .attr({checked:(p==1)})
-            .after( 
-                $("<span class='ui-icon ui-icon-print'/>").fbIcon({
-                    click: function() {
-                        $(this).prev().attr( {checked: $(this).prev().attr('checked') });
-                    }
-                 }
-            ))
-        );
-    });
-    
-    $("#boxBemerkungen").append(
-        $('<input type="button" value="Druckmarkierungen speichern" />').click(function() {
-            $.post( 
-                $("form#frmBemerkung").attr('rel'), 
-                $("#boxBemerkungen").serialize(), 
-                function(data) {
-                    alert('aktualisiert!');
-                }
-            );
-        })
-    ).append(
-        $('<input type="hidden" name="attr[dummie][print]" value="0" />'));
 Fb.RenderBemerkungenPrintFlag();
 </script>

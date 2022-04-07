@@ -32,15 +32,15 @@ class Model_TourenPortlets extends MyProject_Model_Database {
     }
 
     public function dispoLog($portlet_id, $action, $aDetails) {
-        $uid = MyProject_Auth_Adapter::getUserId();
-        $this->getTourDispoLogger()->logTourenplan($portlet_id, $action, $uid, $aDetails);
+        $aDetails['portlet_id'] = $portlet_id;
+        $this->getTourDispoLogger()->logTourenplan($portlet_id, $action, null, $aDetails);
     }
     
     public function operationIsAllowedById(int $id, object $userIdentity, string $action ) {
 
         if ($userIdentity->user_role == 'innendienst') {
             if (in_array($action, ['updateportlettitle'])) {
-                return true;
+                return false;
             }
         }
         return true;
@@ -100,7 +100,7 @@ class Model_TourenPortlets extends MyProject_Model_Database {
      */
     public function getMaxPos($datum, $lager_id) {
         return $this->_db->fetchOne(
-                        'SELECT MAX(`position`) FROM ' . $this->_db->quoteIdentifier($this->_tbl) . PHP_EOL
+                        'SELECT GREATEST(max(position), count(1)) FROM ' . $this->_db->quoteIdentifier($this->_tbl) . PHP_EOL
                         . 'WHERE datum = :datum'
                         . ' AND lager_id = :lager_id', 
                         array(':datum' => $datum, ':lager_id' => $lager_id));
@@ -121,11 +121,10 @@ class Model_TourenPortlets extends MyProject_Model_Database {
             $data['tagesnr'] = $this->getNewTagesnr($data['datum'], $data['lager_id']);
             $data['position'] = 1 + (int)$this->getMaxPos($data['datum'], $data['lager_id']);
             $id = $this->insert($data);
-            /*
-            $this->movePosition($id, $toPos);
-            $this->updatepositions($data['datum']);
-            */
-            $this->dispoLog($id, 'insert', ['DatumVon' => $data['datum'], 'bemerkunng' => json_encode($data)]);
+
+            $data['bemerkung'] = json_encode($data);
+            $data['DatumVon'] = $data['datum'];
+            $this->dispoLog($id, 'insert-TP', $data);
             return $id;
         }
         if (!$id) {
@@ -171,39 +170,37 @@ class Model_TourenPortlets extends MyProject_Model_Database {
         $modelTL = new Model_TourenTimelines();
         
         try {
-            $db->beginTransaction();
             $data = $this->fetchEntry($id);
 
             $aTL = $this->getTimelines( $id );
             $bDelOk = true;
 
             foreach($aTL as $_tl) {
-
                 if (!$modelTL->delete( $_tl['timeline_id'], true)) {
                     $bDelOk = false;
                 }
-
             }
 
             if (!$bDelOk) {
-                throw new Exception('Tourenleiste konnte nicht entfernt werden, da enthaltene Touren nicht gelöscht werden konnten!');
+                throw new Exception(
+                    'Tourenleiste konnte nicht entfernt werden, '
+                    . 'da enthaltene Touren nicht gelöscht werden konnten!'
+                );
             }
             
-            parent::delete($id);
+            if (!parent::delete($id)) {
+                return false;
+            }
             
             $groupVal = $db->quote($data['datum']);
             $pos = $data['position'];
-
             $cond = $posFld . ' > ' . $pos . ' AND ' . $groupFld . ' = ' . $groupVal;
-
             $storage->update(
                     array('position'=>new Zend_Db_Expr($posFld.'-1')),
                     $cond
             );
-            
-            $db->commit();
+
         } catch(Exception $e) {
-            $db->rollBack();
             throw $e;
         }
         return true;

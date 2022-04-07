@@ -18,7 +18,7 @@ root {
 .portlet { margin: 0 0 3px 0; height:auto; }
 .portlet-header { margin: 4px 1px 0 1px; padding:0; overflow:hidden; }
 .portlet-header .ui-icon { float: left; overflow:hidden; }
-.portlet-content { margin: 0 2px 2px 2px; overflow:hidden; background-color:#fff; }
+.portlet-content { margin: 0 2px 2px 2px; overflow:hidden; background-color:#fff; padding-left:15px; }
 .ui-sortable-placeholder { border: 1px dotted black; visibility: visible !important; height: 50px !important; }
 .ui-sortable-placeholder * { visibility: hidden; }
 

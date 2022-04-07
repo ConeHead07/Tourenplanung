@@ -16,7 +16,7 @@ droplinemenu.buildmenu("menu");
 EOT;
 ?>
 <!-- start menu HTML -->
-<div id="menu" class="droplinebar" style="z-index:99999;display:block;background-color:<?= $hdBgColor ?>">
+<div id="menu" class="droplinebar" style="background-color:<?= $hdBgColor ?>">
     <ul style="background-color:<?= $hdBgColor ?>">
         <!-- li><a href="<?php echo $baseUrl; ?>">Home</a></li -->
         <?php if ($userRole !== 'guest'): ?>
@@ -24,7 +24,6 @@ EOT;
         <li><a href="<?php echo $baseUrl; ?>/touren/index">Touren</a>
           <ul style="padding-left:0px">
           <li><a href="<?php echo $baseUrl; ?>/touren/index">Tagesdispo</a></li>
-              <li><a href="<?php echo $baseUrl; ?>/touren/historie">Historie</a></li>
           <li><a href="<?php echo $baseUrl; ?>/tourlist/index">Suche</a></li>
           </ul></li>
         <?php endif; ?>
@@ -48,11 +47,12 @@ EOT;
           </ul></li>
         <li><a href="<?php echo $baseUrl; ?>/mitarbeiter/list">Ressourcen</a>
           <ul>
-          <li><a href="<?php echo $baseUrl; ?>/mitarbeiter/list">Mitarbeiter</a></li>
-          <li><a href="<?php echo $baseUrl; ?>/fuhrpark/list">Fuhrpark</a></li>
-          <li><a href="<?php echo $baseUrl; ?>/werkzeug/list">Werkzeug</a></li>
-          <li><a href="<?php echo $baseUrl; ?>/extern/list">Externe Anbieter</a></li>
-          <li><a href="<?php echo $baseUrl; ?>/leistung/list">Leistungskatalog</a></li>
+              <li><a href="<?php echo $baseUrl; ?>/mitarbeiter/list">Mitarbeiter</a></li>
+              <li><a href="<?php echo $baseUrl; ?>/fuhrpark/list">Fuhrpark</a></li>
+              <li><a href="<?php echo $baseUrl; ?>/werkzeug/list">Werkzeug</a></li>
+              <li><a href="<?php echo $baseUrl; ?>/extern/list">Externe Anbieter</a></li>
+              <li><a href="<?php echo $baseUrl; ?>/leistung/list">Leistungskatalog</a></li>
+              <li><a href="<?php echo $baseUrl; ?>/teams/list">Teams</a></li>
           </ul>
         </li>
         <?php endif; ?>

@@ -148,52 +148,55 @@ class Model_TourenTimelines extends MyProject_Model_Database
         $tourIds = array();
         
         /* @var $modelTV Model_TourenDispoVorgaenge */
-        $modelTV = MyProject_Model_Database::loadModel('tourenDispoVorgaenge');
-        
-        /* @var $storeTV Model_Db_TourenDispoVorgaenge */
-        $storeTV = $modelTV->getStorage();
-                
+        $modelTV = new Model_TourenDispoVorgaenge();
+
         $modelKey = $modelTV->getStorage()->info(Zend_Db_Table::PRIMARY);
-        if (is_array($modelKey)) $modelKey = current($modelKey);
+        if (is_array($modelKey)) {
+            $modelKey = current($modelKey);
+        }
         
         $touren = $modelTV->fetchEntries(array(
            'where' => $db->quoteIdentifier('timeline_id') . ' = ' . $db->quote($id) 
         ));
         
         foreach($touren as $_tour) {
-            if (!(int)$_tour['IsDefault']) $hasTours+= 1;
+            if (!(int)$_tour['IsDefault']) {
+                $hasTours+= 1;
+            }
             $tourIds[] = $_tour[$modelKey];
         }
         
-        // Wenn force => L�sche alle Touren
-        // Wenn keine Touren zugeordnet sind l�sche Tour-Default
+        // Wenn force => Loesche alle Touren
+        // Wenn keine Touren zugeordnet sind loesche Tour-Default
         if (count($tourIds) ) {
             if ($force || !$hasTours) {
-                $storeTV->delete($modelKey.' IN (' . implode(',', $tourIds) . ')');
+                foreach($tourIds as $_tourId) {
+                    $modelTV->delete( $_tourId );
+                }
             } else {
-                $this->_addError( 'Konflikt: Der Timeline sind noch ' . $hasTours . ' Touren zugeordnet!');
+                $this->_addError(
+                    'Konflikt: Der Timeline sind noch '
+                    . $hasTours . ' Touren zugeordnet!'
+                );
                 return false;
             }
         }
         
         try {
-            
-            //$db->beginTransaction();
             $data = $this->fetchEntry($id);
+            if (!parent::delete($id)) {
+                return false;
+            }
+
             $groupVal = $db->quote($data['portlet_id'], 'int');
             $pos = $data['position'];
-
             $cond = $posFld . ' > ' . $pos . ' AND ' . $groupFld . ' = ' . $groupVal;
 
             $storage->update(
-                    array('position'=>new Zend_Db_Expr($posFld.'-1')),
-                    $cond
+                array('position'=>new Zend_Db_Expr($posFld.'-1')),
+                $cond
             );
-            
-            parent::delete($id);
-            //$db->commit();
         } catch(Exception $e) {
-            //$db->rollBack();
             throw $e;
             return false;
         }
@@ -283,9 +286,10 @@ class Model_TourenTimelines extends MyProject_Model_Database
         $tourModel = MyProject_Model_Database::loadModel('tourenDispoVorgaenge');
         
         $ignoreTourIds = array();
-        $moveToOtherDay = ($toPortlet['datum'] != $fromPortlet['datum']);
+
         // Erst mal pruefen, ob die Portlets an unterschiedlichen Tagen eingetragen
-        // sind, denn dann m�ssen keine Touren u. Resourcen umgebucht werden.
+        // sind und Touren u. Resourcen umgebucht werden müssen.
+        $moveToOtherDay = ($toPortlet['datum'] != $fromPortlet['datum']);
         if ( $moveToOtherDay )
         {
             $tourModel = new Model_TourenDispoVorgaenge();
@@ -304,7 +308,7 @@ class Model_TourenTimelines extends MyProject_Model_Database
 
             if (count($returnObject->lockedTouren)) {
                 $returnObject->message = 
-                    count($returnObject->lockedTouren). ' Touren sind geblockt und m�ssen erst wieder freigegeben werden:' . PHP_EOL
+                    count($returnObject->lockedTouren). ' Touren sind geblockt und muessen erst wieder freigegeben werden:' . PHP_EOL
                    .implode(PHP_EOL, $returnObject->lockedTouren);
                 return $returnObject;                    
             }
@@ -315,7 +319,7 @@ class Model_TourenTimelines extends MyProject_Model_Database
                 'WZ' => MyProject_Model_Database::loadModel('tourenDispoWerkzeug'),
             );
 
-            $num_unfree = 0;
+            $num_NotFree = 0;
             $resources = array();
             /* @var $_model Model_TourenDispoResourceAbstract */
             foreach($rsrcModels as $k => $_model) {
@@ -323,8 +327,9 @@ class Model_TourenTimelines extends MyProject_Model_Database
                 $resources = $_model->getResourcesByTimelineId($timeline_id);
                 $_rsrcKey = $_model->getResourceKey() ;
                 foreach($resources as $_rsrc) {            
-                    if (!isset($_rsrc[$_rsrcKey]))
-                    die('#'.__LINE__.' ' . __METHOD__ . ' rsrcKey not found ' . $_rsrcKey. ' in ' . print_r($_rsrc,1));
+                    if (!isset($_rsrc[$_rsrcKey])) {
+                        die('#' . __LINE__ . ' ' . __METHOD__ . ' rsrcKey not found ' . $_rsrcKey . ' in ' . print_r($_rsrc, 1));
+                    }
                     
                     $chckFree = $_model->checkResourceIsFree(
                         $_rsrc[$_rsrcKey], 
@@ -340,19 +345,25 @@ class Model_TourenTimelines extends MyProject_Model_Database
                     );
 
                     if (!$chckFree->free) {
-                        $returnObject->unfreeResources[$k] = array_merge($returnObject->unfreeResources[$k], $chckFree->data);
-                        $num_unfree+= count($chckFree->data);
+                        foreach($chckFree->data as $_itm) {
+                            $returnObject->unfreeResources[$k][] = $_itm;
+                        }
+                        $num_NotFree+= count($chckFree->data);
                     }
                 }
             }
 
-            if ($num_unfree) {
-                $returnObject->message = $num_unfree . ' Resources sind im Zielbereich bereits verbucht!' . PHP_EOL;
+            if ($num_NotFree) {
+                $returnObject->message = $num_NotFree . ' Resources sind im Zielbereich bereits verbucht!' . PHP_EOL;
                 foreach($returnObject->unfreeResources as $k => $_resources) {
                     if (!count($_resources)) continue;
                     $returnObject->message.= $k . ': ' . count($_resources) . PHP_EOL;
                     foreach($_resources as $_rsrc) 
-                        $returnObject->message.= $_rsrc['Auftragsnummer'] . ' / ' .$_rsrc['Resource'] . ' : ' . $_rsrc['DatumVon'] . ' ' . substr($_rsrc['ZeitVon'],0,5) . PHP_EOL;
+                        $returnObject->message.= $_rsrc['Auftragsnummer']
+                            . ' / ' .$_rsrc['Resource'] . ' : '
+                            . $_rsrc['DatumVon'] . ' '
+                            . substr($_rsrc['ZeitVon'],0,5)
+                            . PHP_EOL;
                 }
                 return $returnObject;
             }
@@ -360,12 +371,10 @@ class Model_TourenTimelines extends MyProject_Model_Database
         
         try {
             $db->beginTransaction();
-//            echo '#'.__LINE__ . ' ' . __METHOD__ . PHP_EOL;            
             
             if ( $moveToOtherDay )
             {
                 foreach($touren as $_tour) {
-//                    echo '#'.__LINE__ . ' ' . __METHOD__ . ' tour_id:'.$_tour['tour_id'].' to ' . $toPortlet['datum'] . PHP_EOL;
                     $tourModel->update(array(
                         'DatumVon' => $toPortlet['datum'],
                         'DatumBis' => $toPortlet['datum'],
@@ -373,18 +382,14 @@ class Model_TourenTimelines extends MyProject_Model_Database
                 }
             }
 
-//            echo '#'.__LINE__ . ' ' . __METHOD__ . ' Change Portlet-ID of Timeline: ' . $toPortletId . PHP_EOL;
             if (!$this->update(array('portlet_id' => $toPortletId), $timeline_id)) {
                 throw new Exception('Fehler beim Aktualisieren der Portlet-Zuordnung!');
             }
 
-//            echo '#'.__LINE__ . ' ' . __METHOD__ . PHP_EOL;
             $this->updatepositions($toPortletId);
-            
-//            echo '#'.__LINE__ . ' ' . __METHOD__ . PHP_EOL;
+
             $this->movePosition($timeline_id, $toPos);   
-            
-//            echo '#'.__LINE__ . ' ' . __METHOD__ . PHP_EOL;
+
             $db->commit();
             $returnObject->success = true;
             
@@ -460,6 +465,24 @@ class Model_TourenTimelines extends MyProject_Model_Database
         return $this->_db->fetchOne($sql, [], Zend_Db::FETCH_ASSOC);
 
     }
+
+    /**
+     * @param int $timelineId
+     * @return mixed
+     * @throws Zend_Db_Table_Exception
+     */
+    public function getDataWithPortlet(int $timelineId)
+    {
+        $modelPortlets = new Model_TourenPortlets();
+
+        $sql = 'SELECT t.*, p.lager_id, p.datum, p.tagesnr, p.title portlet_title '
+            . ' FROM ' . $this->_tbl . ' t '
+            . ' LEFT JOIN ' . $modelPortlets->getTable() . ' p ON (t.portlet_id = p.portlet_id)'
+            . ' WHERE ' . $this->key() . ' = ' . (int)$timelineId;
+
+        return $this->_db->fetchRow($sql, [], Zend_Db::FETCH_ASSOC);
+    }
+
     
     public function countVorgaenge($timeline_id, $withDefaults = false)
     {

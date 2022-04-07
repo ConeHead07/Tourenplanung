@@ -141,7 +141,7 @@ $(function(){
                 $fp_num_lkw = 0;
                 $fp_num_bulli = 0;
                 
-                foreach($_tour['resources'] as $_rsrc) {
+                if (!empty($_tour['resources'])) foreach($_tour['resources'] as $_rsrc) {
                     
                     switch($_rsrc['resourceType']) {
                         case 'MA':

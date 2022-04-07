@@ -8,6 +8,7 @@ $baseUrlDispozeiten = $this->url(array('module' => 'touren','controller'=>'resou
 $baseUrlRsrcTouren = $this->url(array('module' => 'touren','controller'=>'resourcesDispozeiten','action'=>'gridtourlist', 'rsrcType'=>'MA', 'ajax'=>1), null, FALSE);
 
 $lagerOptions = $this->lagerOptionsList;
+$teamtOptions = $this->teamOptions;
 
 // Cache frontendoptions
 $frontendOptions = array(
@@ -89,15 +90,14 @@ if (!($appendGridScript = $cache->load($cacheID))) {
     $JqGrid->height('auto')
         ->jsonReader(array( "repeatitems" => false, "id" => 0 ) )
         ->width(800)
-        ->rowList(array(10, 20, 30, 40, 50,100))
-        ->rowNum(100)
+        ->rowList(array(10, 20, 30, 40, 50,100, 200, 500))
+        ->rowNum(20)
         ->rownumbers(true)
         ->resizable(false)
         ->sortable(true)
         ->datatype('json')
         ->url(APPLICATION_BASE_URL . '/mitarbeiter/gridresponsedata')
         ->editurl(APPLICATION_BASE_URL . '/mitarbeiter/grideditdata')
-        ->enableInlineEditingDefaults()
         ->setNavGrid($GridIdPager, $properties = array())
         ->caption("Test-Grid")
         ->shrinkToFit(true)
@@ -105,7 +105,10 @@ if (!($appendGridScript = $cache->load($cacheID))) {
         ->on_loadError( new JsFunction("function(xhr,status,error){ alert('#57 list.phtml \\nxhr.reponseText:' + xhr.responseText + '\\nstatus: ' + status+'\\nerror: '+error);}") )
         ->addChainMethod('.jqGrid("filterToolbar",{stringResult: true,searchOnEnter : false})')
 //        ->addChainMethod( ".jqGrid('searchGrid', {sopt:['cn','bw','eq','ne','lt','gt','ew']} )")
-        ->colNames( array('Sperren','Gebucht','Touren','Id', 'Extern', 'Menge', 'Leistung', 'Standort', 'Name', 'Vorname', 'Abteilung',  'Position', 'FK', 'U-Anspruch','Kategorien') )
+        ->colNames( [
+                'Sperren','Gebucht','Touren', 'Aktionen', 'Id', 'Extern', 'Menge', 'Leistung',
+                'Standort', 'Name', 'Vorname', 'Abteilung', 'Email',  'Position', 'FK',
+                'U-Anspruch', 'Team', 'Kategorien'] )
         ->colModel(array('addFieldsProperties' => array(
             "sperren" => array('key'=>false, 'editable'=>false, 'sortable'=>false, 'search'=>false, 'formatter' => new JsFunction(
                 'function(cellvalue, options, rowObject) { '
@@ -122,6 +125,21 @@ if (!($appendGridScript = $cache->load($cacheID))) {
                 .'return "<a href=\'#"+rowObject.mid+"\' onclick=\'showDialogRsrcTouren("+rowObject.mid+",1);return false;\' >Touren</a>"; '
                 .'}'
             )),
+
+            'aktionen' => [ 'key'=>false, 'editable'=>false, 'sortable'=>false, 'search'=>false,
+                'formatter' => new JsFunction(
+            'function(cellValue, options, rowObject) {
+                         var id = rowObject.mid;
+                         return \'<span class="ui-buttonset row-edit-buttons" data-rowid="\' + id + \'">\' + 
+                         \'<button data-rowid="\' + id + \'" class="ui-button btn-row-edit"><span class="ui-icon ui-icon-pencil"></span></button>\' +
+                         \'<button data-rowid="\' + id + \'" class="ui-button btn-row-save"><span class="ui-icon ui-icon-disk"></span></button>\' +
+                         \'<button data-rowid="\' + id + \'" class="ui-button btn-row-cancel"><span class="ui-icon ui-icon-cancel"></span></button>\' +
+                         \'<button data-rowid="\' + id + \'" class="ui-button btn-row-remove"><span class="ui-icon ui-icon-trash"></span></button>\' +
+                         \'</span>\';
+                         }'
+                )
+            ],
+
             "mid" => array('key'=>true),
             "extern_id" => array('editable'=>true, 'edittype' => 'text'),
             "menge"  => array('editable'=>true, 'edittype'=>'text', 'editrules'=>array('number'=>true)),
@@ -134,9 +152,11 @@ if (!($appendGridScript = $cache->load($cacheID))) {
             "name" => array('editable'=>true, 'edittype'=>'text', 'editoptions'=>null),
             "vorname" => array('editable'=>true, 'edittype'=>'text'),
             "abteilung" => array('editable'=>true, 'edittype'=>'text'),
+            "email" => array('editable'=>true, 'edittype'=>'text'),
             "eingestellt_als" => array('editable'=>true, 'edittype'=>'text'),
-            "fuehrerscheinklassen" => array('editable'=>true, 'edittype'=>'text'),
-            "urlaubsanspruch" => array('editable'=>true, 'edittype'=>'text'),
+            "fuehrerscheinklassen" => array('editable'=>true, 'edittype'=>'text', 'hidden'=>true),
+            "urlaubsanspruch" => array('editable'=>true, 'edittype'=>'text', 'hidden'=>true),
+            "team_id" => array('editable'=>true, 'edittype'=>'select', 'editoptions'=>["value" => $teamtOptions]),
             "categories" => array('editable'=>true, 'edittype'=>'text',
                 'sortable'=>false,
                 'searchoptions' => array(
@@ -185,45 +205,31 @@ if (!($appendGridScript = $cache->load($cacheID))) {
 
     /* @var $colModelList JqGridColModelList */
     $colModelList = $JqGrid->colModel();
+    $quotedGridId = json_encode($GridId);
 
-    $JqGrid->enableInlineEditingDefaults(array('oneditfunc' => new JsFunction('function() {
-            // Input für Initialisierung leeren, Daten wurden zuvor von der
-            // CustomUnformatter-Funktion in td.dat(inputData) abgelegt
-            // von wo sie zur Initialisierung des Chooser-Objekts ausgelesen werden
-            var $input = $( "#"+id+"_categories" ).val( "" );
+    $JqGrid->on_loadComplete(new JsFunction('function() {
+                jQuery(' . $quotedGridId . ').find(".row-edit-buttons").each(function() {
+                var grid = $(this).closest(".ui-jqgrid-btable");
+                var rowid = $(this).data("rowid");
+                var btnEdit = $(this).find("button.btn-row-edit");
+                var btnSave = $(this).find("button.btn-row-save").hide();
+                var btnCancel = $(this).find("button.btn-row-cancel").hide();
+                var btnRemove = $(this).find("button.btn-row-remove");
             
-            // Chooser registrieren und an Input-Feld binden
-            if (0) jqChooser.register( $input, "' . APPLICATION_BASE_URL . '/macategories/autocomplete");
-            else jqChooser.registerUserBox( $input, "' . APPLICATION_BASE_URL . '/macategories/selectdialog", 
-                function(searchInput) {            
-                    $(searchInput).hide();
-                    $("#treeSelectDialog").bind("selectTreeNode", function(event, data) {
-                        jqChooser.addValue( searchInput, data.id, data.name );
-                        CategoryIdCache[data.id] = data.name;
-                    });
+                btnEdit.bind(  "click", function() { grid.jqGrid("editRow",    rowid); onMARowEditInline(rowid); btnEdit.hide(); btnRemove.hide(); btnSave.show(); btnCancel.show(); });
+                btnSave.bind(  "click", function() { grid.jqGrid("saveRow",    rowid); btnEdit.show(); btnRemove.show(); btnSave.hide(); btnCancel.hide(); });
+                btnCancel.bind("click", function() { grid.jqGrid("restoreRow", rowid); btnEdit.show(); btnRemove.show(); btnSave.hide(); btnCancel.hide(); });
+                btnRemove.bind("click", function() {
+                    var rowData = grid.jqGrid("getRowData", rowid);
+                    
+                    if (!confirm("Soll der ausgewÃ¤hlte Mitarbeiter " + rowData.vorname + " " + rowData.name + " wirklich gelÃ¶scht werden?")) {
+                        return false;
+                    }
+                    $.post("/fuhrpark/grideditdata", { oper: "del", id: rowid}, function() { grid.jqGrid("delRowData",  rowid); }) 
+                });
             });
-            
-            // Chooser mit Werten befüllen
-            var data = $input.closest( "td" ).data("inputData");
-            var chooserSearch = jqChooser.getSearchInputByOriginInput( $input );
-            jqChooser.setData( chooserSearch, data );
-            
-            // Autocomplete-Chooser: extern_id
-            $( "#"+id+"_extern_id" ).fbChooser({
-                "showSearchInput": true
-                ,"source": "' . APPLICATION_BASE_URL . '/extern/autocomplete?type=MA"
-                ,"multiple": false
-                ,"cacheValues" : ExternIdCache
-            });
-            
-            // Autocomplete-Chooser: leistungs_id
-            $( "#"+id+"_leistungs_id" ).fbChooser({
-                "showSearchInput": true
-                ,"source": "' . APPLICATION_BASE_URL . '/leistung/autocomplete?type=MA"
-                ,"multiple": false
-                ,"cacheValues" : LeistungsIdCache
-            });
-        }')));
+                
+        }'));
 
     $colModelList->getItem('categories')->getInstanceFormatterCustom(
         'function( cellvalue, opts, rowObject ) {
@@ -319,6 +325,25 @@ if (!($appendGridScript = $cache->load($cacheID))) {
             }'
     );
 
+    $colModelList->getItem('team_id')->getInstanceFormatterCustom(
+        'function( cellvalue, opts, rowObject ) {
+                if (!parseInt(cellvalue) ) return "";
+                // Beim ersten Rendering des Feldes vertrauen wir dem rowObjet
+                var lbl = TeamIdCache[ cellvalue ] || cellvalue;
+                
+                return "<span rel-value=\'"+cellvalue+"\' rel-label=\'"+lbl+"\'>"+lbl+"</span>";                 
+            }'
+    );
+
+    $colModelList->getItem('team_id')->getInstanceUnformatCustom(
+        'function( cellvalue, options, cell ) {
+                var span = $("span", cell);
+                if (!span.length) return "";
+                var val = span.attr("rel-value");
+                return val;
+            }'
+    );
+
     /* @var $colModelList JqGridColModelList */
     $colModelList = $JqGrid->colModel();
 
@@ -360,7 +385,7 @@ if (!($appendGridScript = $cache->load($cacheID))) {
         'function(formid) {'
         .'//alert("#344");
                 
-            // Input für Initialisierung leeren, Daten wurden zuvor von der
+            // Input fï¿½r Initialisierung leeren, Daten wurden zuvor von der
             // CustomUnformatter-Funktion in td.dat(inputData) abgelegt
             // von wo sie zur Initialisierung des Chooser-Objekts ausgelesen werden
             var $input = $( "#categories", formid ).val( "" );
@@ -375,7 +400,7 @@ if (!($appendGridScript = $cache->load($cacheID))) {
                     });
             });
             
-            // Chooser mit Werten befüllen
+            // Chooser mit Werten befï¿½llen
             var data = $input.closest( "td" ).data("inputData");
             var chooserSearch = jqChooser.getSearchInputByOriginInput( $input );
             jqChooser.setData( chooserSearch, data );
@@ -438,6 +463,7 @@ EOT;
         'var CategoryIdCache = new Array();' . PHP_EOL
         .'var ExternIdCache = {};' . PHP_EOL
         .'var LeistungsIdCache = {};' . PHP_EOL
+        .'var TeamIdCache = ' . json_encode($teamtOptions, JSON_PRETTY_PRINT) . ';' . PHP_EOL
         .'jQuery(function() {'  . PHP_EOL
         .(string) $JqGrid->getJsCode()
         .'});';
@@ -446,6 +472,51 @@ EOT;
 }
 $this->headScript()->appendScript( $appendGridScript );
 ?>
+
+<script>
+
+    function onMARowEditInline( id ) {
+
+        // Input fÃ¼r Initialisierung leeren, Daten wurden zuvor von der
+        // CustomUnformatter-Funktion in td.dat(inputData) abgelegt
+        // von wo sie zur Initialisierung des Chooser-Objekts ausgelesen werden
+        var $input = $( "#"+id+"_categories" ).val( "" );
+
+        // Chooser registrieren und an Input-Feld binden
+        if (0) jqChooser.register( $input, "<?= APPLICATION_BASE_URL ?>/macategories/autocomplete");
+        else jqChooser.registerUserBox( $input, "<?= APPLICATION_BASE_URL ?>/macategories/selectdialog",
+            function(searchInput) {
+                $(searchInput).hide();
+                $("#treeSelectDialog").bind("selectTreeNode", function(event, data) {
+                    jqChooser.addValue( searchInput, data.id, data.name );
+                    CategoryIdCache[data.id] = data.name;
+                });
+            });
+
+        // Chooser mit Werten befï¿½llen
+        var data = $input.closest( "td" ).data("inputData");
+        var chooserSearch = jqChooser.getSearchInputByOriginInput( $input );
+        jqChooser.setData( chooserSearch, data );
+
+        // Autocomplete-Chooser: extern_id
+        $( "#"+id+"_extern_id" ).fbChooser({
+            "showSearchInput": true
+            ,"source": "<?= APPLICATION_BASE_URL ?>/extern/autocomplete?type=MA"
+            ,"multiple": false
+            ,"cacheValues" : ExternIdCache
+        });
+
+        // Autocomplete-Chooser: leistungs_id
+        $( "#"+id+"_leistungs_id" ).fbChooser({
+            "showSearchInput": true
+            ,"source": "<?= APPLICATION_BASE_URL ?>/leistung/autocomplete?type=MA"
+            ,"multiple": false
+            ,"cacheValues" : LeistungsIdCache
+        });
+
+    }
+
+</script>
 <span id="RsrcFilterBtnSet"><button>Filter: </button><input type="radio" id="rsrcFilterAll" name="rsrcFilter" value="all"><label for="rsrcFilterAll">Alle</label>
     <input type="radio" id="rsrcFilterInt" name="rsrcFilter" value="int"><label for="rsrcFilterInt">Interne</label>
     <input type="radio" id="rsrcFilterExt" name="rsrcFilter" value="ext"><label for="rsrcFilterExt">Externe</label>

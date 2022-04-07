@@ -16,8 +16,16 @@ jQuery(function() { jQuery("#gridDispoResourceMALst").jqGrid(
         {"name":"eingestellt_als","index":"eingestellt_als","editable":false, 
             "cellattr":function( rowId, value, rowObject, colModel, arrData){return ' colspan=10'},
             "formatter":function(value, options, rData){
+                var teamId = ("team_id" in rData && rData.team_id) ? rData.team_id : 0;
+                var teamName = ("team" in rData && rData.team) ? rData.team : "";
+
+                var teamElm = (teamId)
+                                ? "<i class=\"fas fa-tshirt team team-" + teamId + "\" data-letter='" + teamName.charAt(0) + "' title=\"Team " + teamName + "\"></i>"
+                                : "";
+
                 return '<div id="'+rData['mid']+'" onclick="" class="Drag-Rsrc" rel="MA">' +
-                  '<span class="positition">'+value + '</span>: '+ rData['name'] + ' ' +
+                    teamElm +
+                  '<span class="position">'+value + '</span>: '+ rData['name'] + ' ' +
                   rData['vorname'] + ' ' + rData['abteilung'] +
                   ',<br>'+ rData['fuehrerscheinklassen'] +
                   '</div>'; 

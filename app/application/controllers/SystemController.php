@@ -285,14 +285,16 @@ class SystemController extends Zend_Controller_Action {
         while ($row = $stmt->fetch(Zend_Db::FETCH_NUM)) {
             ++$a;
             if ($row[0] != $lastM) {
-                if ($lastM)
+                if ($lastM){
                     $query.= '))' . PHP_EOL;
+                }
                 $query.= ($query ? ' OR ' : '') . '(t.Mandant = ' . $row[0] . ' AND (' . PHP_EOL;
                 $isFirstAnr = true;
             }
             $query.= '   ' . ($isFirstAnr ? '' : 'OR ') . 't.Auftragsnummer = ' . $row[1] . PHP_EOL;
-            if ($isFirstAnr)
+            if ($isFirstAnr){
                 $isFirstAnr = false;
+            }
             $lastM = $row[0];
         }
         if ($query)
@@ -303,6 +305,7 @@ class SystemController extends Zend_Controller_Action {
         $stgBK = MyProject_Model_Database::getStorageByClass('bestellkoepfe');
         $stgBP = MyProject_Model_Database::getStorageByClass('bestellpositionen');
         $stgWB = MyProject_Model_Database::getStorageByClass('Warenbewegungen');
+
 		error_log('#' . __LINE__ . ' ' . __METHOD__);
         $wwsTableKeys = array(
         'AuftragsKoepfe' => array(

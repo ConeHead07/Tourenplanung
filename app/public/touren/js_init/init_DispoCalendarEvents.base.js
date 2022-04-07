@@ -279,7 +279,8 @@ $.extend(Fb.DispoCalendarEvents, {
        });
        
        $( tabs ).tabs('url',  tabsByName['Resources'], Fb.AppBaseUrl + '/touren/ajax/vorgangsresourcendefaults/tour_id/'+tour_id+'/format/html');
-       $( tabs ).tabs('url',  tabsByName['Options'],   Fb.AppBaseUrl + '/touren/ajax/timelinedata/tour_id/'+tour_id+'/format/html');
+        $( tabs ).tabs('url',  tabsByName['Options'],   Fb.AppBaseUrl + '/touren/ajax/timelinedata/tour_id/'+tour_id+'/format/html');
+        $( tabs ).tabs('url', tabsByName['Historie'], Fb.AppBaseUrl + '/touren/ajax/vorgangshistorie/tour_id/'+tour_id+'/format/html');
        $( tabs ).tabs('load', tabsByName['Resources']);
     },
     'onHideRouteDefaultsDetails': function(tabs) {        

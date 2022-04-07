@@ -36,7 +36,10 @@ $.extend(Fb.DispoCalendarSettings, {
        isDraggable: true,
        isResizable: true,
        isRemovable: true,
-       allowedColors: ['Gelb','Blau','Weiss', 'Reklamation', 'Service']
+//       allowedColors: ['Gelb','Blau','Weiss', 'Reklamation', 'Service']
+
+       allowedColors: ['Anker', 'Fuell', 'Projekt',    'Reklamation', 'Service', 'Specials']
+       //              'Gelb',  'Blau',  'Rot',        'Creme',       'Grau',    'Weiss',
    },
    routeDefaults: {
        isDroppable: false

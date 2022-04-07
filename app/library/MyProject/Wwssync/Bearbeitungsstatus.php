@@ -72,7 +72,7 @@ namespace app\library\MyProject\Wwssync {
                 'NumOpenWwsItems' => $this->_iNumOpenWwsItems,
                 'NumWwsFound' => $this->_iNumWwsFound,
                 'NumWwsEqual' => $this->_iNumWwsEqual,
-                'NumWwsNotEqua' => $this->_iNumWwsNotEqual,
+                'NumWwsNotEqual' => $this->_iNumWwsNotEqual,
                 'NumWwsNotFound' => $this->_iNumWwsNotFound,
                 'NumUpdatedAppItems' => $this->_iNumUpdatedAppItems,
             ];

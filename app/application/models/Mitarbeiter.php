@@ -119,7 +119,7 @@ class Model_Mitarbeiter extends MyProject_Model_Database implements Model_Resour
         $deleteCategoryIds = $this->fetchCategoryIds($id);
         
         if ( count($deleteCategoryIds)===0 )
-            return;
+            return true;
         
         $lnk = new Model_Db_MitarbeiterCategoriesLnk();
         $lnkMap  = $lnk->info('referenceMap');
@@ -132,6 +132,8 @@ class Model_Mitarbeiter extends MyProject_Model_Database implements Model_Resour
             $row = $lnk->find($id, $categoryId)->current();
             $row->delete();
         }
+
+        return true;
     }
     
     public function fetchCategoryIds($id) {
@@ -186,6 +188,7 @@ class Model_Mitarbeiter extends MyProject_Model_Database implements Model_Resour
     }
 
     public function getSqlSelectExprAsLabel(): string {
+        return "CONCAT( SUBSTR(vorname, 1, 1), '.', name )";
         return "CONCAT( SUBSTR(vorname, 1, 1), '.', name, IF(eingestellt_als NOT BETWEEN '0' AND '999999',CONCAT(',', eingestellt_als), '') )";
     }
     

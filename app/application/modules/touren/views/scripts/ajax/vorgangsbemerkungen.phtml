@@ -2,6 +2,9 @@
 $this->layout()->disableLayout();
 $r = Zend_Controller_Front::getInstance()->getResponse();
 $r->setHeader('Content-Type', 'text/html; charset=UTF-8', true);
+$data = $this->vorgangsbemerkungen->data;
+
+$controllerUrl = $this->vorgangsbemerkungen->controllerUrl;
 
 ?><style>
     div#boxBemerkungen .headBemerkungen{
@@ -23,6 +26,17 @@ $r->setHeader('Content-Type', 'text/html; charset=UTF-8', true);
         font-style: italic;
         color:#0f0f0f;
     }
+
+    form[name=frmBemerkungen] input[type=date],
+    form[name=frmBemerkungen] input[type=text]{
+        border-left:0;
+        border-right:0;
+        border-top:0;
+        padding-left:0.2em;
+        padding-right:0.2em;
+        border-bottom:2px solid #a1c9fd;
+        background-color:rgba(161,201,253,.1);
+    }
 </style>
 <?php 
 
@@ -30,30 +44,87 @@ if (property_exists($this->vorgangsbemerkungen, 'error')) {
     echo $this->vorgangsbemerkungen->error . "<br>\n";
 }
 
-if ($this->vorgangsbemerkungen->data) {
-    $tour_id = $this->vorgangsbemerkungen->data['tour_id'];
+if ($data) {
+    $tour_id = $data['tour_id'];
     $action  = $this->vorgangsbemerkungen->action;
-    $avisiertChecked = ($this->vorgangsbemerkungen->data['avisiert'] ? ' checked="checked"' : '');
-    $attachesChecked = ($this->vorgangsbemerkungen->data['attachments'] ? ' checked="checked"' : '');    
+    $controllerUrl = $this->vorgangsbemerkungen->controllerUrl;
+    $avisiertChecked = ($data['avisiert'] ? ' checked="checked"' : '');
+    $avisiertZeitgenauChecked = ($data['avisiertZeitgenau'] ? ' checked="checked"' : '');
+    $attachesChecked = ($data['attachments'] ? ' checked="checked"' : '');
+
+    $avisiertDatum = $data['avisiertDatum'] ?: $data['DatumVon'];
+    $avisiertZeitVon = substr($data['avisiertZeitVon'] ?: $data['ZeitVon'], 0, 5);
+    $avisiertZeitBis = substr($data['avisiertZeitBis'] ?: $data['ZeitBis'], 0, 5);
     
     echo '<fieldset><legend>Bemerkungen</legend>';
-    echo '<form rel="'.$action.'" id="frmPrint" style="margin:0;display:inline">';
+
+    echo '<form name="frmBemerkungen" rel="'.$controllerUrl.'/updatetourbemerkungen" id="frmPrint" style="margin:0;display:inline">';
     echo '<div id="boxBemerkungen">';    
     echo '<div>';
     echo '<div class="headBemerkungen">Avisiert:</div>';
-    echo '<input type="checkbox" name="avisiert" value="1"' . $avisiertChecked . '/>';
-    echo 'Termin wurde mit dem Kunden abgesprochen<br>' . PHP_EOL;
+
+    echo '<input type="checkbox" id="checkAvisiert" name="avisiert" value="1"'
+        . $avisiertChecked . '/>';
+
+    echo '<label for="checkAvisiert">Termin wurde mit dem Kunden abgesprochen</label><br>' . PHP_EOL;
+    echo '<div id="avisiertDetailBox" style="padding-left:1.8rem">' . "\n";
+    echo ' Datum: <input type="text" name="avisiertDatum" size="10" value="'
+        . $avisiertDatum . '"/> ' . PHP_EOL;
+
+    echo ' <label for="checkAvisiertZeitgenau">'
+        . '<input type="checkbox" id="checkAvisiertZeitgenau" '
+        . 'style="width:.8em;height:.8em;margin-right:.15em" name="avisiertZeitgenau" value="1"'
+        . $avisiertZeitgenauChecked . '">'
+        . 'Tageszeit:</label> ';
+
+    echo '<span id="avisiertTageszeitBox">'
+        . '<input type="text" name="avisiertZeitVon" size="5" placeholder="08:00" value="'
+        . $avisiertZeitVon . '"/>';
+
+    echo ' bis <input type="text" name="avisiertZeitBis" size="5" placeholder="11:30" value="'
+        . $avisiertZeitBis . '"/>'
+        . '</span>' . PHP_EOL;
+
+    echo '</div>' . "\n";
+
     echo '<input type="checkbox" name="attachments" value="1"' . $attachesChecked . '/>';
     echo 'Pläne vorhanden';
     echo '</div>';
-    
-    if ( $this->vorgangsbemerkungen->data['bemerkung']) {
-        echo '<div class="headBemerkungen" style="margin-top:15px;">Bisherige Bemerkungen:</div>';
-        $xmlIdentifier = strtolower(substr(trim($this->vorgangsbemerkungen->data['bemerkung']), 0, 5));
+
+    if ($data['bemerkung_json']) {
+        echo '<div class="headBemerkungen" src="json" style="margin-top:15px;">Bisherige Bemerkungen:</div>';
+
+        $bList= json_decode( $data['bemerkung_json'] );
+        if (json_last_error()) {
+        } else {
+
+            foreach($bList as $_bem) {
+                if (!empty($_bem->removed)) {
+                    continue;
+                }
+                $_id = $_bem->id ?? '';
+                $_pr = $_bem->print ?? '';
+                $_us = $_bem->user ?? '';
+                $_ts = $_bem->datetime ?? '';
+                $_bm = $_bem->bemerkung ?? '';
+                $_removable = $this->userName == $_us ? ' removable' : '';
+
+                echo '<div class="entry" src="json" id="' . $_id . '" print="' . $_pr . '">' . "\n"
+                    .'<div class="bemerkung-meta' . $_removable. '">' . "\n"
+                    .'<span class="user">' . $_us . '</span>, <span class="datetime">' . $_ts . '</span>' . "\n"
+                    .'</div>' . "\n"
+	                .'<div class="bemerkung">' . $_bm . '</div>' . "\n"
+                    .'</div>';
+            }
+        }
+    }
+    elseif ( $data['bemerkung']) {
+        echo '<div class="headBemerkungen" src="xml" style="margin-top:15px;">Bisherige Bemerkungen:</div>';
+        $xmlIdentifier = strtolower(substr(trim($data['bemerkung']), 0, 5));
         if ('<?xml' != $xmlIdentifier) {
             echo nl2br($this->vorgangsbemerkungen->data['bemerkung']);
         } else {
-            $xml = simplexml_load_string( $this->vorgangsbemerkungen->data['bemerkung'] );
+            $xml = simplexml_load_string( $data['bemerkung'] );
             $result = $xml->xpath('//div[@class="entry"]');
             foreach($result as $_ => $node) {
                 echo $node->asXML();
@@ -68,7 +139,7 @@ if ($this->vorgangsbemerkungen->data) {
     echo '</fieldset>';
     
     echo '<fieldset style="margin-top:25px;"><legend>Bemerkung hinzuf&uuml;gen</legend>';
-    echo '<form rel="'.$action.'" id="frmBemerkung" style="margin:0;display:inline">';
+    echo '<form rel="'.$controllerUrl.'/inserttourbemerkung" id="frmBemerkung" style="margin:0;display:inline">';
     echo '<textarea name="bemerkung" id="txtBemerkung" style="width:100%"></textarea>'
         .'<button id="sendBemerkung">Bemerkung hinzufuegen</button>'
         .'<input type="hidden" name="tour_id" value="'.$tour_id.'">'
@@ -79,11 +150,17 @@ if ($this->vorgangsbemerkungen->data) {
 <script>
 $("button#sendBemerkung").click(function(e) {
     e.preventDefault();
+    var tour_id = $( this ).closest("form").find("input[name=tour_id]").val();
+
     $.post( 
         $("form#frmBemerkung").attr('rel'), 
         $("form#frmBemerkung").serialize(), 
         function(data) {
-            $("div#boxBemerkungen").html(data);
+
+            var url = "<?= $controllerUrl; ?>";
+            url+= '/vorgangsbemerkungensaved/tour_id/' + tour_id;
+
+            $("div#boxBemerkungen").load( url );
             $("#txtBemerkung").val('');
             Fb.RenderBemerkungenPrintFlag();
         });
@@ -92,35 +169,84 @@ $("button#sendBemerkung").click(function(e) {
 if (!Fb) Fb = {};
 
 Fb.RenderBemerkungenPrintFlag = function() {
+
+    $("#checkAvisiertZeitgenau")
+        .unbind("change")
+        .bind("change", function() {
+            $("#avisiertTageszeitBox").toggle( this.checked );
+        })
+        .trigger("change");
+
+    $("#checkAvisiert")
+        .unbind("change")
+        .bind("change", function() {
+            $("#avisiertDetailBox").toggle( this.checked);
+            return;
+        })
+        .trigger("change");
+
+    console.log("vorgangsbemerkungen.phtml");
     $("div.entry", "#boxBemerkungen").each(function() {
+        if ($("div.bemerkung-meta", this).find(".ui-icon-print").length) {
+            return;
+        }
+
         var self = this;
+
         var p = $(this).attr('print');
         var id = $(this).attr("id");
-        
-        $("div.bemerkung-meta", this).prepend(
-            $(
-                "<input type='hidden' name='attr["+id+"][print]' value='0' />" +
-                "<input type='checkbox' name='attr["+id+"][print]' value='1' />"
-            )
-            .attr({checked:(p==1)})
-            .after( 
-                $("<span class='ui-icon ui-icon-print'/>").fbIcon({
-                    click: function() {
-                        $(this).prev().attr( {checked: $(this).prev().attr('checked') });
+
+        var hiddenElm = $("<input type='hidden' name='attr["+id+"][print]' value='0' />");
+
+        var chckPrintElm = $("<input type='checkbox' name='attr["+id+"][print]' value='1' />")
+            .css("margin-right", "-0.15em")
+            .attr({checked:(p==1)});
+
+        var printIcon =
+            $("<span class='ui-icon ui-icon-print'/>")
+                .css("display", "inline-block")
+                .bind("click", function() {
+                        $(this).prev().attr( {checked: !$(this).prev().attr('checked') });
                     }
-                 }
-            ))
-        );
+                );
+
+
+        $("div.bemerkung-meta", this).prepend( hiddenElm );
+        hiddenElm.after( chckPrintElm );
+        chckPrintElm.after( printIcon );
+
+        if ($("div.bemerkung-meta", this).is(".removable")) {
+
+            var chckRemoveElm = $("<input type='checkbox' name='attr[" + id + "][remove]' value='1' />")
+                .css("margin-right", "-0.15em")
+                .attr({checked: false});
+
+            var removeIcon =
+                $("<span class='ui-icon ui-icon-trash'/>")
+                    .css("display", "inline-block")
+                    .bind("click", function () {
+                            $(this).prev().attr({checked: !$(this).prev().attr('checked')});
+                        }
+                    );
+
+            printIcon.after( chckRemoveElm );
+            chckRemoveElm.after( removeIcon );
+        }
     });
     
     $("#boxBemerkungen").append(
         $('<input type="button" name="savePrintFlags" value="speichern" />').click(function() {
 //            alert( $("form#frmPrint").serialize() );
+            var tour_id = $( this ).closest("form").find("input[name=tour_id]").val();
+            var url = "<?= $controllerUrl; ?>";
+            url+= '/vorgangsbemerkungensaved/tour_id/' + tour_id;
+
             $.post( 
                 $("form#frmPrint").attr('rel'), 
                 $("form#frmPrint").serialize(), 
                 function(data) {
-                    alert('aktualisiert!');
+                    $.toast('Aktualisiert!');
+                    $("div#boxBemerkungen").load( url );
                 }
             );
         })
@@ -217,7 +343,7 @@ var XFb = {
 <fieldset style="margin:20px 0"><legend><div class="headBemerkungen">Anhänge / Pläne:</div></legend>
 <?php echo $this->attachments->uploadForm; ?>
 
-<div data-query="" data-baseurl="<?php echo $this->baseUrl(); ?>/touren/attachments/list/tour_id/<?php echo $this->vorgangsbemerkungen->data['tour_id']; ?>" id="attachments_list">
+<div data-query="" data-baseurl="<?php echo $this->baseUrl(); ?>/touren/attachments/list/tour_id/<?php echo $data['tour_id']; ?>" id="attachments_list">
 <?php echo $this->attachments->list; ?>    
 </div>
 </fieldset>

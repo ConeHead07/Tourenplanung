@@ -4,7 +4,7 @@
  * Description of userController
  * @author rybka
  */
-class LeistungController extends Zend_Controller_Action
+class TeamsController extends Zend_Controller_Action
 {
 
     public function init() {
@@ -12,46 +12,11 @@ class LeistungController extends Zend_Controller_Action
         $this->_request = $this->getRequest();
     }
 
-    public function autocompleteAction()
-    {
-        /** @var $db Zend_Db_Adapter_Abstract */
-        $db = Zend_Registry::get('db');
-        $rq = Zend_Controller_Front::getInstance()->getRequest();
-        $term = $rq->getParam('term', '');
-        $typeField = $rq->getParam('type', '');
-        $offset = $rq->getParam('offset', 0);
-        $limit  = $rq->getParam('limit', 15);
-        $trunc = $rq->getParam('trunc', 'both');
-
-        switch($trunc) {
-            case 'both':    $term = '%' . $term . '%'; break;
-            case 'left':    $term = '%' . $term;       break;
-            default:        $term.= '%';
-        }
-
-        $whereType = ($typeField) ? $db->quoteInto('ressourcen_typ = ?', $typeField) : '';
-
-//      if ($nodeId > 0) $level+= 1;
-        /* @var $treeview Model_FuhrparkCategories */
-        $model = MyProject_Model_Database::loadModel('leistung');
-        $tbl = $model->getStorage()->info(Zend_Db_Table::NAME);
-
-        $db = Zend_Db_Table::getDefaultAdapter();
-        $sql = $db->select()
-            ->from($tbl)
-            ->where('leistungs_name LIKE ?', $term)
-            ->limit($limit, $offset)
-            ->order('leistungs_name');
-        if ($whereType) $sql->where($whereType);
-
-        $this->view->autocomplete = $db->fetchAll($sql);;
-    }
-
     //put your code here
     public function indexAction()
     {
-        $db = Zend_Registry::get('db');
-        $model = MyProject_Model_Database::loadModel('leistung');
+        /** @var $model Model_Teams */
+        $model = new Model_Teams();
         $this->view->datalist = $model->fetchEntries();
     }
 
@@ -61,10 +26,9 @@ class LeistungController extends Zend_Controller_Action
 
     public function datalistAction()
     {
-        /* @var $model Model_Leistung */
-        $model = MyProject_Model_Database::loadModel('leistung');
+        /** @var $model Model_Teams */
+        $model = new Model_Teams();
         $this->view->datalist = $model->fetchEntries();
-//        echo Zend_Debug::dump($this->view->datalist);
     }
 
     public function grideditdataAction()
@@ -78,12 +42,9 @@ class LeistungController extends Zend_Controller_Action
         $id = $rq->getParam('id', 0);
         $op = $rq->getParam('oper', '');
 
-        /* @var $db Zend_Db_Adapter_Abstract */
-        $db = Zend_Registry::get('db');
-
         try {
-            /* @var $model Model_Leistung */
-            $model = MyProject_Model_Database::loadModel('leistung');
+            /** @var $model Model_Teams */
+            $model = new Model_Teams();
 
             switch($op) {
 
@@ -129,11 +90,11 @@ class LeistungController extends Zend_Controller_Action
         /* @var $db Zend_Db_Adapter_Abstract */
         $db = Zend_Registry::get('db');
 
-        /* @var $model Model_Leistung */
-        $model = MyProject_Model_Database::loadModel('leistung');
+        /** @var $model Model_Teams */
+        $model = new Model_Teams();
 
         /* @var $storage Model_Db_Leistung*/
-        $storage = $model->getStorage();
+        $storage = Model_Db_Teams::obj();
 
         $TblCnf = $model->infoToTblConf();
 
@@ -146,7 +107,6 @@ class LeistungController extends Zend_Controller_Action
         $limit = (int) $this->getRequest()->getParam('rows', 100);
         $sidx  = $this->getRequest()->getParam('sidx', null);
         $sord  = $this->getRequest()->getParam('sord', 'ASC');
-        $pid   = $this->getRequest()->getParam('pid', '');
 
         if (!in_array(strtoupper($sord), array('ASC', 'DESC'))) $sord = 'ASC';
 
@@ -159,7 +119,6 @@ class LeistungController extends Zend_Controller_Action
         $select = $storage->select($withFromPart = false);
         $select->from($storage->info(Zend_Db_Table::NAME), new Zend_Db_Expr('COUNT(*) AS count'));
         if ($sqlWhere) $select->where ($sqlWhere);
-//        die($select->assemble());
         $count = $db->fetchOne($select);
 
         if ($count > 0) {
@@ -182,7 +141,6 @@ class LeistungController extends Zend_Controller_Action
         /* @var $result Zend_Db_Statement */
         header('X-Debug-SQL: ' . json_encode($select->assemble()) );
         $result = $db->query($select);
-        $num_fields = $result->columnCount();
 
         $response->page = $page;
         $response->total = $total_pages;
@@ -194,4 +152,3 @@ class LeistungController extends Zend_Controller_Action
     }
 
 }
-

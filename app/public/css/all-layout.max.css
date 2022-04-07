@@ -401,13 +401,18 @@ ul.errors { color:red; list-style-type: square; margin-top:0.2em; padding-left:1
 overflow: hidden;
 }
 
+div#menu.droplinebar {
+    z-index:99999;
+    display:block;
+}
+
 .droplinebar ul{
-margin: 0;
-padding: 0;
-float: left;
-width: 100%;
-font: bold 13px Arial;
-background: #fff center center repeat-x; /* #85B5D9 default background of menu bar*/
+    margin: 0;
+    padding: 0;
+    float: left;
+    width: 100%;
+    font: bold 13px Arial;
+    background: #fff center center repeat-x; /* #85B5D9 default background of menu bar*/
 }
 
 div#menu.droplinebar ul li {

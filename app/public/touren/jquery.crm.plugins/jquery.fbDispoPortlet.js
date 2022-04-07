@@ -1,4 +1,4 @@
-/* 
+/*
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
@@ -82,7 +82,9 @@
             }
             
             var portletContent = $( "div.portlet-content", $self.closest( "div.portlet" ) );
-            portletContent.css('paddingLeft','15px');
+            portletContent
+                // .css('paddingLeft','15px')
+            ;
             if (editable) {
                 if (data.isSortable) {
                     portletContent.sortable({
@@ -234,11 +236,11 @@
                     var title = $pTitle.text();
                     var newtitle = prompt("Titel bearbeiten", title );
                     if (typeof(newtitle) == "string" && newtitle !== title) {
-                            if (methods._trigger.apply(portlet, [portlet, 'updateTitle', newtitle] ) !== false ) {
-                                    $pTitle.text( newtitle );
-                            } else {
-                                    alert( 'trying update title returns false!');
-                            }
+                        if (methods._trigger.apply(portlet, [portlet, 'updateTitle', newtitle] ) !== false ) {
+                            $pTitle.text( newtitle );
+                        } else {
+                            console.log( 'trying update title returns false!');
+                        }
                     }
             });
         },
