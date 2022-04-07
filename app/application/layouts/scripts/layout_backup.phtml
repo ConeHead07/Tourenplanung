@@ -1,0 +1,110 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<head>
+    <title>UI-Tourenplaner</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <link  type="text/css" href="<?php echo $this->baseUrl(); ?>/css/default.css" rel="stylesheet" />
+    <!--[if lte IE 7]> <style type="text/css"> body { font-size: 85%; } </style> <![endif]-->
+    <link rel="stylesheet" href="<?php echo $this->baseUrl(); ?>/themes/redmond/jquery.ui.all.css" />
+    <script src="<?php echo $this->baseUrl(); ?>/jquery/jquery-1.5.1.js"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/ui/jquery.ui.core.js"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/ui/jquery.ui.datepicker.js"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/ui/jquery.ui.widget.js"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/ui/jquery.ui.mouse.js"></script>
+
+    <script src="<?php echo $this->baseUrl(); ?>/ui/jquery.ui.draggable.js"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/ui/jquery.ui.droppable.js"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/ui/jquery.ui.resizable.js"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/ui/jquery.ui.sortable.js"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/ui/jquery.ui.accordion.js"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/ui/jquery.ui.tabs.js"></script>
+    <script src="<?php echo $this->baseUrl(); ?>/ui/jquery.ui.dialog.js"></script>
+
+    <!-- jquery-plugin ui.layout: 
+     * Docs: http://layout.jquery-dev.net/documentation.html
+     * Tips: http://layout.jquery-dev.net/tips.html
+     * Help: http://groups.google.com/group/jquery-ui-layout -->
+    <link   href="<?php echo $this->baseUrl(); ?>/ui/layout/css/documentation.css" rel="stylesheet" type="text/css" />
+    <link   href="<?php echo $this->baseUrl(); ?>/ui/layout/css/global.css" rel="stylesheet" type="text/css" />
+    <script src="<?php echo $this->baseUrl(); ?>/ui/layout/jquery.layout-latest.js" type="text/javascript "></script>
+    <script src="<?php echo $this->baseUrl(); ?>/ui/layout/js/global.js" type="text/javascript "></script>
+    <script src="<?php echo $this->baseUrl(); ?>/js_init/init_layout.js" type="text/javascript "></script>
+
+    <link rel="stylesheet" type="text/css" href="<?php echo $this->baseUrl(); ?>/css/forms.css" />
+    <?php echo $this->headTitle(); ?>
+    <?php echo $this->jQuery() . PHP_EOL; ?>
+    <?php echo JqGridHeader::getLocal();  ?>
+    <?php echo $this->headscript (); ?>
+    <?php echo $this->headStyle();  ?>
+
+    <style>
+        .LogBox {   white-space: pre;   }
+        h3  { font-size:12px !important; }
+
+        ul, li {
+            margin:0;
+            padding:0;
+            list-style: none;
+            list-style-type: none;
+        }
+        ul li {
+            padding-left:0;
+        }
+        ul li li {
+            padding-left:10px;
+        }
+        li a {
+            font-size:12px;
+            padding:0;
+            margin:0;
+        }
+        ul.ui-tabs-nav li a {
+            padding-bottom: 0 !important;
+            padding-top: 0 !important;
+            margin-bottom: 0 !important;
+            margin-top: 0 !important;
+        }
+    </style>
+</head>
+<body>        
+<DIV class="ui-layout-north">
+        <?php echo $this->render('header.phtml') ?>
+	<DIV id="logo">UI-Dummie</DIV>
+        
+</DIV>
+
+<DIV class="ui-layout-center content">
+
+    <H1 id="top">Title</H1>
+    
+    <div id="content"><?php echo $this->layout()->content ?></div>
+        <?php echo $this->action('index', 'dbprofiler'); ?>
+
+</DIV>
+    
+<DIV id="LayoutWest" class="ui-layout-west" style="display: none;height:100%">
+    <ul>
+        <li><a href="#tabVorgaenge">Vorg&auml;nge</a></li>
+        <li><a href="#tabRessourcen">Ressourcen</a></li>
+    </ul>
+    <div class="tabContainer">
+        <div id="tabVorgaenge">
+            <div id="Drag-Route" class="Drag-Route Is-Template">
+                <span class="status"></span>Route 1
+            </div>
+            <div id="Drag-Route" class="Drag-Route Is-Template">
+                <span class="status"></span>Route 2
+            </div>
+        </div>
+
+        <div id="tabRessourcen">
+            <div id="Rsrc" class="Drag-Rsrc Is-Template" style="display:none">
+                <span class="name">LKW A</span> <span class="counter">5</span>
+            </div>
+            <ul id="rsrcTree"></ul>
+        </div>
+    </div>
+</DIV>
+<?php echo $this->render('footer.phtml') ?>
+</body>
+</html>

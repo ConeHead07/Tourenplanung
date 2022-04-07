@@ -1,0 +1,15 @@
+<?php 
+
+$this->layout()->disableLayout();
+$r = Zend_Controller_Front::getInstance()->getResponse();
+$r->setHeader('Content-Type', 'application/json; charset=UTF-8', true);
+$this->datalist = $this->datalist;
+
+$response = new stdClass();
+$response->page = 1;
+$response->total = count($this->datalist);
+$response->records = count($this->datalist);
+$response->rows = $this->datalist;
+
+echo json_encode($response);
+//echo json_encode($response);

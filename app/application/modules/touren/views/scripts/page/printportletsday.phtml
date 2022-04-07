@@ -1,0 +1,24 @@
+<?php 
+$this->layout()->disableLayout();
+?><!--
+To change this template, choose Tools | Templates
+and open the template in the editor.
+-->
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <title></title>
+    </head>
+    <body>
+        Druckansicht Alle Touren
+        <?php
+//            die( '<pre>' . print_r($this->data->portlets, 1));
+        
+        // put your code here
+            echo $this->partialLoop(
+                    'page/printportlet.phtml', 
+                    $this->data->portlets);
+        ?>
+    </body>
+</html>

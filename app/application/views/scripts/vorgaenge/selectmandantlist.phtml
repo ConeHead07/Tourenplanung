@@ -1,0 +1,108 @@
+<?php
+
+$this->layout()->disableLayout();
+$rsp = Zend_Controller_Front::getInstance()->getResponse();
+$rqt = Zend_Controller_Front::getInstance()->getRequest();
+
+if ($rqt->getParam('format') == 'xml'):
+    $rsp->setHeader('Content-Type', 'application/xml; charset=UTF-8');
+    echo <<<EOT
+<?xml version='1.0' encoding="utf-8"?>
+<rows>
+    <page>1</page>
+    <total>1</total>
+    <records>1</records>
+EOT;
+    
+//die(print_r($this->mandanten, 1));
+    
+$lft = 1;
+foreach($this->mandanten as $_id => $_mandant) {
+    echo '<row>'
+        .'<cell>'.$_id . '</cell>'
+        .'<cell>'.utf8_encode($_mandant) . '</cell>'
+        .'<cell>0</cell>'
+        .'<cell>'.$lft . '</cell>'
+        .'<cell>'.($lft+1) . '</cell>'
+        .'<cell>true</cell>'
+        .'<cell>false</cell>'
+        .'</row>' . PHP_EOL;
+    $lft+= 2;
+}
+echo '</rows>' . PHP_EOL;
+return;
+endif;
+
+if (!$rqt->getParam('jsonReader')) {
+    header("Content-type: text/html;charset=utf-8");
+    $response = new stdClass();
+    $response->page = 1;
+    $response->total = 1;
+    $response->records = count($this->treelist);
+    
+    $lft = 1;
+    foreach($this->mandanten as $_id => $_mandant) {
+        $leaf = 'true';
+        $response->rows[]['cell']=array(
+            $_id,
+            utf8_encode($_mandant),
+            0,
+            $lft,
+            $lft+1,
+            $leaf,
+            'false'
+        );
+        $lft+= 2;
+    } 
+    echo json_encode($response);
+    return;
+}
+
+header("Content-type: text/html;charset=utf-8");
+$response = new stdClass();
+$response->page = 1;
+$response->total = 1;
+$response->records = count($this->mandanten);
+
+$lft = 1;
+foreach($this->mandanten as $_id => $_mandant) {
+    $response->rows[]=array(
+              'id' => $_id,
+            'name' => utf8_encode($_mandant),
+           'level' => 0,
+             'lft' => $lft,
+             'rgt' => $lft+1,
+          'isLeaf' => true,
+        'expanded' => false
+    );
+    $lft+=2;
+} 
+echo json_encode($response);
+return;
+
+
+$rsp->setHeader('Content-Type', 'application/json; charset=UTF-8');
+
+header("Content-type: text/html;charset=utf-8");
+$isFirst = true;
+echo '{"page":1,"total":1,"records":"' . count($this->mandanten) . '","rows":[' . PHP_EOL;
+
+die( print_r($this->mandanten, 1));
+$lft = 1;
+foreach($this->mandanten as $_id => $_mandant) {
+    if ( !$isFirst ) echo ',';
+    else $isFirst = false;
+    
+    echo '['
+        .(int)$_id . ','
+        .json_encode(utf8_encode($_mandant)) . ','
+        .(int)$node['depth'] . '0,'
+        .(int)$node['lft'] . $lft . ','
+        .(int)$node['rgt'] . ($lft+1) .  ','
+        .'true,'
+        .'false'
+        .']' . PHP_EOL;
+    $lft+=2;
+}
+echo ']' . PHP_EOL;
+echo '}' . PHP_EOL . PHP_EOL;

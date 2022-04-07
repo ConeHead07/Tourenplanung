@@ -1,0 +1,307 @@
+<?php
+if ($disableLayout) {
+    $this->layout()->disableLayout();
+}
+
+$front = Zend_Controller_Front::getInstance();
+$request = $front->getRequest();
+$modul = $request->getModuleName();
+$controller = $request->getControllerName();
+
+// Get-TPL-Vars
+$rsrcType = $this->rsrcType;
+$rsrcID   = $this->rsrcID;
+$rsrcName = $this->rsrcName;
+$disableLayout = $this->disableLayout;
+$GridIdBasename = 'gridRsrcRemovedLst' . $rsrcID;
+
+// Cache id
+$cacheID = md5($this->module .'/'.$this->controller.'/'.$this->action);
+$cacheTL = 3600 * 1;
+
+$aTplCacheVars = [
+    '{rsrcType}' => $rsrcType,
+    '{rsrcID}' => $rsrcID,
+    '{rsrcName}' => $rsrcName,
+    '{GridIdBasename}' => $GridIdBasename,
+];
+
+$cache = Zend_Registry::get( 'cache' );
+$appendGridScript = $cache->load($cacheID);
+
+if (!$appendGridScript) {
+
+    require_once 'JqGridColModelFormatter.php';
+
+    /* @var $this Zend_View */
+    require_once 'JqGridHeader.php';
+    JqGridHeader::enable(true);
+
+    $GridId = '#{GridIdBasename}';
+    $GridIdPager = '#{GridIdBasename}_pager';
+    $JqGrid = new JqGrid($GridId);
+    // Grid-Options definieren
+    $JqGrid->height('auto')
+        ->sortname('DatumVon')
+        ->sortorder('asc')
+        ->jsonReader(array("repeatitems" => false, "id" => 0))
+        ->width(600)
+        ->rowList(array(10, 20, 30, 40, 50, 100))
+        ->rowNum(10)
+        ->rownumbers(true)
+        ->resizable(false)
+        ->sortable(true)
+        ->datatype('json')
+        ->url(APPLICATION_BASE_URL . '/touren/resourcesDispozeiten/gridtourlistdata?rsrcType={rsrcType}&rsrcID={rsrcID}')
+        ->editurl(APPLICATION_BASE_URL . '/touren/resourcesDispozeiten/gridtoureditdata?rsrcType={rsrcType}&rsrcID={rsrcID}')
+        ->enableInlineEditingDefaults()
+        ->setNavGrid($GridIdPager, $properties = array())
+        ->caption("Gebuchte Touren fuer {rsrcName} ")
+        ->shrinkToFit(true)
+        ->pager($GridIdPager)
+        ->on_loadError(new JsFunction("function(xhr,status,error){ alert(status+'\\n'+error);}"))
+        ->addChainMethod('.jqGrid("filterToolbar",{stringResult: true,searchOnEnter : false})')
+//        ->addChainMethod( ".jqGrid('searchGrid', {sopt:['cn','bw','eq','ne','lt','gt','ew']} )")
+        ->colNames(array('id', 'ressourcen_id', 'ressourcen_typ', 'tour_id', 'Dt-Von', 'Dt-Bis', 'Pos', 'Von', 'Bis', 'Mandant', 'ANR', 'Kunde', 'Vorgang'))
+        ->colModel(array('addFieldsProperties' => array(
+
+            "id" => array('key' => true),
+            "ressourcen_id" => array('editable' => false, 'hide' => true, 'edittype' => 'text'),
+            "ressourcen_typ" => array('editable' => false, 'hide' => true, 'edittype' => 'text', 'editoptions' => null),
+            "tour_id" => array('editable' => false, 'hide' => true, 'edittype' => 'text'),
+
+            "DatumVon" => array('editable' => false, 'edittype' => 'text',
+                'formatter' => new JsFunction(
+                    'function(cellvalue) {'
+                    . ' if (!cellvalue || !cellvalue.match(/2[0-9]{3}-(0[1-9]|1[012])-([012][0-9]|3[01])/)) return cellvalue;'
+                    . ' var t = cellvalue.substr(0,10).split("-");'
+                    . ' t[1] = parseInt( t[1].charAt(0) != "0" ? t[1] : t[1].substr(1) ); '
+                    . ' t[2] = parseInt( t[2].charAt(0) != "0" ? t[2] : t[2].substr(1)); '
+                    . ' var d = new Date(t[0], t[1]-1, t[2]);'
+                    // .' alert("new Date("+t[0]+","+t[1] +"-1,"+t[2]+") => " + d.toLocaleString());'
+                    . ' var D = ["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()];'
+                    . ' return D + ", " + cellvalue'
+                    . '}'
+                ),
+                'unformat' => new JsFunction(
+                    'function(cellvalue) {'
+                    . ' return (cellvalue.indexOf(", ")!=-1) ? cellvalue.split(", ")[1] : cellvalue;'
+                    . '}'
+                )
+            ),
+
+            "DatumBis" => array('editable' => false, 'edittype' => 'text',
+                'formatter' => new JsFunction(
+                    'function(cellvalue) {'
+                    . ' if (!cellvalue || !cellvalue.match(/2[0-9]{3}-(0[1-9]|1[012])-([012][0-9]|3[01])/)) return cellvalue;'
+                    . ' var t = cellvalue.substr(0,10).split("-");'
+                    . ' t[1] = parseInt( t[1].charAt(0) != "0" ? t[1] : t[1].substr(1) ); '
+                    . ' t[2] = parseInt( t[2].charAt(0) != "0" ? t[2] : t[2].substr(1)); '
+                    . ' var d = new Date(t[0], t[1]-1, t[2]);'
+                    // .' alert("new Date("+t[0]+","+t[1] +"-1,"+t[2]+") => " + d.toLocaleString());'
+                    . ' var D = ["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()];'
+                    . ' return D + ", " + cellvalue'
+                    . '}'
+                ),
+                'unformat' => new JsFunction(
+                    'function(cellvalue) {'
+                    . ' return (cellvalue.indexOf(", ")!=-1) ? cellvalue.split(", ")[1] : cellvalue;'
+                    . '}'
+                )
+            ),
+            "tagesnr" => array('editable' => false, 'hide' => true, 'edittype' => 'text'),
+            "ZeitVon" => array('editable' => false, 'hide' => true, 'edittype' => 'text'),
+            "ZeitBis" => array('editable' => false, 'hide' => true, 'edittype' => 'text'),
+            "Mandant" => array('editable' => false, 'hide' => true, 'edittype' => 'text'),
+            "Auftragsnummer" => array('editable' => false, 'hide' => true, 'edittype' => 'text'),
+            "LieferungName" => array('editable' => false, 'hide' => true, 'edittype' => 'text'),
+            "Vorgangstitel" => array('editable' => false, 'hide' => true, 'edittype' => 'text')
+        )));
+
+    $jqGridMethods = new JqGridMethods();
+    $JqGrid->addChainMethod(
+        $jqGridMethods->gridResize(array())
+    );
+
+    if (0) {
+        /* @var $colModelList JqGridColModelList */
+        $editOpts = array(
+            'oneditfunc' => new JsFunction(
+                'function (id){'
+                . '   var el = "#"+id+"_gebucht_von,#"+id+"_gebucht_bis"; '
+                . '   $(el).datepicker({'
+                . '           dateFormat:"yy-mm-dd 00:00",'
+                . '           beforeShow:function(input, inst) {'
+                . '                $(this).data("timeval", $(this).val().substr(10) );'
+                . '           },'
+                . '           onSelect:function(dateText, inst){'
+                //               .'                alert( dateText.substr(0,10) + " | " + $(this).data("timeval"));'
+                . '                $(this).val(dateText.substr(0,10) + $(this).data("timeval") );'
+                . '          }'
+                . '   });'
+                . '   $(el).bind("keyup", function(){'
+                . '         $(this).data("timeval", $(this).val().substr(10) );'
+                //               .'         alert("keyup " + $(this).val() + " " + $(this).val().substr(10) + " " +$(this).data("timeval"));'
+                . '   });'
+                . '}'
+            ),
+            //            'successfunc' => new JsFunction(
+            //                'function(response) {'
+            //               .'      alert("'.__LINE__.' onedit successfunc: ");'
+            //               .'}'
+            //            )
+        );
+    } else {
+        $editOpts = null;
+    }
+
+    $saveOpts = null;
+//        array(
+//            'successfunc' => new JsFunction(
+//                'function(response) {'
+//               .'      alert("'.__LINE__.' onsave successfunc: ");'
+//               .'}'
+//            )
+//        );
+
+    $JqGrid->enableInlineEditingDefaults($editOpts, $saveOpts);
+
+    /* @var $colModelList JqGridColModelList */
+    $colModelList = $JqGrid->colModel();
+
+    $dateTimeEditOptions = array(
+        'size' => 16,
+        'dataInit' => new JsFunction(
+            'function(el){'
+            . '         $(el).datepicker({'
+            . '                 dateFormat:"yy-mm-dd 00:00",'
+            . '                 changeMonth: true,'
+            . '                 showWeek: true,'
+            . '                 beforeShow:function(input, inst) {'
+            . '                      $(this).data("timeval", $(this).val().substr(10) );'
+            . '                 },'
+            . '                 onSelect:function(dateText, inst){'
+//               .'                      alert( dateText.substr(0,10) + " | " + $(this).data("timeval"));'
+            . '                      $(this).val(dateText.substr(0,10) + $(this).data("timeval") );'
+            . '                }'
+            . '         });'
+            . '         $(el).bind("keyup", function(){'
+            . '               $(this).data("timeval", $(this).val().substr(10) );'
+//               .'               alert("keyup " + $(this).val() + " " + $(this).val().substr(10) + " " +$(this).data("timeval"));'
+            . '         });'
+            . '}'
+        ),
+        'defaultValue' => new JsFunction(
+            'function(el){ '
+            . ' return $.datepicker.formatDate(\'yy-mm-dd 00:00\', new Date())'
+            . '}'
+        )
+    );
+    if (0) {
+        $dvField = $colModelList->getItem('gebucht_von');
+        $dvField->set_editoptions($dateTimeEditOptions);
+
+        $dbField = $colModelList->getItem('gebucht_bis');
+        $dbField->set_editoptions($dateTimeEditOptions);
+    }
+
+    $colModelList->getItem('id')->set_hidden(true);
+    $colModelList->getItem('tour_id')->set_hidden(true);
+    $colModelList->getItem('ressourcen_id')->set_hidden(true);
+    $colModelList->getItem('ressourcen_typ')->set_hidden(true);
+    $colModelList->getItem('Mandant')->set_hidden(true);
+    $colModelList->getItem('Vorgangstitel')->set_hidden(true);
+    $colModelList->getItem('DatumVon')->getInstanceSearchOptions()->set_defaultValue(date('Y-m-d'));
+
+    $navGrid = $JqGrid->getInstanceNavGrid($GridIdPager);
+    $navGrid->set_add(false);
+    $navGrid->set_edit(false);
+    $navGrid->set_del(true);
+    // $navGrid->set_addicon('ui-icon-plus');
+    $navGrid->set_search(
+        new JsFunction(
+            '{'
+            . 'multipleSearch:true,'
+            . 'overlay:false,'
+            . 'beforeShowSearch:function() { '
+            . ' $("' . $GridId . '")[0].toggleToolbar(); },'
+            . 'onClose:function() {    	$("' . $GridId . '")[0].toggleToolbar();   }'
+            . '}'
+        )
+    )
+        ->addNavButton(new JqGridNavGridButton(array(
+            'id' => 'btnTbarSearch',
+            'buttonicon' => 'ui-icon-pin-s',
+            'caption' => '',
+            'title' => 'Toggle Searching Toolbar',
+            'onclickButton' => 'function () { $("' . $GridId . '")[0].toggleToolbar(); }'
+        )));
+
+
+    $addPrm = $navGrid->getInstanceAddFormOptions();
+    $addPrm->onafterShowForm(new JsFunction(
+        'function(formid){
+                if ($(formid).closest("div.ui-jqdialog").css("zIndex") < 1050)
+                $(formid).closest("div.ui-jqdialog").css("zIndex", 1050); }'
+    ));
+
+    /* @var $searchPrm JqGridNavGridSearchFormOptions */
+    $searchPrm = $navGrid->getInstanceSearchFormOptions();
+    $searchPrm->set_sopt(array('eq'));
+    $searchPrm->set_beforeShowSearch('function() { ' . ' $("' . $GridId . '")[0].toggleToolbar(); }');
+    $searchPrm->set_onClose('function() { $("' . $GridId . '")[0].toggleToolbar();   }');
+    $searchPrm->set_multipleSearch(true);
+
+    if (1) {
+        $colChooser = new JqGridColumnChooserOptions();
+        $navGrid->addNavButton(new JqGridNavGridButton(array(
+            'id' => 'btnColCh',
+            'caption' => 'Spalten',
+            'title' => 'Spalten',
+            'onclickButton' => new JsFunction('function(){' . $colChooser->renderMethod($GridId) . '}')
+        )));
+    }
+
+    $appendGridScript =
+        '/** ' . PHP_EOL
+        . 'Cached at ' . date('Y-m-d H:i:s') . PHP_EOL
+        . ' for ' . $cacheTL . ' Seconds. ' . PHP_EOL
+        . ' Expires at ' . date('Y-m-d H:i:s', strtotime('+ ' . $cacheTL . ' Seconds')) . PHP_EOL
+        . ' */' . PHP_EOL
+        .'jQuery(function() {' . PHP_EOL
+        . (string)$JqGrid->getJsCode()
+        . '});';
+
+    // end cache
+    $cache->save($appendGridScript, $cacheID, [], $cacheTL); // Cache fuer eine Stunde
+}
+
+$appendGridScript = strtr($appendGridScript, $aTplCacheVars);
+?>
+
+<style>
+    div.ui-jqgrid,
+    #gbox_treeSelectDialog {
+        border:2px #d2d2d2 solid;
+        padding:1px;
+    }
+</style>
+<?php
+/*
+<script xsrc="<?php echo APPLICATION_BASE_URL; ?>/jquery/jquery-1.7.2.min.js"></script>
+<script xsrc="<?php echo APPLICATION_BASE_URL; ?>/jquery/jquery-ui-1.9.2.min.js"></script>
+<script xsrc="http://trentrichardson.com/examples/timepicker/jquery-ui-timepicker-addon.js"></script>
+<script xsrc="<?php echo APPLICATION_BASE_URL; ?>/jquery/ui/jquery.ui.datetimepicker.js"></script>
+<script xsrc="http://trentrichardson.com/examples/timepicker/jquery-ui-sliderAccess.js"></script>
+ */
+?>
+<?php
+if (!$disableLayout) {
+    $this->headScript()->appendScript( $appendGridScript );
+} else {
+    echo '<script>'.PHP_EOL . $appendGridScript . PHP_EOL . '</script>'.PHP_EOL;
+}
+?>
+      
+<table id="<?=$GridIdBasename?>"></table>
+<div id="<?=$GridIdBasename?>_pager"></div>

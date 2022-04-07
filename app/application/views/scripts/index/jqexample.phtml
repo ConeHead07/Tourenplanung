@@ -1,0 +1,14 @@
+<?php echo $this->ajaxLink("Show me something",
+                    "/user/login",
+                    array('update' => '#content'));?>
+ 
+<div id="content"></div>
+ 
+<form method="post" action="<?php echo $this->baseUrl(); ?>/index/jqexample">
+Pick your Date: <?php echo $this->datePicker("dp1",
+                                             '',
+                                             array(
+                                                'defaultDate' =>
+                                                    date('Y/m/d', time())));?>
+<input type="submit" value="Submit" />
+</form>

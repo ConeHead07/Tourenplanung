@@ -1,0 +1,58 @@
+<script>
+Fb.LagerList = <?php echo json_encode( $this->lagerList ); ?>;
+Fb.LagerOptions = <?php echo json_encode( $this->lagerHtmlOptions ); ?>;
+
+(function($) {
+    $(function(){
+        $( "div#DispoCalendar" ).fbDispoCalendar(
+            $.extend({}, Fb.DispoCalendarEvents, {
+                date:'<?php echo $this->date; ?>',
+                searchUrl:'<?php echo $this->baseUrl(); ?>/tourlist/indexstat'
+            } )
+        );
+    })
+})(jQuery);
+</script>
+
+<div id="fbDispoCalendarTabs">
+    <ul>
+        <li><a href="#tabs-tag" name="tabs-tag" onclick="pageLayout.open('west')">Tagesdispo</a></li>
+        <li><a href="#tabs-einsatz" name="tabs-einsatz" rel="<?php echo $this->baseUrl(); ?>/touren/ajax/tageseinsatzliste" onclick="pageLayout.close('west')">Tageseinsatzliste</a></li>
+        <li><a href="#tabs-woche" name="tabs-woche" rel="<?php echo $this->baseUrl(); ?>/touren/ajax/calendarweekdata" onclick="pageLayout.close('west')">Wochenansicht</a></li>
+        <li><a href="#tabs-monat" name="tabs-monat" rel="<?php echo $this->baseUrl(); ?>/touren/ajax/calendarmonthdata" onclick="pageLayout.close('west')">Monatsansicht</a></li>
+    </ul>
+
+    <div id="tabs-tag">
+
+      <div style='float:left;margin-left:0px'>
+      <span class='DispoLager'><select id='DispoLager' style='font-weight:bold;padding:0;background:inherit;color:inherit;border:0;'>
+        <?php echo $this->lagerHtmlOptions; ?>
+      </select></span>
+      <span class="btnAddCalendar" onclick="Fb.addCalendar()">Kalender hinzuf&uuml;gen</span>
+      <span class="btnAddCalendar" onclick="Fb.vorgangsDispoDialog()">Top25</span>
+      </div>
+      <h1 style="text-align:center"> Tagesdispo</h1>
+        
+        <div id="DispoCalendar"></div>
+        <div id="DispoCalendarCloser" ></div>
+
+        <div style="display:none;">
+            <textarea id="jsConsole" style="width:100%"></textarea>
+            <button onclick="eval( $('#jsConsole').val() )">JS-Code ausfuehren</button>
+        </div>
+    <!-- Ende Tab-Tagesansicht -->
+    </div>
+    
+    <div id="tabs-einsatz">
+        <div id="tabs-einsatz-content"></div>
+    </div>
+    
+    <div id="tabs-woche">        
+        <div id="tabs-woche-content"></div>
+    </div>
+    
+    <div id="tabs-monat">        
+        <div id="tabs-monat-content"></div>
+    </div>
+    <!-- Tabs Week and Month will be loaded by ajax -->
+</div>

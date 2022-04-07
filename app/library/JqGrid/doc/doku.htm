@@ -1,0 +1,991 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" dir="ltr" lang="en"><head>
+				<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<meta name="generator" content="DokuWiki Release 2009-02-14b">
+<meta name="robots" content="index,follow">
+<meta name="date" content="2011-10-11T18:21:35+0300">
+<meta name="keywords" content="wiki,options">
+<link rel="search" type="application/opensearchdescription+xml" href="http://www.trirand.com/jqgridwiki/lib/exe/opensearch.php" title="jqGrid Wiki">
+<link rel="start" href="http://www.trirand.com/jqgridwiki/">
+<link rel="contents" href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:options&amp;do=index" title="Index">
+<link rel="alternate" type="application/rss+xml" title="Recent Changes" href="http://www.trirand.com/jqgridwiki/feed.php">
+<link rel="alternate" type="application/rss+xml" title="Current Namespace" href="http://www.trirand.com/jqgridwiki/feed.php?mode=list&amp;ns=wiki">
+<link rel="alternate" type="text/html" title="Plain HTML" href="http://www.trirand.com/jqgridwiki/doku.php?do=export_xhtml&amp;id=wiki:options">
+<link rel="alternate" type="text/plain" title="Wiki Markup" href="http://www.trirand.com/jqgridwiki/doku.php?do=export_raw&amp;id=wiki:options">
+<link rel="stylesheet" media="all" type="text/css" href="doku-Dateien/css_002.css">
+<link rel="stylesheet" media="screen" type="text/css" href="doku-Dateien/css_003.css">
+<link rel="stylesheet" media="print" type="text/css" href="doku-Dateien/css.css">
+<script type="text/javascript" charset="utf-8" src="doku-Dateien/edit.js"></script>
+<script type="text/javascript" charset="utf-8" src="doku-Dateien/js.php"></script>
+<script type="text/javascript" charset="utf-8"><!--//--><![CDATA[//><!--
+NS = "wiki";var toolbar = [{"type":"format","title":"Bold Text","icon":"bold.png","key":"b","open":"**","close":"**"},{"type":"format","title":"Italic Text","icon":"italic.png","key":"i","open":"\/\/","close":"\/\/"},{"type":"format","title":"Underlined Text","icon":"underline.png","key":"u","open":"__","close":"__"},{"type":"format","title":"Code Text","icon":"mono.png","key":"c","open":"''","close":"''"},{"type":"format","title":"Strike-through Text","icon":"strike.png","key":"d","open":"<del>","close":"<\/del>"},{"type":"format","title":"Internal Link","icon":"link.png","key":"l","open":"[[","close":"]]"},{"type":"format","title":"External Link","icon":"linkextern.png","open":"[[","close":"]]","sample":"http:\/\/example.com|External Link"},{"type":"format","title":"Ordered List Item","icon":"ol.png","open":"  - ","close":"\\n"},{"type":"format","title":"Unordered List Item","icon":"ul.png","open":"  * ","close":"\\n"},{"type":"insert","title":"Horizontal Rule","icon":"hr.png","insert":"\\n----\\n"},{"type":"picker","title":"Smileys","icon":"smiley.png","list":{"8-)":"icon_cool.gif","8-O":"icon_eek.gif","8-o":"icon_eek.gif",":-(":"icon_sad.gif",":-)":"icon_smile.gif","=)":"icon_smile2.gif",":-\/":"icon_doubt.gif",":-\\":"icon_doubt2.gif",":-?":"icon_confused.gif",":-D":"icon_biggrin.gif",":-P":"icon_razz.gif",":-o":"icon_surprised.gif",":-O":"icon_surprised.gif",":-x":"icon_silenced.gif",":-X":"icon_silenced.gif",":-|":"icon_neutral.gif",";-)":"icon_wink.gif","^_^":"icon_fun.gif",":?:":"icon_question.gif",":!:":"icon_exclaim.gif","LOL":"icon_lol.gif","FIXME":"fixme.gif","DELETEME":"delete.gif"},"icobase":"smileys"},{"type":"picker","title":"Special Chars","icon":"chars.png","list":["\u00c0","\u00e0","\u00c1","\u00e1","\u00c2","\u00e2","\u00c3","\u00e3","\u00c4","\u00e4","\u01cd","\u01ce","\u0102","\u0103","\u00c5","\u00e5","\u0100","\u0101","\u0104","\u0105","\u00c6","\u00e6","\u0106","\u0107","\u00c7","\u00e7","\u010c","\u010d","\u0108","\u0109","\u010a","\u010b","\u00d0","\u0111","\u00f0","\u010e","\u010f","\u00c8","\u00e8","\u00c9","\u00e9","\u00ca","\u00ea","\u00cb","\u00eb","\u011a","\u011b","\u0112","\u0113","\u0116","\u0117","\u0118","\u0119","\u0122","\u0123","\u011c","\u011d","\u011e","\u011f","\u0120","\u0121","\u0124","\u0125","\u00cc","\u00ec","\u00cd","\u00ed","\u00ce","\u00ee","\u00cf","\u00ef","\u01cf","\u01d0","\u012a","\u012b","\u0130","\u0131","\u012e","\u012f","\u0134","\u0135","\u0136","\u0137","\u0139","\u013a","\u013b","\u013c","\u013d","\u013e","\u0141","\u0142","\u013f","\u0140","\u0143","\u0144","\u00d1","\u00f1","\u0145","\u0146","\u0147","\u0148","\u00d2","\u00f2","\u00d3","\u00f3","\u00d4","\u00f4","\u00d5","\u00f5","\u00d6","\u00f6","\u01d1","\u01d2","\u014c","\u014d","\u0150","\u0151","\u0152","\u0153","\u00d8","\u00f8","\u0154","\u0155","\u0156","\u0157","\u0158","\u0159","\u015a","\u015b","\u015e","\u015f","\u0160","\u0161","\u015c","\u015d","\u0162","\u0163","\u0164","\u0165","\u00d9","\u00f9","\u00da","\u00fa","\u00db","\u00fb","\u00dc","\u00fc","\u01d3","\u01d4","\u016c","\u016d","\u016a","\u016b","\u016e","\u016f","\u01d6","\u01d8","\u01da","\u01dc","\u0172","\u0173","\u0170","\u0171","\u0174","\u0175","\u00dd","\u00fd","\u0178","\u00ff","\u0176","\u0177","\u0179","\u017a","\u017d","\u017e","\u017b","\u017c","\u00de","\u00fe","\u00df","\u0126","\u0127","\u00bf","\u00a1","\u00a2","\u00a3","\u00a4","\u00a5","\u20ac","\u00a6","\u00a7","\u00aa","\u00ac","\u00af","\u00b0","\u00b1","\u00f7","\u2030","\u00bc","\u00bd","\u00be","\u00b9","\u00b2","\u00b3","\u00b5","\u00b6","\u2020","\u2021","\u00b7","\u2022","\u00ba","\u2200","\u2202","\u2203","\u018f","\u0259","\u2205","\u2207","\u2208","\u2209","\u220b","\u220f","\u2211","\u203e","\u2212","\u2217","\u221a","\u221d","\u221e","\u2220","\u2227","\u2228","\u2229","\u222a","\u222b","\u2234","\u223c","\u2245","\u2248","\u2260","\u2261","\u2264","\u2265","\u2282","\u2283","\u2284","\u2286","\u2287","\u2295","\u2297","\u22a5","\u22c5","\u25ca","\u2118","\u2111","\u211c","\u2135","\u2660","\u2663","\u2665","\u2666","\u03b1","\u03b2","\u0393","\u03b3","\u0394","\u03b4","\u03b5","\u03b6","\u03b7","\u0398","\u03b8","\u03b9","\u03ba","\u039b","\u03bb","\u03bc","\u039e","\u03be","\u03a0","\u03c0","\u03c1","\u03a3","\u03c3","\u03a4","\u03c4","\u03c5","\u03a6","\u03c6","\u03c7","\u03a8","\u03c8","\u03a9","\u03c9","\u2605","\u2606","\u260e","\u261a","\u261b","\u261c","\u261d","\u261e","\u261f","\u2639","\u263a","\u2714","\u2718","\u00d7","\u201e","\u201c","\u201d","\u201a","\u2018","\u2019","\u00ab","\u00bb","\u2039","\u203a","\u2014","\u2013","\u2026","\u2190","\u2191","\u2192","\u2193","\u2194","\u21d0","\u21d1","\u21d2","\u21d3","\u21d4","\u00a9","\u2122","\u00ae","\u2032","\u2033","[","]","{","}","~","(",")","%","\u00a7","$","#","|","@"]}];
+
+//--><!]]></script>
+		<title>wiki:options - jqGrid Wiki</title>
+					<link rel="shortcut icon" href="http://www.trirand.com/jqgridwiki/lib/tpl/monobook/user/favicon.ico">
+				<style type="text/css" media="screen,projection">/*<![CDATA[*/ @import "/jqgridwiki/lib/tpl/monobook/monobook/main.css"; /*]]>*/</style>
+
+		<link rel="stylesheet" type="text/css" media="print" href="doku-Dateien/commonPrint.css">
+		<link rel="stylesheet" type="text/css" media="print" href="doku-Dateien/print.htm">
+
+		<script type="text/javascript" src="doku-Dateien/wikibits.js"></script>
+		<style type="text/css" media="screen,projection">/*<![CDATA[*/
+		@import "/jqgridwiki/lib/tpl/monobook/wikipedia/en/Common.css";
+		@import "/jqgridwiki/lib/tpl/monobook/wikipedia/en/Monobook.css";
+		@import "/jqgridwiki/lib/tpl/monobook/dokuwiki/doku.css";
+		@import "/jqgridwiki/lib/tpl/monobook/lang/en/lang.css";
+		@import "/jqgridwiki/lib/tpl/monobook/user/Common.css";
+		@import "/jqgridwiki/lib/tpl/monobook/user/Monobook.css";
+		/*]]>*/</style>
+    <!--[if lt IE 5.5000]><style type="text/css">@import "/jqgridwiki/lib/tpl/monobook/monobook/IE50Fixes.css";</style><![endif]-->
+    <!--[if IE 5.5000]><style type="text/css">@import "/jqgridwiki/lib/tpl/monobook/monobook/IE55Fixes.css";</style><![endif]-->
+    <!--[if IE 6]><style type="text/css">@import "/jqgridwiki/lib/tpl/monobook/monobook/IE60Fixes.css";</style><![endif]-->
+    <!--[if IE 7]><style type="text/css">@import "/jqgridwiki/lib/tpl/monobook/monobook/IE70Fixes.css";</style><![endif]-->
+    <!--[if lt IE 7]><script type="text/javascript" src="/jqgridwiki/lib/tpl/monobook/common/IEFixes.js"></script>
+
+    <meta http-equiv="imagetoolbar" content="no" /><![endif]-->
+	</head>
+	<body class="mediawiki ns-1 ltr">
+		<div id="globalWrapper">
+			<div id="column-content">
+				<div id="content">
+					<a name="top" id="top"></a>
+					<div id="siteNotice"></div>					<div id="bodyContent">
+						<div class="dokuwiki">
+							<!-- start content -->
+							
+														<div id="qsearch__out" class="ajax_qsearch JSpopup"></div>
+<!-- TOC START -->
+<div class="toc">
+<div style="cursor: pointer;" class="tocheader toctoggle" id="toc__header"><span style="cursor: pointer;" class="toc_close" id="toc__toggle"><span>−</span></span>Table of Contents</div>
+<div id="toc__inside">
+
+<ul class="toc">
+<li class="level1"><div class="li"><span class="li"><a href="#options" class="toc">Options</a></span></div>
+<ul class="toc">
+<li class="level2"><div class="li"><span class="li"><a href="#setting_options_globally" class="toc">Setting Options Globally</a></span></div></li>
+<li class="level2"><div class="li"><span class="li"><a href="#how_to_overwrite_global_options" class="toc">How to Overwrite Global Options</a></span></div></li>
+</ul>
+</li>
+<li class="level1"><div class="li"><span class="li"><a href="#discussion__section" class="toc">Discussion</a></span></div></li></ul>
+</div>
+</div>
+<!-- TOC END -->
+
+<p>
+
+<a href="http://www.trirand.com/jqgridwiki/doku.php?do=export_odt&amp;id=wiki:options" title="Export page to Open Document format"><img src="doku-Dateien/odt.png" alt="Export page to Open Document format" align="right" height="48" width="48"></a>
+
+</p>
+
+<h1><a name="options" id="options">Options</a></h1>
+<div class="level1">
+
+<p>
+
+The setup and configuration of jqGrid is controlled by setting options 
+for the grid.  Examples of configuration settings include: how tall 
+should the grid be; what should be the height and width of the grid, and
+ what type of data should be in each column.
+</p>
+
+<p>
+The options are set in the grid options array, and many of the options 
+are set in name: value pairs, separated by commas.  The array begins 
+right after the declaration of the jqGrid object and extends to the 
+closing bracket.
+</p>
+
+<p>
+The properties and options available are listed below in alphabetic 
+order. Some have more details described elsewhere, which can be viewed 
+by clicking the link provided. 
+</p>
+
+<p>
+Some properties can't be changed after the grid is created. See the last column of this table and <a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:methods" class="wikilink1" title="wiki:methods">Methods</a> (getGridParam and setGridParam methods). <br>
+ 
+</p>
+
+<p>
+</p><p></p><div class="noteclassic"> The column <strong>Can be changed?</strong> indicates whether this parameter can or can not be changed after the grid creation.
+</div><p></p>
+<p></p>
+
+<p>
+In our tutorial, we see that jqGrid should load the appropriate language
+ file in order to work properly. This file is used in all modules and 
+the main purpose is to have multilingual capabilities. In this file, we 
+construct object with different properties. 
+</p>
+
+<p>
+The name of the main object in jqGrid is jQuery.jgrid or short 
+($.jgrid).  Every property is loaded in particular method or in jqGrid 
+itself.  The properties that are loaded in jqGrid have a name <strong>$.jgrid.defaults</strong>.
+</p>
+
+<p>
+The English variant of these properties look like this:
+
+</p>
+<pre class="code javascript">$.<span class="me1">jgrid</span> <span class="sy0">=</span> <span class="br0">{</span>
+	defaults <span class="sy0">:</span> <span class="br0">{</span>
+		recordtext<span class="sy0">:</span> <span class="st0">"View {0} - {1} of {2}"</span><span class="sy0">,</span>
+	        emptyrecords<span class="sy0">:</span> <span class="st0">"No records to view"</span><span class="sy0">,</span>
+		loadtext<span class="sy0">:</span> <span class="st0">"Loading..."</span><span class="sy0">,</span>
+		pgtext <span class="sy0">:</span> <span class="st0">"Page {0} of {1}"</span>
+	<span class="br0">}</span><span class="sy0">,</span>
+...
+<span class="br0">}</span></pre>
+<p>
+In other words, the options <strong>recordtext, emptyrecords, loadtext and pgtext</strong>
+ are loaded in the grid with these default values. See below how you can
+ set default properties with only one line of code to be used in all 
+grids in your application. <br>
+ <br>
+ 
+</p>
+<table class="inline">
+	<tbody><tr class="row0">
+		<th class="col0">Property</th><th class="col1">Type</th><th class="col2"> Description </th><th class="col3">Default<sup><a href="#fn__1" name="fnt__1" id="fnt__1" class="fn_top">1)</a></sup></th><th class="col4">Can be changed?</th>
+	</tr>
+	<tr class="row1">
+		<td class="col0">ajaxGridOptions</td><td class="col1">object</td><td class="col2">This
+ option allow to set global ajax settings for the grid when we request 
+data. Note that with this option is possible to overwrite all current 
+ajax setting in the grid including the error, complete and beforeSend 
+events.</td><td class="col3">empty object</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row2">
+		<td class="col0">ajaxSelectOptions</td><td class="col1">object</td><td class="col2">This
+ option allow to set global ajax settings for the select element when 
+the select is obtained via dataUrl option in editoptions or 
+searchoptions objects</td><td class="col3">empty object</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row3">
+		<td class="col0">altclass</td><td class="col1">string</td><td class="col2">The
+ class that is used for alternate rows. You can construct your own class
+ and replace this value. This option is valid only if altRows options is
+ set to true</td><td class="col3">ui-priority-secondary</td><td class="col4">Yes. Requires reload</td>
+	</tr>
+	<tr class="row4">
+		<td class="col0">altRows</td><td class="col1">boolean</td><td class="col2">Set a zebra-striped grid</td><td class="col3"> false</td><td class="col4"> Yes. After reload</td>
+	</tr>
+	<tr class="row5">
+		<td class="col0">autoencode</td><td class="col1">boolean</td><td class="col2">When
+ set to true encodes (html encode) the incoming (from server) and posted
+ data (from editing modules). By example &lt; will be converted to 
+&amp;lt;</td><td class="col3">false</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row6">
+		<td class="col0">autowidth</td><td class="col1">boolean</td><td class="col2">
+ When set to true, the grid width is recalculated automatically to the 
+width of the parent element. This is done only initially when the grid 
+is created. In order to resize the grid when the parent element changes 
+width you should apply custom code and use a setGridWidth method for 
+this purpose</td><td class="col3">false</td><td class="col4">No</td>
+	</tr>
+	<tr class="row7">
+		<td class="col0">caption</td><td class="col1">string</td><td class="col2">Defines
+ the Caption layer for the grid. This caption appears above the Header 
+layer. If the string is empty the caption does not appear.</td><td class="col3">empty string</td><td class="col4"> No.Method avail.</td>
+	</tr>
+	<tr class="row8">
+		<td class="col0">cellLayout</td><td class="col1">integer</td><td class="col2">This
+ option determines the padding + border width of the cell. Usually this 
+should not be changed, but if custom changes to td element are made in 
+the grid css file this will need to be changed. The initial value of 5 
+means paddingLef⇒2+paddingRight⇒2+borderLeft⇒1=5</td><td class="col3">5</td><td class="col4">No</td>
+	</tr>
+	<tr class="row9">
+		<td class="col0">cellEdit</td><td class="col1">boolean</td><td class="col2">Enables (disables) cell editing. See Cell Editing for more details</td><td class="col3">false</td><td class="col4"> Yes</td>
+	</tr>
+	<tr class="row10">
+		<td class="col0">cellsubmit</td><td class="col1">string</td><td class="col2">Determines where the contents of the cell are saved: 'remote' or 'clientArray'. See Cell Editing for more details</td><td class="col3">'remote'</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row11">
+		<td class="col0">cellurl</td><td class="col1">string</td><td class="col2">the url where the cell is to be saved. See Cell Editing for more details</td><td class="col3">null</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row12">
+		<td class="col0">cmTemplate</td><td class="col1"> object </td><td class="col2">
+ Defines a set of properties which overwrite the default values in 
+column Model. By example if you want to make all columns not sortable, 
+then only one propery here can be writen instead in all columns in 
+column model </td><td class="col3"> null </td><td class="col4"> No </td>
+	</tr>
+	<tr class="row13">
+		<td class="col0">colModel</td><td class="col1">array</td><td class="col2">Array
+ which describes the parameters of the columns.This is the most 
+important part of the grid. For a full description of all valid values 
+see <a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:colmodel_options" class="wikilink1" title="wiki:colmodel_options"> colModel API</a>. </td><td class="col3">empty array</td><td class="col4"> No</td>
+	</tr>
+	<tr class="row14">
+		<td class="col0">colNames</td><td class="col1">array[]</td><td class="col2">An
+ array in which we place the names of the columns. This is the text that
+ appears in the head of the grid (Header layer). The names are separated
+ with commas. Note that the number of element in this array should be 
+equal of the number elements in the colModel array.</td><td class="col3">empty array[]</td><td class="col4">No</td>
+	</tr>
+	<tr class="row15">
+		<td class="col0">data</td><td class="col1">array</td><td class="col2">A
+ array that store the local data passed to the grid. You can directly 
+point to this variable in case you want to load a array data. It can 
+replace addRowData method which is slow on relative big data</td><td class="col3"> empty array</td><td class="col4"> Yes</td>
+	</tr>
+	<tr class="row16">
+		<td class="col0">datastr</td><td class="col1">string</td><td class="col2">The string of data when datatype parameter is set to <a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:retrieving_data#xml_string" class="wikilink1" title="wiki:retrieving_data"> xmlstring</a> or <a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:retrieving_data#json_string" class="wikilink1" title="wiki:retrieving_data"> jsonstring</a></td><td class="col3">null</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row17">
+		<td class="col0">datatype</td><td class="col1">string</td><td class="col2">Defines
+ what type of information to expect to represent data in the grid. Valid
+ options are xml - we expect xml data; xmlstring - we expect xml data as
+ string; json - we expect JSON data; jsonstring - we expect JSON data as
+ string; local - we expect data defined at client side (array data); 
+javascript - we expect javascript as data; function - custom defined 
+function for retrieving data. See <a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:colmodel_options" class="wikilink1" title="wiki:colmodel_options"> colModel API</a> and <a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:retrieving_data" class="wikilink1" title="wiki:retrieving_data"> Retrieving Data</a></td><td class="col3">xml</td><td class="col4"> Yes</td>
+	</tr>
+	<tr class="row18">
+		<td class="col0">deepempty</td><td class="col1">boolean</td><td class="col2">This
+ option should be set to true if a event or a plugin is attached to the 
+table cell. The option uses jQuery empty for the the row and all its 
+children elements. This have of course speed overhead, but prevent 
+memory leaks</td><td class="col3">false</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row19">
+		<td class="col0">deselectAfterSort</td><td class="col1">boolean</td><td class="col2">Applicable only when we use datatype : local. Deselects currently-selected row(s) when a sort is applied.</td><td class="col3">true</td><td class="col4"> Yes</td>
+	</tr>
+	<tr class="row20">
+		<td class="col0">direction</td><td class="col1">string</td><td class="col2">Determines
+ the language direction in grid. The default is “ltr” (Left To Right 
+language). When set to “rtl”  (Right To Left) the grid automatically do 
+the needed. It is important to note that in one page we can have two (or
+ more) grids where the one can have direction “ltr” while the other can 
+have direction “rtl”. This option work only in FireFox 3.x versions and 
+Internet Explorer versions &gt;=6. Currently Safai and Google Chrome 
+does not support fully direction “rtl”. Also the same apply to Opera 
+browsers. The most common problem in FireFox is that the default 
+settings of the browser does not support RTL. In order change this see <a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:howto_grid_base" class="wikilink1" title="wiki:howto_grid_base">HOW TO</a> section in this chapter .</td><td class="col3">ltr</td><td class="col4">No</td>
+	</tr>
+	<tr class="row21">
+		<td class="col0">editurl</td><td class="col1">string</td><td class="col2">Defines the url for inline and form editing.</td><td class="col3">null</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row22">
+		<td class="col0">emptyrecords</td><td class="col1"> string</td><td class="col2">
+ Display the information when the returned (or the current) number of 
+records is zero. This option is valid only if viewrecords option is set 
+to true.</td><td class="col3">see lang file</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row23">
+		<td class="col0">ExpandColClick</td><td class="col1">boolean</td><td class="col2">when true, the treeGrid is expanded and/or collapsed when we click on the text of the expanded column, not only on the image</td><td class="col3">true</td><td class="col4">No</td>
+	</tr>
+	<tr class="row24">
+		<td class="col0">ExpandColumn</td><td class="col1">string</td><td class="col2">indicates
+ which column (name from colModel) should be used to expand the tree 
+grid. If not set the first one is used. Valid only when treeGrid option 
+is set to true.</td><td class="col3">null</td><td class="col4"> No</td>
+	</tr>
+	<tr class="row25">
+		<td class="col0">footerrow</td><td class="col1">boolean</td><td class="col2">If
+ set to true this will place a footer table with one row below the gird 
+records and above the pager. The number of columns equal of these from 
+colModel</td><td class="col3">false</td><td class="col4">No</td>
+	</tr>
+	<tr class="row26">
+		<td class="col0">forceFit</td><td class="col1">boolean</td><td class="col2">If
+ set to true, and resizing the width of a column, the adjacent column 
+(to the right) will resize so that the overall grid width is maintained 
+(e.g., reducing the width of column 2 by 30px will increase the size of 
+column 3 by 30px). In this case there is no horizontal scrolbar. Note: 
+this option is not compatible with shrinkToFit option - i.e if 
+shrinkToFit is set to false, forceFit is ignored.</td><td class="col3">false</td><td class="col4">No</td>
+	</tr>
+	<tr class="row27">
+		<td class="col0">gridstate</td><td class="col1">string</td><td class="col2">Determines
+ the current state of the grid (i.e. when used with hiddengrid, hidegrid
+ and caption options). Can have either of two states: 'visible' or 
+'hidden'</td><td class="col3">visible</td><td class="col4">No</td>
+	</tr>
+	<tr class="row28">
+		<td class="col0">gridview</td><td class="col1">boolean</td><td class="col2">In
+ the previous versions of jqGrid including 3.4.X,reading a relatively 
+big data sets (Rows &gt;=100 ) caused speed problems. The reason for 
+this was that as every cell was inserted into the grid we applied about 
+5-6 jQuery calls to it. Now this problem is resolved; we now insert the 
+entry row at once with a jQuery append. The result is impressive - about
+ 3-5 times faster. What will be the result if we insert all the data at 
+once? Yes, this can be done with a help of gridview option when set to 
+true. The result is a grid that is 5 to 10 times faster. Of course when 
+this option is set to true we have some limitations. If set to true we 
+can not use treeGrid, subGrid, or afterInsertRow event. If you do not 
+use these three options in the grid you can set this option to true and 
+enjoy the speed.</td><td class="col3">false</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row29">
+		<td class="col0">grouping</td><td class="col1">boolean</td><td class="col2"> Enables grouping in grid. Please refer <a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:grouping" class="wikilink1" title="wiki:grouping">grouping</a> page.</td><td class="col3">false</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row30">
+		<td class="col0">headertitles</td><td class="col1">boolean</td><td class="col2">If the option is set to true the title attribute is added to the column headers</td><td class="col3">false</td><td class="col4">No</td>
+	</tr>
+	<tr class="row31">
+		<td class="col0">height</td><td class="col1">mixed</td><td class="col2">The
+ height of the grid. Can be set as number (in this case we mean pixels) 
+or as percentage (only 100% is acceped) or value of auto is acceptable.</td><td class="col3">150</td><td class="col4">No.Method avail.</td>
+	</tr>
+	<tr class="row32">
+		<td class="col0">hiddengrid</td><td class="col1">boolean</td><td class="col2">If
+ set to true the grid initially is hidden. The data is not loaded (no 
+request is sent) and only the caption layer is shown. When the show/hide
+ button is clicked the first time to show grid, the request is sent to 
+the server, the data is loaded, and grid is shown. From this point we 
+have a regular grid. This option has effect only if the caption property
+ is not empty and the hidegrid property (see below) is set to true.</td><td class="col3">false</td><td class="col4"> No</td>
+	</tr>
+	<tr class="row33">
+		<td class="col0">hidegrid</td><td class="col1">boolean</td><td class="col2">Enables
+ or disables the show/hide grid button, which appears on the right side 
+of the Caption layer. Takes effect only if the caption property is not 
+an empty string.</td><td class="col3">true</td><td class="col4">No</td>
+	</tr>
+	<tr class="row34">
+		<td class="col0">hoverrows</td><td class="col1">boolean</td><td class="col2">When set to false the mouse hovering is disabled in the grid data rows.</td><td class="col3">true</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row35">
+		<td class="col0">idPrefix</td><td class="col1">string</td><td class="col2">When set this string is added as prefix to the id of the row when it is build</td><td class="col3">empty</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row36">
+		<td class="col0">ignoreCase</td><td class="col1">boolean</td><td class="col2">By
+ default the local searching is case sensitive. To make the local search
+ and sorting not case sensitive set this options to true </td><td class="col3">false</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row37">
+		<td class="col0">inlineData</td><td class="col1">empty object</td><td class="col2">an array used to add content to the data posted to the server when we are in inline editing.</td><td class="col3">{}</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row38">
+		<td class="col0">jsonReader</td><td class="col1">array</td><td class="col2">Array which describes the structure of the expected json data. For a full description and default setting, see <a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:retrieving_data#json_data" class="wikilink1" title="wiki:retrieving_data"> Retrieving Data JSON Data</a></td><td class="col3"> </td><td class="col4">No</td>
+	</tr>
+	<tr class="row39">
+		<td class="col0">lastpage</td><td class="col1">integer</td><td class="col2">Readonly property. Determines the total number of pages returned from the request. </td><td class="col3">0</td><td class="col4">No</td>
+	</tr>
+	<tr class="row40">
+		<td class="col0">lastsort</td><td class="col1">integer</td><td class="col2">Readonly property. Determines the index of last sorted column beginning from 0</td><td class="col3">0</td><td class="col4">No</td>
+	</tr>
+	<tr class="row41">
+		<td class="col0">loadonce</td><td class="col1">boolean</td><td class="col2">If
+ this flag is set to true, the grid loads the data from the server only 
+once (using the appropriate datatype). After the first request the 
+datatype parameter is automatically changed to local and all further 
+manipulations are done on the client side. The functions of the pager 
+(if present) are disabled.</td><td class="col3">false</td><td class="col4">No</td>
+	</tr>
+	<tr class="row42">
+		<td class="col0">loadtext</td><td class="col1">string</td><td class="col2">The text which appear when requesting and sorting data. This parameter is located in language file</td><td class="col3">Loading…</td><td class="col4">No</td>
+	</tr>
+	<tr class="row43">
+		<td class="col0">loadui</td><td class="col1">string</td><td class="col2"> This option controls what to do when an ajax operation is in progress.<br>
+ <strong>disable</strong> - disables the jqGrid progress indicator. This way you can use your own indicator.<br>
+ <strong>enable</strong> (default) - enables “Loading” message in the center of the grid. <br>
+ <strong>block</strong> - enables the “Loading” message and blocks all 
+actions in the grid until the ajax request is finished. Note that this 
+disables paging, sorting and all actions on toolbar, if any. </td><td class="col3">enable</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row44">
+		<td class="col0">mtype</td><td class="col1">string</td><td class="col2">Defines the type of request to make (“POST” or “GET”)</td><td class="col3">GET</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row45">
+		<td class="col0">multikey</td><td class="col1">string</td><td class="col2">This
+ parameter have sense only multiselect option is set to true. Defines 
+the key which will be pressed when we make multiselection. The possible 
+values are: <strong>shiftKey</strong> - the user should press Shift Key <strong>altKey</strong> - the user should press Alt Key <strong>ctrlKey</strong> - the user should press Ctrl Key</td><td class="col3">empty string</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row46">
+		<td class="col0">multiboxonly</td><td class="col1">boolean</td><td class="col2">This
+ option works only when multiselect = true. When multiselect is set to 
+true, clicking anywhere on a row selects that row; when multiboxonly is 
+also set to true, the multiselection is done only when the checkbox is 
+clicked (Yahoo style). Clicking in any other row (suppose the checkbox 
+is not clicked) deselects all rows and the current row is selected.</td><td class="col3">false</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row47">
+		<td class="col0">multiselect</td><td class="col1">boolean</td><td class="col2">If
+ this flag is set to true a multi selection of rows is enabled. A new 
+column at left side is added. Can be used with any datatype option.</td><td class="col3">false</td><td class="col4"> No. see HOWTO</td>
+	</tr>
+	<tr class="row48">
+		<td class="col0">multiselectWidth</td><td class="col1">integer</td><td class="col2">Determines the width of the multiselect column if multiselect is set to true.</td><td class="col3">20</td><td class="col4">No</td>
+	</tr>
+	<tr class="row49">
+		<td class="col0">page</td><td class="col1">integer</td><td class="col2">Set
+ the initial number of page when we make the request.This parameter is 
+passed to the url for use by the server routine retrieving the data</td><td class="col3">1</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row50">
+		<td class="col0">pager</td><td class="col1">mixed</td><td class="col2">Defines
+ that we want to use a pager bar to navigate through the records. This 
+must be a valid html element; in our example we gave the div the id of 
+“pager”, but any name is acceptable. Note that the Navigation layer (the
+ “pager” div) can be positioned anywhere you want, determined by your 
+html; in our example we specified that the pager will appear after the 
+Table Body layer. The valid calls can be (using our example) 'pager', 
+'#pager', jQuery('#pager'). I recommend to use the second one. See <a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:pager" class="wikilink1" title="wiki:pager">Pager</a></td><td class="col3">empty string. Currently only one pagebar is possible.</td><td class="col4">No</td>
+	</tr>
+	<tr class="row51">
+		<td class="col0">pagerpos</td><td class="col1">string</td><td class="col2">
+ Determines the position of the pager in the grid. By default the pager 
+element when created is divided in 3 parts (one part for pager, one part
+ for navigator buttons and one part for record information)</td><td class="col3">center</td><td class="col4">No</td>
+	</tr>
+	<tr class="row52">
+		<td class="col0">pgbuttons</td><td class="col1">boolean</td><td class="col2">Determines
+ if the Pager buttons should be shown if pager is available. Also valid 
+only if pager is set correctly. The buttons are placed in the pager bar.
+ </td><td class="col3">true</td><td class="col4">No</td>
+	</tr>
+	<tr class="row53">
+		<td class="col0">pginput</td><td class="col1">boolean</td><td class="col2">Determines
+ if the input box, where the user can change the number of requested 
+page, should be available. The input box appear in the pager bar. </td><td class="col3">true</td><td class="col4">No</td>
+	</tr>
+	<tr class="row54">
+		<td class="col0">pgtext</td><td class="col1">string</td><td class="col2">Show
+ information about current page status. The first value is the current 
+loaded page. The second value is the total number of pages</td><td class="col3">See lang file</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row55">
+		<td class="col0">prmNames</td><td class="col1">array</td><td class="col2"> Default values prmNames: <br>
+ {page:“page”,rows:“rows”, sort: “sidx”, order: “sord”, 
+search:“_search”, nd:“nd”, id:“id”, oper:“oper”, editoper:“edit”, 
+addoper:“add”, deloper:“del”, subgridid:“id”, npage: null, 
+totalrows:“totalrows”} <br>
+ Customizes names of the fields sent to the server on a Post. For 
+example, with this setting, you can change the sort order element from 
+“sidx” to “mysort”: prmNames: {sort: “mysort”}. The string that will be 
+posted to the server will then be 
+myurl.php?page=1&amp;rows=10&amp;mysort=myindex&amp;sord=asc  rather 
+than myurl.php?page=1&amp;rows=10&amp;sidx=myindex&amp;sord=asc <br>
+ When some parameter is set to null they will be not sended to the 
+server. By example if we set prmNames: { nd:null} the nd parameter will 
+not be sended.  For npage option see scroll option. <br>
+ The options meaning the following <br>
+ page - the the requested page - default value page, <br>
+ rows - the number of rows requested - default value rows, <br>
+ sort - the sorting column - default value sidx, <br>
+ order - the sort order default value sord, <br>
+ search - the search indicator - default value _search, <br>
+ nd - the time passed to the request (for <acronym title="Internet Explorer">IE</acronym> browsers not to cache the request) - default value nd, <br>
+ id - the name of the id when post data in editing modules - default value id, <br>
+ oper - the operation parameter - default value oper, <br>
+ editoper - the name of operation when the data is posted in edit mode - default value edit, <br>
+ addoper - the name of operation when the data is posted in add mode - default value add,<br>
+ deloper - the name of operation when the data is posted in delete mode - default value del <br>
+ totalrows - the name of the total rows to be obtained from server - see rowTotal - default value totalrows <br>
+ subgridid - the name passed when we click to load data in subgrid - default value id</td><td class="col3"> none </td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row56">
+		<td class="col0">postData</td><td class="col1">array</td><td class="col2">This array is passed directly to the url. This is associative array and can be used this way: {name1:value1…}. See <acronym title="Application Programming Interface">API</acronym> methods for manipulation.</td><td class="col3">empty array</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row57">
+		<td class="col0">reccount</td><td class="col1">integer</td><td class="col2">Readonly
+ property. Determines the exactly number of rows in the grid. Do not mix
+ this with records parameter. Instead that in most cases they are equal 
+there is a case where this is not true. By example you define rowNum 
+parameter 15, but you return from server records parameter = 20, then 
+the records parameter will be 20, the reccount parameter will be 15, and
+ in the grid you will have 15 records.</td><td class="col3">0</td><td class="col4">No</td>
+	</tr>
+	<tr class="row58">
+		<td class="col0">recordpos</td><td class="col1">string</td><td class="col2">Determines the position of the record information in the pager. Can be left, center, right</td><td class="col3">right</td><td class="col4">No</td>
+	</tr>
+	<tr class="row59">
+		<td class="col0">records</td><td class="col1">integer</td><td class="col2">Readonly property. Determines the number of returned records in grid from the request</td><td class="col3">none</td><td class="col4">No</td>
+	</tr>
+	<tr class="row60">
+		<td class="col0">recordtext</td><td class="col1">string</td><td class="col2">Represent
+ information that can be shown in the pager. Also this option is valid 
+if viewrecords option is set to true. This text appear only if the 
+tottal number of recreds is greater then zero.In order to show or hide 
+some information the items in {} mean the following: {0} the start 
+position of the records depending on page number and number of requested
+ records; {1} - the end position {2} - total records returned from the 
+data</td><td class="col3"> see lang file</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row61">
+		<td class="col0">resizeclass</td><td class="col1">string</td><td class="col2">Assigns a class to columns that are resizable so that we can show a resize handle only for ones that are resizable</td><td class="col3">empty string</td><td class="col4">No</td>
+	</tr>
+	<tr class="row62">
+		<td class="col0">rowList</td><td class="col1">array[]</td><td class="col2">An
+ array to construct a select box element in the pager in which we can 
+change the number of the visible rows. When changed during the 
+execution, this parameter replaces the rowNum parameter that is passed 
+to the url. If the array is empty the element does not appear in the 
+pager. Typical you can set this like [10,20,30]. If the rowNum parameter
+ is set to 30 then the selected value in the select box is 30.</td><td class="col3">empty array - []</td><td class="col4">No</td>
+	</tr>
+	<tr class="row63">
+		<td class="col0">rownumbers</td><td class="col1">boolean</td><td class="col2">
+ If this option is set to true, a new column at left of the grid is 
+added. The purpose of this column is to count the number of available 
+rows, beginning from 1. In this case colModel is extended automatically 
+with new element with name - 'rn'. Also, be careful not to use the name 
+'rn' in colModel</td><td class="col3">false</td><td class="col4">No</td>
+	</tr>
+	<tr class="row64">
+		<td class="col0">rowNum</td><td class="col1">integer</td><td class="col2">Sets
+ how many records we want to view in the grid. This parameter is passed 
+to the url for use by the server routine retrieving the data. Note that 
+if you set this parameter to 10 (i.e. retrieve 10 records) and your 
+server return 15 then only 10 records will be loaded. <del>Set this parameter to <strong>-1</strong>  (unlimited) to disable this checking.</del> </td><td class="col3">20</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row65">
+		<td class="col0">rowTotal</td><td class="col1"> integer</td><td class="col2">
+ When set this parameter can instruct the server to load the total 
+number of rows needed to work on. Note that rowNum determines the total 
+records displayed in the grid, while rowTotal the total rows on which we
+ operate. When this parameter is set we send a additional parameter to 
+server named totalrows. You can check for this parameter and if it is 
+available you can replace the rows parameter with this one. Mostly this 
+parameter can be combined wit loadonce parameter set to true.</td><td class="col3">null</td><td class="col4"> Yes</td>
+	</tr>
+	<tr class="row66">
+		<td class="col0">rownumWidth</td><td class="col1">integer</td><td class="col2">Determines the width of the row number column if rownumbers option is set to true.</td><td class="col3">25</td><td class="col4">No</td>
+	</tr>
+	<tr class="row67">
+		<td class="col0">savedRow</td><td class="col1">array</td><td class="col2">
+ This is read only property and is used in Inline and cell editing 
+modules to store the data, before editing the row or cell. See <a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:cell_editing" class="wikilink1" title="wiki:cell_editing">Cell editing</a> and <a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:inline_editing" class="wikilink1" title="wiki:inline_editing">Inline editing</a>.</td><td class="col3">empty array</td><td class="col4">No</td>
+	</tr>
+	<tr class="row68">
+		<td class="col0"><del>searchdata</del></td><td class="col1"><del>array {}</del></td><td class="col2"><del>This property contain the searched data in pair name:value.</del></td><td class="col3"><del>empty array{}</del></td><td class="col4"><del>Yes</del></td>
+	</tr>
+	<tr class="row69">
+		<td class="col0">scroll</td><td class="col1">boolean or <br>
+ integer</td><td class="col2">Creates dynamic scrolling grids. When 
+enabled, the pager elements are disabled and we can use the vertical 
+scrollbar to load data. When set to true the grid will always hold all 
+the items from the start through to the latest point ever visited. <br>
+ When scroll is set to value  (eg 1), the grid will just hold the 
+visible lines. This allow us to load the data at portions whitout to 
+care about the memory leaks. Additionally this we have optional 
+extension to the server protocol: npage (see prmNames array). If you set
+ the npage option in prmNames, then the grid will sometimes request more
+ than one page at a time, if not it will just perform multiple gets.</td><td class="col3">false</td><td class="col4">No</td>
+	</tr>
+	<tr class="row70">
+		<td class="col0">scrollOffset</td><td class="col1">integer</td><td class="col2">Determines
+ the width of the vertical scrollbar. Since different browsers interpret
+ this width differently (and it is difficult to calculate it in all 
+browsers) this can be changed.</td><td class="col3">18</td><td class="col4">No.Method avail.</td>
+	</tr>
+	<tr class="row71">
+		<td class="col0">scrollTimeout</td><td class="col1">integer <br>
+ (milliseconds)</td><td class="col2">This control the timeout handler when scroll is set to 1.</td><td class="col3">200</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row72">
+		<td class="col0">scrollrows</td><td class="col1">boolean</td><td class="col2">When
+ enabled, selecting a row with setSelection scrolls the grid so that the
+ selected row is visible. This is especially useful when we have a 
+verticall scrolling grid and we use form editing with navigation buttons
+ (next or previous row). On navigating to a hidden row, the grid scrolls
+ so the selected row becomes visible.</td><td class="col3">false</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row73">
+		<td class="col0">selarrrow</td><td class="col1">array-[]</td><td class="col2">This
+ options is read only. Determines the currently selected rows when 
+multiselect is set to true. This is one dimensional array and the values
+ in the array correspond to the selected id's in the grid.</td><td class="col3">empty array []</td><td class="col4">No</td>
+	</tr>
+	<tr class="row74">
+		<td class="col0">selrow</td><td class="col1">string</td><td class="col2">This option is read only. Contain the id of the last selected row. If you sort or apply a pagging this options is set to null</td><td class="col3">null</td><td class="col4">No</td>
+	</tr>
+	<tr class="row75">
+		<td class="col0">shrinkToFit</td><td class="col1">boolean or <br>
+ integer</td><td class="col2">This option describes the type of 
+calculation of the initial width of each column against with the width 
+of the grid. If the value is true and the value in width option is set 
+then: Every column width is scaled according to the defined option 
+width. Example: if we define two columns with a width of 80 and 120 
+pixels, but want the grid to have a 300 pixels - then the columns are 
+recalculated as follow: 1- column = 300(new width)/200(sum of all 
+width)*80(column width) = 120 and 2 column = 300/200*120 = 180. The grid
+ width is 300px. If the value is false and the value in width option is 
+set then: The width of the grid is the width set in option. The column 
+width are not recalculated and have the values defined in colModel. If 
+integer is set, the width is calculated according to it.</td><td class="col3">true</td><td class="col4">No</td>
+	</tr>
+	<tr class="row76">
+		<td class="col0">sortable</td><td class="col1">boolean</td><td class="col2">When
+ enabled this option allow column reordering with mouse. Since this 
+option uses jQuery UI sortable widget, be a sure that this widget and 
+the related to widget files are loaded in head tag. Also be a sure too 
+that you mark the grid.jqueryui.js when you download the jqGrid.</td><td class="col3">false</td><td class="col4">No</td>
+	</tr>
+	<tr class="row77">
+		<td class="col0">sortname</td><td class="col1">string</td><td class="col2">The
+ initial sorting name when we use datatypes xml or json (data returned 
+from server). This parameter is added to the url. If set and the index 
+(name) match the name from colModel then to this column by default is 
+added a image sorting icon, according to the parameter sortorder 
+(below). See prmNames. </td><td class="col3">empty string</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row78">
+		<td class="col0">sortorder</td><td class="col1">string</td><td class="col2">The
+ initial sorting order when we use datatypes xml or json (data returned 
+from server).This parameter is added to the url - see prnNames. Two 
+possible values - asc or desc.</td><td class="col3">asc</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row79">
+		<td class="col0">subGrid</td><td class="col1">boolean</td><td class="col2">If
+ set to true this enables using a subgrid. If the subGrid is enabled a 
+additional column at left side is added to the basic grid. This column 
+contains a 'plus' image which indicate that the user can click on it to 
+expand the row. By default all rows are collapsed. See <a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:subgrid" class="wikilink1" title="wiki:subgrid">Subgrid</a></td><td class="col3">false</td><td class="col4">No</td>
+	</tr>
+	<tr class="row80">
+		<td class="col0">subGridOptions</td><td class="col1"> object </td><td class="col2"> A set of additional options for the subgrid. For more information and default values see <a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:subgrid" class="wikilink1" title="wiki:subgrid">Subgrid</a>. </td><td class="col3"> see <a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:subgrid" class="wikilink1" title="wiki:subgrid">Subgrid</a> </td><td class="col4"> Yes </td>
+	</tr>
+	<tr class="row81">
+		<td class="col0">subGridModel</td><td class="col1">array-[]</td><td class="col2">This
+ property, which describes the model of the subgrid, has an effect only 
+if the subGrid property is set to true. It is an array in which we 
+describe the column model for the subgrid data. For more info see <a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:subgrid" class="wikilink1" title="wiki:subgrid">Subgrid</a>.</td><td class="col3">empty array</td><td class="col4">No</td>
+	</tr>
+	<tr class="row82">
+		<td class="col0">subGridType</td><td class="col1">mixed</td><td class="col2">This option allow loading subgrid as a service. If not set, the datatype parameter of the parent grid is used.</td><td class="col3">null</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row83">
+		<td class="col0">subGridUrl</td><td class="col1">string</td><td class="col2">This
+ option has effect only if subGrid option is set to true. This option 
+points to the file from which we get the data for the subgrid. jqGrid 
+adds the id of the row to this url as parameter. If there is a need to 
+pass additional parameters, use the params option in subGridModel. See <a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:subgrid" class="wikilink1" title="wiki:subgrid">Subgrid</a></td><td class="col3">empty string</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row84">
+		<td class="col0">subGridWidth</td><td class="col1">integer</td><td class="col2"> Determines the width of the subGrid column if subgrid is enabled.</td><td class="col3">20</td><td class="col4">No</td>
+	</tr>
+	<tr class="row85">
+		<td class="col0">toolbar</td><td class="col1">array</td><td class="col2">This
+ option defines the toolbar of the grid. This is array with two values 
+in which the first value enables the toolbar and the second defines the 
+position relative to body Layer. Possible values “top”,”bottom”, “both”.
+ When we set toolbar: [true,”both”] two toolbars are created – one on 
+the top of table data and one of the bottom of the table data. When we 
+have two toolbars then we create two elements (div). The id of the top 
+bar is constructed like “t_”+id of the grid and the bottom toolbar the 
+id is “tb_”+id of the grid. In case when only one toolbar is created we 
+have the id as “t_” + id of the grid, independent of where this toolbar 
+is created (top or bottom)</td><td class="col3">[false,''] </td><td class="col4">No</td>
+	</tr>
+	<tr class="row86">
+		<td class="col0">toppager</td><td class="col1">boolean</td><td class="col2">When
+ enabled this option place a pager element at top of the grid below the 
+caption (if available). If another pager is defined both can coexists 
+and are refreshed in sync. The id of the new created pager is a 
+combination of the gridid+“_toppager”. </td><td class="col3">false</td><td class="col4">No</td>
+	</tr>
+	<tr class="row87">
+		<td class="col0">totaltime</td><td class="col1">integer</td><td class="col2">Readonly
+ parameter. Measure the loading time of the records - currently 
+available only when we load xml or json data. Also the check begin when 
+the request is complete and we begin to insert data into the grid and 
+ends when the last row is added.</td><td class="col3">0</td><td class="col4">No</td>
+	</tr>
+	<tr class="row88">
+		<td class="col0">treedatatype</td><td class="col1">mixed</td><td class="col2">Determines
+ the initial datatype (see datatype option). Usually this should not be 
+changed. During the reading process this option is equal to the datatype
+ option.</td><td class="col3">null</td><td class="col4">No</td>
+	</tr>
+	<tr class="row89">
+		<td class="col0">treeGrid</td><td class="col1">boolean</td><td class="col2">Enables (disables) the tree grid format. For more details see <a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:treegrid" class="wikilink1" title="wiki:treegrid"> Tree Grid</a></td><td class="col3">false</td><td class="col4">No</td>
+	</tr>
+	<tr class="row90">
+		<td class="col0">treeGridModel</td><td class="col1">string</td><td class="col2"> Deteremines the method used for the treeGrid. Can be nested or adjacency. See <a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:treegrid" class="wikilink1" title="wiki:treegrid">Tree Grid</a></td><td class="col3">nested</td><td class="col4">No</td>
+	</tr>
+	<tr class="row91">
+		<td class="col0">treeIcons</td><td class="col1">array</td><td class="col2">This
+ array set the icons used in the tree. The icons should be a valid names
+ from UI theme roller images. The default values are: 
+{plus:'ui-icon-triangle-1-e',minus:'ui-icon-triangle-1-s',leaf:'ui-icon-radio-off'}
+ </td><td class="col3"> </td><td class="col4">No</td>
+	</tr>
+	<tr class="row92">
+		<td class="col0">treeReader</td><td class="col1">array</td><td class="col2">extends
+ the colModel defined in the basic grid. The fields described here are 
+added to end of the colModel array and are hidden. This means that the 
+data returned from the server should have values for these fields. For a
+ full description of all valid values see <a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:treegrid" class="wikilink1" title="wiki:treegrid"> Tree Grid</a>.</td><td class="col3"> </td><td class="col4">No</td>
+	</tr>
+	<tr class="row93">
+		<td class="col0">tree_root_level</td><td class="col1">numeric</td><td class="col2">Determines the level where the root element begins when treeGrid is enabled</td><td class="col3">0</td><td class="col4">No</td>
+	</tr>
+	<tr class="row94">
+		<td class="col0">url</td><td class="col1">string</td><td class="col2">The url of the file that holds the request</td><td class="col3">null</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row95">
+		<td class="col0">userData</td><td class="col1">array</td><td class="col2">This array contain custom information from the request. Can be used at any time.</td><td class="col3">empty array</td><td class="col4">No</td>
+	</tr>
+	<tr class="row96">
+		<td class="col0">userDataOnFooter</td><td class="col1">boolean</td><td class="col2">When
+ set to true we directly place the user data array userData at footer. 
+The rules are as follow: If the userData array contain name which is 
+equal to those of colModel then the value is placed in that column.If 
+there are no such values nothing is palced. Note that if this option is 
+used we use the current formatter options (if available) for that column</td><td class="col3">false</td><td class="col4">Yes</td>
+	</tr>
+	<tr class="row97">
+		<td class="col0">viewrecords</td><td class="col1">boolean</td><td class="col2">If
+ true, jqGrid displays the beginning and ending record number in the 
+grid, out of the total number of records in the query.  This information
+ is shown in the pager bar (bottom right by default)in this format: 
+“View X to Y out of Z”.  If this value is true, there are other 
+parameters that can be adjusted, including 'emptyrecords' and 
+'recordtext'. </td><td class="col3">false</td><td class="col4">No</td>
+	</tr>
+	<tr class="row98">
+		<td class="col0">viewsortcols</td><td class="col1">array</td><td class="col2">
+ The purpose of this parameter is to define different look and behavior 
+of sorting icons that appear near the header. This parameter is array 
+with the following default options viewsortcols : 
+[false,'vertical',true]. The first parameter determines if all icons 
+should be viewed at the same time when all columns have sort property 
+set to true. The default of false determines that only the icons of the 
+current sorting column should be viewed. Setting this parameter to true 
+causes all icons in all sortable columns to be viewed.<br>
+ The second parameter determines how icons should be placed - vertical 
+means that the sorting icons are one under another. 'horizontal' means 
+that the icons should be one near other. <br>
+ The third parameter determines the click functionality. If set to true 
+the columns are sorted if the header is clicked. If set to false the 
+columns are sorted only when the icons are clicked. <br>
+ Important note: When set a third parameter to false be a sure that the 
+first parameter is set to true, otherwise you will loose the sorting.</td><td class="col3"> </td><td class="col4">No</td>
+	</tr>
+	<tr class="row99">
+		<td class="col0">width</td><td class="col1">number</td><td class="col2">If
+ this option is not set, the width of the grid is a sum of the widths of
+ the columns defined in the colModel (in pixels). If this option is set,
+ the initial width of each column is set according to the value of 
+shrinkToFit option.</td><td class="col3">none</td><td class="col4">No. Method avail.</td>
+	</tr>
+	<tr class="row100">
+		<td class="col0">xmlReader</td><td class="col1">array</td><td class="col2">Array which describes the structure of the expected xml data. For a full description refer to <a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:retrieving_data#xml_data" class="wikilink1" title="wiki:retrieving_data"> Retrieving Data XML Data</a>.</td><td class="col3"> </td><td class="col4">No</td>
+	</tr>
+</tbody></table>
+
+</div>
+
+<h2><a name="setting_options_globally" id="setting_options_globally">Setting Options Globally</a></h2>
+<div class="level2">
+
+<p>
+There are cases where you want to have some particular options to be 
+changed (change the default value) and that this option should be a 
+common for all your grids. This can be done using extend function of 
+jQuery. <br>
+
+</p>
+
+<p>
+Let suppose that you want  to have a zebra like grid and want that all 
+you grids have this options set to true. If you do not want this code to
+ be written every time when you crate a grid here is a way to do this 
+once (using the code from our tutorial):
+</p>
+<pre class="code html4strict"><span class="sc0">&lt;!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"&gt;</span>
+<span class="sc2">&lt;<a href="http://december.com/html/4/element/html.html"><span class="kw2">html</span></a> xmlns<span class="sy0">=</span><span class="st0">"http://www.w3.org/1999/xhtml"</span> xml:<span class="kw3">lang</span><span class="sy0">=</span><span class="st0">"en"</span> <span class="kw3">lang</span><span class="sy0">=</span><span class="st0">"en"</span>&gt;</span>
+<span class="sc2">&lt;<a href="http://december.com/html/4/element/head.html"><span class="kw2">head</span></a>&gt;</span>
+<span class="sc2">&lt;<a href="http://december.com/html/4/element/meta.html"><span class="kw2">meta</span></a> <span class="kw3">http-equiv</span><span class="sy0">=</span><span class="st0">"Content-Type"</span> <span class="kw3">content</span><span class="sy0">=</span><span class="st0">"text/html; charset=utf-8"</span> <span class="sy0">/</span>&gt;</span>
+<span class="sc2">&lt;<a href="http://december.com/html/4/element/title.html"><span class="kw2">title</span></a>&gt;</span>My First Grid<span class="sc2">&lt;<span class="sy0">/</span><a href="http://december.com/html/4/element/title.html"><span class="kw2">title</span></a>&gt;</span>
+&nbsp;
+<span class="sc2">&lt;<a href="http://december.com/html/4/element/link.html"><span class="kw2">link</span></a> <span class="kw3">rel</span><span class="sy0">=</span><span class="st0">"stylesheet"</span> <span class="kw3">type</span><span class="sy0">=</span><span class="st0">"text/css"</span> <span class="kw3">media</span><span class="sy0">=</span><span class="st0">"screen"</span> <span class="kw3">href</span><span class="sy0">=</span><span class="st0">"css/ui-lightness/jquery-ui-1.7.1.custom.css"</span> <span class="sy0">/</span>&gt;</span>
+<span class="sc2">&lt;<a href="http://december.com/html/4/element/link.html"><span class="kw2">link</span></a> <span class="kw3">rel</span><span class="sy0">=</span><span class="st0">"stylesheet"</span> <span class="kw3">type</span><span class="sy0">=</span><span class="st0">"text/css"</span> <span class="kw3">media</span><span class="sy0">=</span><span class="st0">"screen"</span> <span class="kw3">href</span><span class="sy0">=</span><span class="st0">"css/ui.jqgrid.css"</span> <span class="sy0">/</span>&gt;</span>
+&nbsp;
+<span class="sc2">&lt;<a href="http://december.com/html/4/element/style.html"><span class="kw2">style</span></a>&gt;</span>
+html, body {
+    margin: 0;
+    padding: 0;
+    font-size: 75%;
+}
+<span class="sc2">&lt;<span class="sy0">/</span><a href="http://december.com/html/4/element/style.html"><span class="kw2">style</span></a>&gt;</span>
+&nbsp;
+<span class="sc2">&lt;<a href="http://december.com/html/4/element/script.html"><span class="kw2">script</span></a> <span class="kw3">src</span><span class="sy0">=</span><span class="st0">"js/jquery-1.3.2.min.js"</span> <span class="kw3">type</span><span class="sy0">=</span><span class="st0">"text/javascript"</span>&gt;&lt;<span class="sy0">/</span><a href="http://december.com/html/4/element/script.html"><span class="kw2">script</span></a>&gt;</span>
+<span class="sc2">&lt;<a href="http://december.com/html/4/element/script.html"><span class="kw2">script</span></a> <span class="kw3">src</span><span class="sy0">=</span><span class="st0">"js/i18n/grid.locale-en.js"</span> <span class="kw3">type</span><span class="sy0">=</span><span class="st0">"text/javascript"</span>&gt;&lt;<span class="sy0">/</span><a href="http://december.com/html/4/element/script.html"><span class="kw2">script</span></a>&gt;</span>
+<span class="sc2">&lt;<a href="http://december.com/html/4/element/script.html"><span class="kw2">script</span></a> <span class="kw3">src</span><span class="sy0">=</span><span class="st0">"js/jquery.jqGrid.min.js"</span> <span class="kw3">type</span><span class="sy0">=</span><span class="st0">"text/javascript"</span>&gt;&lt;<span class="sy0">/</span><a href="http://december.com/html/4/element/script.html"><span class="kw2">script</span></a>&gt;</span>
+&nbsp;
+<span class="sc2">&lt;<a href="http://december.com/html/4/element/script.html"><span class="kw2">script</span></a> <span class="kw3">type</span><span class="sy0">=</span><span class="st0">"text/javascript"</span>&gt;</span>
+// Here we set a globally the altRows option
+jQuery.extend(jQuery.jgrid.defaults, { altRows:true });
+<span class="sc2">&lt;<span class="sy0">/</span><a href="http://december.com/html/4/element/script.html"><span class="kw2">script</span></a>&gt;</span>
+&nbsp;
+<span class="sc2">&lt;<a href="http://december.com/html/4/element/script.html"><span class="kw2">script</span></a> <span class="kw3">type</span><span class="sy0">=</span><span class="st0">"text/javascript"</span>&gt;</span>
+jQuery(document).ready(function(){ 
+  jQuery("#list").jqGrid({
+    url:'example.php',
+...</pre>
+<p>
+You can add here as many as you want valid jqGrid options.
+</p>
+
+</div>
+
+<h2><a name="how_to_overwrite_global_options" id="how_to_overwrite_global_options">How to Overwrite Global Options</a></h2>
+<div class="level2">
+
+<p>
+
+In the previous example, we learned how to set common options for all 
+grids in your application.   However, you might encounter situations 
+where you'd like to overwrite the global options for particular grid. 
+</p>
+
+<p>
+To do this, you'll need to change the option in the desired grid. For 
+example, let's say we set a global option for all rows to have 
+alternating colors.  If we don't want alternating colors for a certain 
+grid, just set altRows to false and the global option will be 
+overwritten.
+</p>
+
+<p>
+The code for this scenario can be found here:
+</p>
+<pre class="code html4strict"><span class="sc0">&lt;!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"&gt;</span>
+<span class="sc2">&lt;<a href="http://december.com/html/4/element/html.html"><span class="kw2">html</span></a> xmlns<span class="sy0">=</span><span class="st0">"http://www.w3.org/1999/xhtml"</span> xml:<span class="kw3">lang</span><span class="sy0">=</span><span class="st0">"en"</span> <span class="kw3">lang</span><span class="sy0">=</span><span class="st0">"en"</span>&gt;</span>
+<span class="sc2">&lt;<a href="http://december.com/html/4/element/head.html"><span class="kw2">head</span></a>&gt;</span>
+<span class="sc2">&lt;<a href="http://december.com/html/4/element/meta.html"><span class="kw2">meta</span></a> <span class="kw3">http-equiv</span><span class="sy0">=</span><span class="st0">"Content-Type"</span> <span class="kw3">content</span><span class="sy0">=</span><span class="st0">"text/html; charset=utf-8"</span> <span class="sy0">/</span>&gt;</span>
+<span class="sc2">&lt;<a href="http://december.com/html/4/element/title.html"><span class="kw2">title</span></a>&gt;</span>My First Grid<span class="sc2">&lt;<span class="sy0">/</span><a href="http://december.com/html/4/element/title.html"><span class="kw2">title</span></a>&gt;</span>
+&nbsp;
+<span class="sc2">&lt;<a href="http://december.com/html/4/element/link.html"><span class="kw2">link</span></a> <span class="kw3">rel</span><span class="sy0">=</span><span class="st0">"stylesheet"</span> <span class="kw3">type</span><span class="sy0">=</span><span class="st0">"text/css"</span> <span class="kw3">media</span><span class="sy0">=</span><span class="st0">"screen"</span> <span class="kw3">href</span><span class="sy0">=</span><span class="st0">"css/ui-lightness/jquery-ui-1.7.1.custom.css"</span> <span class="sy0">/</span>&gt;</span>
+<span class="sc2">&lt;<a href="http://december.com/html/4/element/link.html"><span class="kw2">link</span></a> <span class="kw3">rel</span><span class="sy0">=</span><span class="st0">"stylesheet"</span> <span class="kw3">type</span><span class="sy0">=</span><span class="st0">"text/css"</span> <span class="kw3">media</span><span class="sy0">=</span><span class="st0">"screen"</span> <span class="kw3">href</span><span class="sy0">=</span><span class="st0">"css/ui.jqgrid.css"</span> <span class="sy0">/</span>&gt;</span>
+&nbsp;
+<span class="sc2">&lt;<a href="http://december.com/html/4/element/style.html"><span class="kw2">style</span></a>&gt;</span>
+html, body {
+    margin: 0;
+    padding: 0;
+    font-size: 75%;
+}
+<span class="sc2">&lt;<span class="sy0">/</span><a href="http://december.com/html/4/element/style.html"><span class="kw2">style</span></a>&gt;</span>
+&nbsp;
+<span class="sc2">&lt;<a href="http://december.com/html/4/element/script.html"><span class="kw2">script</span></a> <span class="kw3">src</span><span class="sy0">=</span><span class="st0">"js/jquery-1.3.2.min.js"</span> <span class="kw3">type</span><span class="sy0">=</span><span class="st0">"text/javascript"</span>&gt;&lt;<span class="sy0">/</span><a href="http://december.com/html/4/element/script.html"><span class="kw2">script</span></a>&gt;</span>
+<span class="sc2">&lt;<a href="http://december.com/html/4/element/script.html"><span class="kw2">script</span></a> <span class="kw3">src</span><span class="sy0">=</span><span class="st0">"js/i18n/grid.locale-en.js"</span> <span class="kw3">type</span><span class="sy0">=</span><span class="st0">"text/javascript"</span>&gt;&lt;<span class="sy0">/</span><a href="http://december.com/html/4/element/script.html"><span class="kw2">script</span></a>&gt;</span>
+<span class="sc2">&lt;<a href="http://december.com/html/4/element/script.html"><span class="kw2">script</span></a> <span class="kw3">src</span><span class="sy0">=</span><span class="st0">"js/jquery.jqGrid.min.js"</span> <span class="kw3">type</span><span class="sy0">=</span><span class="st0">"text/javascript"</span>&gt;&lt;<span class="sy0">/</span><a href="http://december.com/html/4/element/script.html"><span class="kw2">script</span></a>&gt;</span>
+&nbsp;
+<span class="sc2">&lt;<a href="http://december.com/html/4/element/script.html"><span class="kw2">script</span></a> <span class="kw3">type</span><span class="sy0">=</span><span class="st0">"text/javascript"</span>&gt;</span>
+// Here we set a globally the altRows option
+jQuery.extend(jQuery.jgrid.defaults, { altRows:true });
+<span class="sc2">&lt;<span class="sy0">/</span><a href="http://december.com/html/4/element/script.html"><span class="kw2">script</span></a>&gt;</span>
+&nbsp;
+<span class="sc2">&lt;<a href="http://december.com/html/4/element/script.html"><span class="kw2">script</span></a> <span class="kw3">type</span><span class="sy0">=</span><span class="st0">"text/javascript"</span>&gt;</span>
+jQuery(document).ready(function(){ 
+  jQuery("#list").jqGrid({
+    url:'example.php',
+    // here we do not want zebra for this grid
+    altRows: false,
+...</pre>
+</div>
+<div class="footnotes">
+<div class="fn"><sup><a href="#fnt__1" id="fn__1" name="fn__1" class="fn_bot">1)</a></sup> 
+some default properties uses the English translation</div>
+</div>
+<div class="comment_wrapper">
+  <h2><a name="discussion__section" id="discussion__section">
+    Discussion
+  </a></h2>
+  <div class="level2 hfeed">
+  </div>
+</div>
+
+<br>
+																					<!-- end content -->
+							<div class="visualClear"></div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div id="column-one">
+				<div class="portlet" id="p-logo">
+					<a style="background-image: url(&quot;/jqgridwiki/lib/tpl/monobook/user/logo.png&quot;);" href="http://www.trirand.com/jqgridwiki/" accesskey="h" title="[ALT+H]">
+					</a>
+				</div>
+
+				<div id="p-cactions" class="portlet"> <h5>Views</h5>   <ul>
+<li id="ca-nstab-main" class="selected"><a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:options" accesskey="v" title="[ALT+V]">Special Pages</a></li>
+<li id="ca-edit"><a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:options&amp;do=edit&amp;rev=0" accesskey="e" title="[ALT+E]">Show pagesource</a></li>
+<li id="ca-history"><a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:options&amp;do=revisions" accesskey="o" title="[ALT+O]">Old revisions</a></li>
+   </ul>
+</div><div id="p-x-navigation" class="portlet"> <h5>Navigation</h5><div class="pBody">
+<ul>
+<li class="level1"><div class="li"> <a href="http://www.trirand.com/jqgridwiki/doku.php?id=start" class="wikilink1" title="start">Introduction</a></div>
+</li>
+<li class="level1"><div class="li"> <a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:features" class="wikilink1" title="wiki:features">Features</a></div>
+</li>
+<li class="level1"><div class="li"> <a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:jqgriddocs" class="wikilink1" title="wiki:jqgriddocs">Documentation</a></div>
+</li>
+<li class="level1"><div class="li"> <a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:jqgridexamples" class="wikilink1" title="wiki:jqgridexamples">Examples</a></div>
+</li>
+<li class="level1"><div class="li"> <a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:faq" class="wikilink1" title="wiki:faq">FAQ</a></div>
+</li>
+<li class="level1"><div class="li"> <a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:dokuwiki" class="wikilink1" title="wiki:dokuwiki">Help</a></div>
+</li>
+<li class="level1"><div class="li"> <a href="http://www.trirand.com/jqgridwiki/doku.php?id=links" class="wikilink1" title="links">links</a></div>
+</li>
+</ul>
+</div></div>
+				<div id="p-personal" class="portlet"> <h5>Personal Tools</h5>  <div class="pBody">   <ul>
+<li id="pt-login"><a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:options&amp;do=login">Login</a></li>
+   </ul>
+  </div></div>
+<div id="p-search" class="portlet">
+    <h5>
+        <label>Search</label></h5>
+    <div class="pBody">
+        <form action="/jqgridwiki/doku.php" accept-charset="utf-8" id="dw__search" name="search">
+            <input name="do" value="search" type="hidden">
+            <input id="qsearch__in" name="id" accesskey="f" type="text">
+            <input class="searchButton" id="searchGoButton" value="Go" onclick="document.location.href='/jqgridwiki/doku.php?id=' + document.search.qsearch__in.value;" type="button">&nbsp;
+            <input name="fulltext" class="searchButton" value="Search" type="submit">
+        </form>
+    </div>
+</div>
+
+<iframe src="doku-Dateien/adds1.htm" style="margin-left: 10px; width: 110px; height: 190px;" marginwidth="0" marginheight="0" vspace="0" hspace="0" frameborder="0" scrolling="no"></iframe>;
+<div id="p-tb" class="portlet"> <h5>Toolbox</h5>  <div class="pBody">   <ul>
+<li id="tb-whatlinkshere"><a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:options&amp;do=backlink" rel="nofollow">What links here</a></li>
+<li id="tb-upload"><a href="http://www.trirand.com/jqgridwiki/lib/exe/mediamanager.php?ns=wiki" rel="nofollow">Upload file</a></li>
+<li id="tb-special"><a href="http://www.trirand.com/jqgridwiki/doku.php?idx=wiki" rel="nofollow">Special Pages</a></li>
+<li id="tb-print"><a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:options&amp;rev=1318346495&amp;mbdo=print" rel="nofollow">Printable Version</a></li>
+<li id="tb-permanent"><a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:options&amp;rev=1318346495" rel="nofollow">Permanent link</a></li>
+<li id="tb-cite"><a href="http://www.trirand.com/jqgridwiki/doku.php?id=wiki:options&amp;rev=1318346495&amp;mbdo=cite" rel="nofollow">Cite this Article</a></li>
+   </ul>
+  </div></div>			</div>
+			<!-- end of the left (by default at least) column -->
+			<div class="visualClear"></div>
+<iframe src="doku-Dateien/adds2.htm" style="margin-left: 192px; width: 750px;" marginwidth="0" marginheight="0" vspace="0" hspace="0" frameborder="0" scrolling="no"></iframe>;
+
+<div id="footer">
+    <div id="f-poweredbyico">
+        <a target="_blank" href="http://wiki.splitbrain.org/wiki:dokuwiki" title="Driven by DokuWiki">
+            <img src="doku-Dateien/button-dw.png" alt="Driven by DokuWiki" border="0" height="31" width="88"></a></div>
+    <div id="f-copyrightico">
+        <a target="_blank" href="http://tatewake.com/wiki/projects:monobook_for_dokuwiki" title="Monobook for DokuWiki">
+            <img src="doku-Dateien/button-mb.png" alt="Monobook for DokuWiki" border="0" height="31" width="88"></a></div>
+    <a target="_blank" href="http://www.trirand.com/jqgridwiki/feed.php" title="Recent changes RSS feed">
+        <img src="doku-Dateien/button-rss.png" alt="Recent changes RSS feed" border="0" height="15" width="80"></a> <a target="_blank" href="http://www.php.net/" title="Powered by PHP">
+                <img src="doku-Dateien/button-php.gif" alt="Powered by PHP" border="0" height="15" width="80"></a> <a target="_blank" href="http://validator.w3.org/check/referer" title="Valid XHTML 1.0">
+                        <img src="doku-Dateien/button-xhtml.png" alt="Valid XHTML 1.0" border="0" height="15" width="80"></a> <a target="_blank" href="http://jigsaw.w3.org/css-validator/check/referer" title="Valid CSS">
+                                <img src="doku-Dateien/button-css.png" alt="Valid CSS" border="0" height="15" width="80"></a>
+    <ul id="f-list">
+        <li id="lastmod">wiki/options.txt · Last modified: 2011/10/11 18:21 by tony<br>
+        </li>
+        <li id="copyright"></li>
+        <li id="usermod"><br>
+        </li>
+    </ul>
+</div>
+		</div>
+<a href="http://www.trirand.com/jqgridwiki/doku.php?do=recent" accesskey="r" style="visibility: hidden;" rel="nofollow">&nbsp;</a>
+		<img src="doku-Dateien/indexer.gif" alt="" height="1" width="1">	
+<script type="text/javascript"> var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www."); document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E")); </script><script src="doku-Dateien/ga.js" type="text/javascript"></script> <script type="text/javascript"> try { var pageTracker = _gat._getTracker("UA-5463047-4"); pageTracker._trackPageview(); } catch(err) {}
+</script>
+</body></html>

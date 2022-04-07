@@ -1,0 +1,96 @@
+<?php
+
+$this->layout()->disableLayout();
+$rsp = Zend_Controller_Front::getInstance()->getResponse();
+$rqt = Zend_Controller_Front::getInstance()->getRequest();
+
+if ($rqt->getParam('format') == 'xml'):
+    $rsp->setHeader('Content-Type', 'application/xml; charset=UTF-8');
+    echo <<<EOT
+<?xml version='1.0' encoding="utf-8"?>
+<result>
+EOT;
+$node = $this->node;
+echo '<row>'
+    .'<id>'.$node['category_id'] . '</id>'
+    .'<name>'.utf8_encode($node['name']) . '</name>'
+    .'<level>'.$node['level'] . '</level>'
+    .'<lft>'.$node['lft'] . '</lft>'
+    .'<rgt>'.$node['rgt'] . '</rgt>'
+    .'<isLeaf>'.($node['rgt']==$node['lft']+1 ? 'true' : 'false') . '</isLeaf>'
+    .'<expanded>false</expanded>'
+    .'</row>' . PHP_EOL;    
+return;
+endif;
+
+if (!$rqt->getParam('jsonReader')) {
+    header("Content-type: application/json; charset=utf-8");
+    $response = new stdClass();
+    $response->page = 1;
+    $response->total = 1;
+    $response->records = 1;
+    
+    $row = $this->node;
+    {
+        if($row['rgt'] == $row['lft']+1) $leaf = 'true';else $leaf='false';
+        $response->data=array(
+            $row['category_id'],
+            utf8_encode($row['name']),
+            $row['level'],
+            $row['lft'],
+            $row['rgt'],
+            $leaf,
+            'false'
+        );    
+    } 
+    echo json_encode($response);
+    return;
+}
+
+header("Content-type: text/html;charset=utf-8");
+$response = new stdClass();
+$response->page = 1;
+$response->total = 1;
+$response->records = 1;
+
+$row = $this->node;
+{
+    if($row['rgt'] == $row['lft']+1) $leaf = 'true'; else $leaf='false';
+    $response->data = array(
+               'id' => $row['category_id'],
+             'name' => utf8_encode($row['name']),
+            'level' => $row['level'],
+              'lft' => $row['lft'],
+              'rgt' => $row['rgt'],
+           'isLeaf' => $leaf,
+         'expanded' => false
+    );    
+} 
+echo json_encode($response);
+//echo "\r\n/*\r\n" . print_r($this->debugData, 1) . "\r\n*/";
+return;
+
+
+$rsp->setHeader('Content-Type', 'application/json; charset=UTF-8');
+
+$isFirst = true;
+echo '{"page":1,"total":1,"records":"1","rows":[' . PHP_EOL;
+
+$node = $this->node; 
+{
+    if ( !$isFirst ) echo ',';
+    else $isFirst = false;
+    
+    echo '['
+        .(int)$node['category_id'] . ','
+        .json_encode(utf8_encode($node['name'])) . ','
+        .(int)$node['depth'] . ','
+        .(int)$node['lft'] . ','
+        .(int)$node['rgt'] . ','
+        .($node['rgt']==$node['lft']+1 ? 'true' : 'false') . ','
+        .'false'
+        .']' . PHP_EOL;
+}
+echo ']' . PHP_EOL;
+echo '}' . PHP_EOL . PHP_EOL;
+

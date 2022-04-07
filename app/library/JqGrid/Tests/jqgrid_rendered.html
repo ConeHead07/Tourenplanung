@@ -1,0 +1,137 @@
+<html>
+<head>
+<link rel="stylesheet" href="/jqgrid4.0/themes/redmond/jquery-ui-1.8.1.custom.css" type="text/css" />
+<link rel="stylesheet" href="/jqgrid4.0/themes/ui.jqgrid.css" type="text/css" />
+<link rel="stylesheet" href="/jqgrid4.0/themes/ui.multiselect.css" type="text/css" />
+
+<script src="/jqgrid4.0/js/jquery.js"></script>
+<script src="/jqgrid4.0/js/jquery-ui-1.8.1.custom.min.js"></script>
+<script src="/jqgrid4.0/js/jquery.layout.js"></script>
+<script src="/jqgrid4.0/js/i18n/grid.locale-de.js"></script>
+<script src="/jqgrid4.0/js/ui.multiselect.js"></script>
+<script src="/jqgrid4.0/js/jquery.jqGrid.min.js"></script>
+<script src="/jqgrid4.0/js/jquery.tablednd.js"></script>
+<script src="/jqgrid4.0/js/jquery.contextmenu.js"></script>
+
+
+<script>
+
+// LocalData-Array zum Testen
+// Muss für Edit-Funktionen extra berücksichtigt werden in dem url auf 'clientArray' gesetzt wird
+var mydata = [ 
+	{id:"1",invdate:"2007-10-01",name:"test",note:"note",amount:"200.00",tax:"10.00",total:"210.00",url:"www.heise.de"}, 
+	{id:"2",invdate:"2007-10-02",name:"test2",note:"note2",amount:"300.00",tax:"20.00",total:"320.00",url:"www.heise.de"}, 
+	{id:"3",invdate:"2007-09-01",name:"test3",note:"note3",amount:"400.00",tax:"30.00",total:"430.00",url:"www.heise.de"}, 
+	{id:"4",invdate:"2007-10-04",name:"test",note:"note",amount:"200.00",tax:"10.00",total:"210.00",url:"www.heise.de"},
+	{id:"5",invdate:"2007-10-05",name:"test2",note:"note2",amount:"300.00",tax:"20.00",total:"320.00",url:"www.heise.de"},
+	{id:"6",invdate:"2007-09-06",name:"test3",note:"note3",amount:"400.00",tax:"30.00",total:"430.00",url:"www.heise.de"},
+	{id:"7",invdate:"2007-10-04",name:"test",note:"note",amount:"200.00",tax:"10.00",total:"210.00",url:"www.heise.de"},
+	{id:"8",invdate:"2007-10-03",name:"test2",note:"note2",amount:"300.00",tax:"20.00",total:"320.00",url:"www.heise.de"},
+	{id:"11",invdate:"2007-09-01",name:"test3",note:"note3",amount:"400.00",tax:"30.00",total:"430.00",url:"www.heise.de"}
+];
+
+// Grid ausgeben
+jQuery(function() {
+jQuery("#grid1").jqGrid(
+{colModel:[
+{label:"invdate",name:"invdate",index:"invdate",editable:false,edittype:null,hidden:false,editoptions:
+{value:null},editrules:null,formatoptions:null,formoptions:null,formatter:"date",width:90},
+{label:"id",name:"id",index:"id",editable:false,edittype:null,hidden:false,editoptions:
+{value:null},editrules:null,formatoptions:null,formoptions:null,formatter:null,width:50,key:true,sorttype:"int"},
+{label:"name",name:"name",index:"name",editable:true,edittype:null,hidden:false,editoptions:
+{value:null},editrules:null,formatoptions:null,formoptions:null,formatter:null,width:50},
+{label:"amount",name:"amount",index:"amount",editable:false,edittype:null,hidden:false,editoptions:
+{value:null},editrules:null,formatoptions:null,formoptions:null,formatter:null,width:50,sortable:false},
+{label:"tax",name:"tax",index:"tax",editable:false,edittype:null,hidden:false,editoptions:
+{value:null},editrules:null,formatoptions:null,formoptions:null,formatter:null,width:50},
+{label:"total",name:"total",index:"total",editable:false,edittype:null,hidden:false,editoptions:
+{value:null},editrules:null,formatoptions:null,formoptions:null,formatter:null,width:50},
+{label:"note",name:"note",index:"note",editable:true,edittype:null,hidden:false,editoptions:
+{value:null},editrules:null,formatoptions:null,formoptions:null,formatter:null,width:50},
+{label:"url",name:"url",index:"url",editable:true,edittype:null,hidden:false,editoptions:
+{value:null},editrules:null,formatoptions:null,formoptions:null,formatter:"customImg",width:150}],height:250,width:800,resizable:true,datatype:"local",data:mydata,caption:"Test-Grid",shrinkToFit:true,pager:"#grid1_pager",onSelectRow:function(id, status) 
+{
+			var lastSel = $( this ).data("lastSel");
+			
+			if (lastSel && lastSel != id) 
+{
+				$( this ).jqGrid("saveRow", lastSel, null, "clientArray");
+				$( this ).jqGrid("restoreRow", lastSel);
+			}
+		
+			if (!lastSel || lastSel != id) 
+{
+				$( this ).jqGrid("editRow", id, true, null, null, "clientArray");
+				$( this ).data("lastSel", id);
+			} else 
+{
+				$( this ).jqGrid("restoreRow", id);
+				jQuery( this ).jqGrid("resetSelection" );
+				$( this ).data("lastSel", 0);
+			}
+			//alert(id+", "+status+", lastSel:" + lastSel );
+		}
+})
+.jqGrid("navGrid","#grid1_pager",
+{add:true,edit:true,del:"1",search:false,position:"right"},
+{},
+
+{},
+
+{},
+
+{},
+
+{})
+.jqGrid("navButtonAdd","#grid1_pager",
+	{
+	onClickButton:function() { alert("Who clicked me?");},
+	caption:"ClickCaptain",
+	id:"ClickID1",position:"first",title:"ClickTitle",cursor:"progress"
+	}
+)
+.jqGrid("navButtonAdd","#grid1_pager", 
+	{
+	onClickButton:jQuery("#grid1").jqGrid('columnChooser', 
+		{done:function (perm) 
+                    {
+			if (perm) 
+                        {
+				// "OK" button are clicked
+				this.jqGrid("remapColumns", perm, true);
+				// the grid width is probably changed so we can get new width
+				// and adjust the width of other elements on the page
+				var gwdth = this.jqGrid("getGridParam","width");
+				this.jqGrid("setGridWidth",gwdth);
+			} else 
+                        {
+				// we can do some action in case of "Cancel" button clicked
+			}
+                    }
+                }
+            ),
+            caption:"Cols",
+            id:"btnColCh",
+            position:"first",
+            title:"Spalten auswaehlen",
+            cursor:"progress"})
+;
+jQuery.extend($.fn.fmatter , {
+customImg:function(cellvalue, options, rowdata) { return (typeof(cellvalue)=="string"?"<a href='http://"+cellvalue+"' rel='"+cellvalue+"'>"+cellvalue+"</a>":""); }
+});
+jQuery.extend($.fn.fmattercustomImg, {
+unformat:function(cellvalue, options) { return (cellvalue?$(cellvalue).attr("rel"):""); }
+});
+;
+alert(jQuery("#grid1").jqGrid( "getDataIDs" ));
+});
+</script>
+
+</head>
+<body>
+
+<table id="grid1"></table> 
+<div id="grid1_pager"></div> 
+
+</body>
+</html>

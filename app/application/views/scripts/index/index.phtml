@@ -1,0 +1,52 @@
+<style>
+    a:link,
+    a:visited
+    {
+        color: #0398CA;
+    }
+
+    span#zf-name
+    {
+        color: #91BE3F;
+    }
+
+    div#welcome
+    {
+        color: #FFFFFF;
+        background-image: url(http://framework.zend.com/images/bkg_header.jpg);
+        width:  100%;
+        height: 500px;
+        border: 2px solid #444444;
+        overflow: hidden;
+        text-align: center;
+    }
+
+    div#more-information
+    {
+        background-image: url(http://framework.zend.com/images/bkg_body-bottom.gif);
+        height: 100%;
+    }charset=utf-8
+</style>
+<div id="welcome">
+    <?php 
+//    echo $this->hiFrank();
+    $myView = Zend_Registry::get('myViewHelper');
+//    echo '#' . __LINE__ . ' ' . $myView->hiFrank();
+    
+    ?>
+    <h1>Willkommen auf <span id="zf-name">merTens Resourcen-Management!</span></h1>
+
+    <h3>Die Anwendung wird erstellt auf Grundlage:<br>
+        <li>Zend Framework 1.11
+        <li>jQuery und jQuery-UI
+        <li>jqGrid</h3>
+
+    <div id="more-information">
+        <p><img src="http://framework.zend.com/images/PoweredBy_ZF_4LightBG.png" /></p>
+        <p>
+            N&uuml;tzliche Links: <br />
+            <a href="http://framework.zend.com/">Zend Framework Webseite</a> |
+            <a href="http://framework.zend.com/manual/de/">Zend Framework Handbuch</a>
+        </p>
+    </div>
+</div>

@@ -1,0 +1,47 @@
+<script>
+function initTrees() {
+    // Tree-Collection Tree
+    $("#rsrcTree>li>div.hitarea").bind("click", function() {
+        $( this ).closest("li").toggleClass("expandable").toggleClass("collapsable");
+        $( this).toggleClass("expandable-hitarea").toggleClass("collapsable-hitarea").find("+ul").toggle();
+        
+        if ( $(this).closest("li").attr("class").match(/lastExpandable|lastCollapsable/)) {
+            $(this).closest("li").toggleClass("lastExpandable").toggleClass("lastCollapsable");
+            $( this).toggleClass("lastExpandable-hitarea").toggleClass("lastCollapsable-hitarea")
+        }
+    });
+    
+    
+    $("#rsrcTreeFPBox").append( $('<ul id="rsrcTreeFP"/>').hide() );
+    $("#rsrcTreeMABox").append( $('<ul id="rsrcTreeMA"/>').hide() );
+    $("#rsrcTreeWZBox").append( $('<ul id="rsrcTreeMA"/>').hide() );
+    
+    $("ul#rsrcTreeFP").treeview({
+        //url: "jquery.treeview/demo/source.php"
+        url: "<?php echo $this->baseUrl(); ?>/fpcategories/selecttreelist",
+        onLoad: function(child) {
+            $( "li:not(:has(ul))", child).addClass(" Drag-Rsrc Is-Template Rsrc-FP" ).draggable( Fb.DragRsrcTemplateSettings );
+            $("li span", child).bind("click", function(event) {
+                alert( $( this ).closest( "li" ).attr("id") + " : " + $(this).text() );
+                searchFuhrpark({field:"category_id",op:"eq",data:$( this ).closest( "li" ).attr("id")});
+            });
+        }
+    });
+    
+    $("ul#rsrcTreeMA").treeview({
+        //url: "jquery.treeview/demo/source.php"
+        url: "<?php echo $this->baseUrl(); ?>/macategories/selecttreelist",
+        onLoad: function(child) {
+            $( "li:not(:has(ul))", child).addClass(" Drag-Rsrc Is-Template Rsrc-MA" ).draggable( Fb.DragRsrcTemplateSettings );
+        }
+    });
+    
+    $("ul#rsrcTreeWZ").treeview({
+        //url: "jquery.treeview/demo/source.php"
+        url: "<?php echo $this->baseUrl(); ?>/wzcategories/selecttreelist",
+        onLoad: function(child) {
+            $( "li:not(:has(ul))", child).addClass(" Drag-Rsrc Is-Template Rsrc-WZ" ).draggable( Fb.DragRsrcTemplateSettings );
+        }
+    });
+}
+</script>

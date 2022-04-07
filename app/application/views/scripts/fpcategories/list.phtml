@@ -1,0 +1,178 @@
+<?php
+
+$this->layout()->disableLayout();
+$rsp = Zend_Controller_Front::getInstance()->getResponse();
+$rqt = Zend_Controller_Front::getInstance()->getRequest();
+//die( Zend_Debug::dump($this->defaultExpanded,null, false));
+$defaultExpanded = ( isset($this->defaultExpanded) ? (bool) $this->defaultExpanded : false);
+
+if ($rqt->getParam('format') == 'xml'):
+    $rsp->setHeader('Content-Type', 'application/xml; charset=UTF-8');
+    echo <<<EOT
+<?xml version='1.0' encoding="utf-8"?>
+<rows>
+    <page>1</page>
+    <total>1</total>
+    <records>1</records>
+EOT;
+foreach($this->treelist as $node) {
+    $isLeaf = ($node['rgt'] == $node['lft']+1);
+    $expanded = $defaultExpanded || (isset($node['expanded']) && $node['expanded']);
+//    die( Zend_Debug::dump($expanded,null, false));
+    echo '<row>'
+        .'<cell>'.$node['category_id'] . '</cell>'
+        .'<cell>'.utf8_encode($node['name']) . '</cell>'
+        .'<cell>'.$node['level'] . '</cell>'
+        .'<cell>'.$node['lft'] . '</cell>'
+        .'<cell>'.$node['rgt'] . '</cell>'
+        .'<cell>'.  json_encode( (bool) $isLeaf ) . '</cell>'
+        .'<cell>'.json_encode( (bool) $expanded) . '</cell>'
+        .'</row>' . PHP_EOL;    
+}
+echo '</rows>' . PHP_EOL;
+return;
+endif;
+
+if (!$rqt->getParam('jsonReader')) {
+    header("Content-type: text/html;charset=utf-8");
+    $response = new stdClass();
+    $response->page = 1;
+    $response->total = 1;
+    $response->records = count($this->treelist);
+
+    foreach($this->treelist as $row) {
+        $isLeaf = ($row['rgt'] == $row['lft']+1);
+        $expanded = $defaultExpanded || (isset($row['expanded']) && $row['expanded']);
+//        die( Zend_Debug::dump($expanded,null, false));
+        $response->rows[]['cell']=array(
+            $row['category_id'],
+            utf8_encode($row['name']),
+            $row['level'],
+            $row['lft'],
+            $row['rgt'],
+            json_encode($isLeaf),
+            json_encode($expanded)
+        );    
+    } 
+    echo json_encode($response);
+    return;
+}
+
+header("Content-type: text/html;charset=utf-8");
+$response = new stdClass();
+$response->page = 1;
+$response->total = 1;
+$response->records = count($this->treelist);
+
+foreach($this->treelist as $row) {
+    $isLeaf = ($row['rgt'] == $row['lft']+1);
+    $expanded = ($defaultExpanded || (isset($node['expanded']) && $node['expanded']));
+//    die( Zend_Debug::dump($expanded,null, false));
+    $response->rows[]=array(
+              'id' => $row['category_id'],
+            'name' => utf8_encode($row['name']),
+           'level' => $row['level'],
+             'lft' => $row['lft'],
+             'rgt' => $row['rgt'],
+          'isLeaf' => $isLeaf,
+        'expanded' => $expanded,
+          'loaded' => $expanded,
+    );    
+} 
+echo json_encode($response);
+return;
+
+
+$rsp->setHeader('Content-Type', 'application/json; charset=UTF-8');
+
+header("Content-type: text/html;charset=utf-8");
+$isFirst = true;
+echo '{"page":1,"total":1,"records":"' . count($this->treelist) . '","rows":[' . PHP_EOL;
+
+foreach($this->treelist as $node) {
+    if ( !$isFirst ) echo ',';
+    else $isFirst = false;
+    
+    echo '['
+        .(int)$node['category_id'] . ','
+        .json_encode(utf8_encode($node['name'])) . ','
+        .(int)$node['depth'] . ','
+        .(int)$node['lft'] . ','
+        .(int)$node['rgt'] . ','
+        .($node['rgt']==$node['lft']+1 ? 'true' : 'false') . ','
+        .'false'
+        .']' . PHP_EOL;
+}
+echo ']' . PHP_EOL;
+echo '}' . PHP_EOL . PHP_EOL;
+
+//<script>
+//    jQuery(document).ready(function() {jQuery('#Retail').jqGrid(
+//        {url: '/aspnetmvc/grid/TreeLoadAllRowsExpanded_DataRequested?jqGridID=Retail',
+//            editurl: '?jqGridID=Retail&editMode=1',mtype: 'GET',
+//            datatype: 'json',page: 1,
+//            colNames: ["ID","Name","Quantity","Price","Color"],
+//            colModel: [{"searchoptions":{"searchhidden":true},"name":"ID","key":true,"hidden":true,"index":"ID"},{"name":"Name","width":200,"searchoptions":{},"index":"Name"},{"name":"Quantity","sorttype":"int","searchoptions":{},"index":"Quantity"},{"name":"Price","searchoptions":{},"index":"Price"},{"name":"Color","searchoptions":{},"index":"Color"}],
+//            viewrecords: true,
+//            scrollrows: false,
+//            prmNames: { id: "ID" },
+//            pager: jQuery('#Retail_pager'),
+//            loadError: jqGrid_aspnet_loadErrorHandler,
+//            treeGrid: true,
+//            treedatatype: 'json',
+//            treeGridModel: 'adjacency',
+//            treeReader: { 
+//                level_field: 'tree_level', 
+//                parent_id_field: 'tree_parent', 
+//                leaf_field: 'tree_leaf', 
+//                expanded_field: 'tree_expanded', 
+//                loaded: 'tree_loaded', 
+//                icon_field: 'tree_icon' 
+//            },
+//            ExpandColumn: 'Name',
+//            hoverrows: false,
+//            rowNum: 10,rowList: [10,20,30],
+//            editDialogOptions: {
+//                "recreateForm":true,
+//                errorTextFormat:function(data) 
+//                { 
+//                    return 'Error: ' + data.responseText 
+//                },
+//                editData:{ 
+//                    __RequestVerificationToken: jQuery('input[name=__RequestVerificationToken]').val() 
+//                }
+//            },
+//            addDialogOptions: {
+//                "recreateForm":true,
+//                errorTextFormat:function(data) 
+//                { 
+//                    return 'Error: ' + data.responseText 
+//                },
+//                editData:{ 
+//                    __RequestVerificationToken: jQuery('input[name=__RequestVerificationToken]').val() }},
+//            delDialogOptions: {
+//                "recreateForm":true,
+//                errorTextFormat:function(data) 
+//                { 
+//                    return 'Error: ' + data.responseText 
+//                },
+//                delData:{ 
+//                    __RequestVerificationToken: jQuery('input[name=__RequestVerificationToken]').val() 
+//                }
+//            },
+//            searchDialogOptions: {"recreateForm":true,"resize":false},
+//            jsonReader: { 
+//                id: "ID", 
+//                repeatitems:false,
+//                subgrid:{repeatitems:false} 
+//            },
+//            sortorder: 'asc',
+//            width: '650',
+//            height: '300%',
+//            viewsortcols: [false,'vertical',true]
+//            }
+//            )
+//        .bindKeys();
+//        function jqGrid_aspnet_loadErrorHandler(xht, st, handler) {jQuery(document.body).css('font-size','100%'); jQuery(document.body).html(xht.responseText);};});</script>
+//    </script>
+

@@ -1,0 +1,188 @@
+/* 
+    Document   : DragRoutes
+    Created on : 24.11.2011, 16:14:09
+    Author     : rybka
+    Description:
+        Purpose of the stylesheet follows.
+*/
+
+root { 
+    display: block;
+}
+
+.fbDispoCalendar {
+    margin-bottom:15px;
+    margin-right:10px;
+}
+
+.Timeline {
+    background-color: #eee;
+}
+.Timeline .tl-step {
+    font-size:10px;
+    color:#333;
+}
+.Timeline .tl-step-odd {
+    background-color: #ddd;
+}
+
+#TrashBox {
+    position: relative;
+    border: 1px solid #bbb;
+    height: 60px;
+    xwidth: 60px;
+}
+
+.DropZone-Route {
+    position: relative;
+    border: 1px solid #bbb;
+    height: 85px;
+    margin:2px;
+}
+.DropZone {
+    background-color: #efffe2;
+}
+
+.ShowDroppableZone {
+    background-color: #cfc;
+}
+
+div.Drag-Rsrc {
+    display:inline;
+}
+
+div.fbDispoRoute ul.resources li {
+    display:none;
+}
+
+.Drag-Route {
+    border: 1px solid #bbf;
+    background-color: #ddf;
+    height: 30px;
+    xwidth: 30px;
+    overflow: hidden;
+    margin-top:2px;
+    padding:0 2px 0 2px;
+   -moz-box-sizing:    border-box;
+   -webkit-box-sizing: border-box;
+    box-sizing:        border-box;
+    color:#555;
+    font-weight:normal;
+}
+.Drag-Route.DragRoute-Focus {
+    border: 1px solid #f00;
+}
+div.DropZoneDefaults {
+    border: 1px solid #f00;
+    background:#fff;
+}
+div.DropZoneDefaults ul.resources {
+    margin:0;
+    padding:0;
+}
+div.DropZoneDefaults ul.resources,
+div.DropZoneDefaults ul.resources li,
+div.DropZoneDefaults ul.resources li * {
+    display:inline;
+    list-style-type: none;
+    color:#000;
+    font-size:11px;
+    font-weight: normal;
+}
+div.DropZoneDefaults ul.resources li div
+div.DropZoneDefaults.DropZone-Focus {
+}
+
+div.is-default-resource {
+    border:1px solid #aaa;
+    background:#eee;
+    color: #2E6E9E !important;
+    border-radius: 5px;
+    padding-left:2px;
+    padding-right:2px;
+    margin-top:1px;
+    font-weight:bold !important;
+    font-size:11px;
+}
+div.is-default-resource.RsrcType-FP {
+    background:#FEC !important;
+}
+
+div.route-stat-finished {
+    background-color: #cfc !important;
+}
+div.route-stat-dispo {
+    background-color: #fbec88 !important;
+}
+div.route-stat-nodispo {
+    background-color: mistyrose !important;
+}
+
+.dispo-stat-beauftragt span.anr, .dispo-stat-rot   { background-color: mistyrose !important; }
+.dispo-stat-fertig,     .dispo-stat-blau  { background-color: #dfd      !important; }
+.dispo-stat-neulieferung span.anr,dispo-stat-braun { background-color: burlywood !important; }
+.dispo-stat-neu span.anr,        .dispo-stat-grau  { background-color: #ddd      !important; }
+.dispo-stat-teil span.anr,       .dispo-stat-gelb  { background-color: #fbec88   !important; }
+.dispo-stat-innendienst span.anr { background-color: #fff !important; border:1px dotted #c6c !important; }
+
+
+div.TourTabbedSheet div.TourTabbedHead {
+    padding-top:5px;
+    background-color: #ddf;
+    border-bottom: 1px solid #bbf;
+}
+
+table#DispoPositionen td.LK.DirektLieferung {
+    color:#f00;
+}
+
+
+td.colDispoStatus {
+    text-align:center !important;
+    vertical-align:middle !important;
+}
+td div.xVorgangStatusBox {
+   position:relative;
+   width:100%;
+   height:0.1px;
+}
+td div.xVorgangStatusBox span.v-stat-icon {
+    position:absolute;
+    right:2px;
+    top:3px;
+    display:block;
+ }
+        
+/* states and images */
+.v-stat-icon { display:block; width: 30px; height: 30px; background-image: url(<?php echo $this->baseUrl(); ?>/touren/img/round-icons-small.png); }
+.v-stat-gruen { background-position: -29px 0; }
+.v-stat-beauftragt, .v-stat-rot   { background-position: 0 0; }
+.v-stat-fertig,     .v-stat-blau  { background-position: -58px 0; }
+.v-stat-neulieferung,v-stat-braun { background-position: 0 -29px; }
+.v-stat-neu,        .v-stat-grau  { background-position: -29px -29px; }
+.v-stat-teil,       .v-stat-gelb  { background-position: -58px -29px; }
+
+/* states and mini-images */
+.v-stat-icon { display:inline-block; width: 16px; height: 16px; background-image: url("../img/round-icons-mini.png"); }
+.v-stat-gruen { background-position: -16px 0; }
+.v-stat-beauftragt, .v-stat-rot   { background-position: 0 0; }
+.v-stat-fertig,     .v-stat-blau  { background-position: -32px 0; }
+.v-stat-neulieferung,v-stat-braun { background-position: 0 -16px; }
+.v-stat-neu,        .v-stat-grau  { background-position: -16px -16px; }
+.v-stat-teil,       .v-stat-gelb  { background-position: -32px -16px; }
+
+
+.fbDispoLoading {
+    border-width: 2px !important;
+    display: none;
+    font-size: 11px;
+    font-weight: bold;
+    left: 45%;
+    margin: 5px;
+    padding: 6px;
+    position: fixed;
+    text-align: center;
+    top: 45%;
+    width: auto;
+    z-index: 101;
+}

@@ -1,0 +1,225 @@
+<?php 
+$this->layout()->disableLayout();
+$r = Zend_Controller_Front::getInstance()->getResponse();
+$r->setHeader('Content-Type', 'text/html; charset=UTF-8', true);
+
+?><style>
+    div#boxBemerkungen .headBemerkungen{
+        font-weight:bold;
+        padding:4px 3px 4px 0;
+        border-bottom:2px solid #d2d2d2;
+        margin-bottom: 5px;
+    }
+    div#boxBemerkungen,
+    div#boxBemerkungen * {
+        font-weight:normal;
+    }
+    div#boxBemerkungen div.entry {
+        border-bottom:1px solid #d2d2d2;
+        padding-bottom:10px;
+        margin-bottom: 5px;
+    }
+    div#boxBemerkungen div.entry div.bemerkung-meta {
+        font-style: italic;
+        color:#0f0f0f;
+    }
+</style>
+<?php 
+
+if (property_exists($this->vorgangsbemerkungen, 'error')) {
+    echo $this->vorgangsbemerkungen->error . "<br>\n";
+}
+
+if ($this->vorgangsbemerkungen->data) {
+    $tour_id = $this->vorgangsbemerkungen->data['tour_id'];
+    $action  = $this->vorgangsbemerkungen->action;
+    $avisiertChecked = ($this->vorgangsbemerkungen->data['avisiert'] ? ' checked="checked"' : '');
+    $attachesChecked = ($this->vorgangsbemerkungen->data['attachments'] ? ' checked="checked"' : '');    
+    
+    echo '<fieldset><legend>Bemerkungen</legend>';
+    echo '<form rel="'.$action.'" id="frmPrint" style="margin:0;display:inline">';
+    echo '<div id="boxBemerkungen">';    
+    echo '<div>';
+    echo '<div class="headBemerkungen">Avisiert:</div>';
+    echo '<input type="checkbox" name="avisiert" value="1"' . $avisiertChecked . '/>';
+    echo 'Termin wurde mit dem Kunden abgesprochen<br>' . PHP_EOL;
+    echo '<input type="checkbox" name="attachments" value="1"' . $attachesChecked . '/>';
+    echo 'Pläne vorhanden';
+    echo '</div>';
+    
+    if ( $this->vorgangsbemerkungen->data['bemerkung']) {
+        echo '<div class="headBemerkungen" style="margin-top:15px;">Bisherige Bemerkungen:</div>';
+        $xmlIdentifier = strtolower(substr(trim($this->vorgangsbemerkungen->data['bemerkung']), 0, 5));
+        if ('<?xml' != $xmlIdentifier) {
+            echo nl2br($this->vorgangsbemerkungen->data['bemerkung']);
+        } else {
+            $xml = simplexml_load_string( $this->vorgangsbemerkungen->data['bemerkung'] );
+            $result = $xml->xpath('//div[@class="entry"]');
+            while(list( , $node) = each($result)) {
+                echo $node->asXML();
+            }
+        }
+    } else {
+        echo '<div class="headBemerkungen">Es liegen keine Bemerkungen vor!</div>';
+    }
+    echo '</div>'
+        .'<input type="hidden" name="tour_id" value="'.$tour_id.'">';
+    echo '</form>';
+    echo '</fieldset>';
+    
+    echo '<fieldset style="margin-top:25px;"><legend>Bemerkung hinzuf&uuml;gen</legend>';
+    echo '<form rel="'.$action.'" id="frmBemerkung" style="margin:0;display:inline">';
+    echo '<textarea name="bemerkung" id="txtBemerkung" style="width:100%"></textarea>'
+        .'<button id="sendBemerkung">Bemerkung hinzufuegen</button>'
+        .'<input type="hidden" name="tour_id" value="'.$tour_id.'">'
+        .'</form>';
+    echo '</fieldset>';
+}
+?>
+<script>
+$("button#sendBemerkung").click(function(e) {
+    e.preventDefault();
+    $.post( 
+        $("form#frmBemerkung").attr('rel'), 
+        $("form#frmBemerkung").serialize(), 
+        function(data) {
+            $("div#boxBemerkungen").html(data);
+            $("#txtBemerkung").val('');
+            Fb.RenderBemerkungenPrintFlag();
+        });
+});
+
+if (!Fb) Fb = {};
+
+Fb.RenderBemerkungenPrintFlag = function() {
+    $("div.entry", "#boxBemerkungen").each(function() {
+        var self = this;
+        var p = $(this).attr('print');
+        var id = $(this).attr("id");
+        
+        $("div.bemerkung-meta", this).prepend(
+            $(
+                "<input type='hidden' name='attr["+id+"][print]' value='0' />" +
+                "<input type='checkbox' name='attr["+id+"][print]' value='1' />"
+            )
+            .attr({checked:(p==1)})
+            .after( 
+                $("<span class='ui-icon ui-icon-print'/>").fbIcon({
+                    click: function() {
+                        $(this).prev().attr( {checked: $(this).prev().attr('checked') });
+                    }
+                 }
+            ))
+        );
+    });
+    
+    $("#boxBemerkungen").append(
+        $('<input type="button" name="savePrintFlags" value="speichern" />').click(function() {
+//            alert( $("form#frmPrint").serialize() );
+            $.post( 
+                $("form#frmPrint").attr('rel'), 
+                $("form#frmPrint").serialize(), 
+                function(data) {
+                    alert('aktualisiert!');
+                }
+            );
+        })
+    );
+}
+Fb.RenderBemerkungenPrintFlag();
+</script>
+
+<script>
+var XFb = {
+ listbox: "#attachments_list",
+ uploadFinished: function(o){ 
+  XFb.showLoadingBar(0);
+  if (arguments.length && typeof(arguments[0])=="object") {
+   var m = "";
+   if ("msg" in o && o.msg) m= o.msg + "\n";
+   if ("error" in o && o.error) m+= o.error;
+   if ( $("#upload-message").length) {
+     $("#upload-message").text(m);
+   }
+   else if ("error" in o && o.error) alert(o.error);
+  }
+  XFb.reloadAttachments();
+ },
+ reloadAttachments: function() {
+  var $a = $(XFb.listbox);
+  XFb.queryAttachments($a.attr("data-query") );
+ }, queryAttachments: function(query) {
+  var $a = $(XFb.listbox);
+  XFb.showLoadingBar(1);
+  $a.load( $a.attr("data-baseurl") + query, function() {
+   XFb.bindListEvents();
+   XFb.showLoadingBar(0);
+  });
+ },
+ bindListEvents: function() {
+  var $a = $(XFb.listbox);
+  $a.find("thead a").click(function(e) {
+   e.preventDefault();
+   $a.attr("data-query", $(this).attr("data-query") );
+   XFb.queryAttachments( $(this).attr("data-query") );
+  });
+  $a.find("tbody a.list-action").click(function(e) {
+   e.preventDefault();
+   $.getJSON( $(this).attr("href"), function(data) {
+    if (arguments.length && typeof(arguments[0])=="object") {
+     var m = "";
+     if ( "msg" in data && data.msg ) m+= data.msg + "\n";
+     if ( "error" in data && data.error) m+= data.error + "\n";
+     if ( m ) {
+         if ( $("#attachments-message").length) {
+         $("#attachments-message").text(m);
+     }
+     else alert(m);
+     }
+    }
+    XFb.reloadAttachments();
+   });
+  });
+ },
+ showLoadingBar: function(on) {
+  if (!$("#attachments-loading-bar img").length) {
+    $("#attachments-loading-bar").append( $("<img/>").attr("src", "<?php echo $this->baseUrl(); ?>/img/wheel01.gif") );
+  }
+  if (on) $("#attachments-loading-bar").show();
+  else $("#attachments-loading-bar").hide();
+ },
+ submitUpload: function(on) {
+  $("#frmUpload")[0].submit();
+  $("#frmUpload")[0].reset();
+  XFb.showLoadingBar(1);
+ }
+};
+</script>
+<style>
+    #attachments_list table {
+        border-collapse:collapse;
+        border-spacing: 0;
+    }
+    #attachments_list table td {
+        padding:1px 3px;
+    }
+    #attachments_list table tbody td {
+        border-top:1px solid #ddd;
+    }
+    #attachments_list table thead td {
+        background-color:#eee;
+    }
+    #attachments_list table a {
+        color:#2E6E9E;
+    }
+</style>
+
+<fieldset style="margin:20px 0"><legend><div class="headBemerkungen">Anhänge / Pläne:</div></legend>
+<?php echo $this->attachments->uploadForm; ?>
+
+<div data-query="" data-baseurl="<?php echo $this->baseUrl(); ?>/touren/attachments/list/tour_id/<?php echo $this->vorgangsbemerkungen->data['tour_id']; ?>" id="attachments_list">
+<?php echo $this->attachments->list; ?>    
+</div>
+</fieldset>
+
+

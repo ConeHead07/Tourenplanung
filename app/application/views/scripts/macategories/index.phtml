@@ -1,0 +1,314 @@
+<?php
+
+require_once 'models/MitarbeiterCategoriesLnk.php';
+require_once 'models/Mitarbeiter.php';
+$FC = new Model_MitarbeiterCategoriesLnk();
+$ids = $FC->fetchCategoryIdsByMitarbeiterId(1);
+
+$FP = new Model_Mitarbeiter();
+$entry = $FP->fetchEntry(1);
+
+//die( print_r($ids) . PHP_EOL . print_r($entry,1) );
+
+/* @var $r Zend_Controller_Request_Abstract */
+$r = Zend_Controller_Front::getInstance()->getRequest();
+//Zend_Debug::dump($this);
+/* @var $this Zend_View */
+$baseUrl = $this->baseUrl();    // View-Helper der via __call (magic) 
+// an Zend_View gebunden wurden
+
+$modUrl = $baseUrl . '/' . $r->getModuleName();
+$ctrUrl = $modUrl . '/' . $r->getControllerName();
+
+require_once 'JqGridHeader.php';
+JqGridHeader::enable(true);
+?>
+<script>
+
+function showObj(obj, deep) {
+    if (typeof(obj)!='object') return typeof(obj) + ': ' +obj;
+    var m = '\n';
+    if (deep == null) {
+        m+= typeof(obj) + "\n";
+        deep = '';
+    }
+    if (deep.length > 2) return typeof(obj) + ': ' +obj;
+    for(var i in obj) {
+        m+= deep + i + ': ' + typeof(obj[i]);
+        switch(typeof(obj[i])) {
+            case 'string':
+            case 'number':
+                m+= ' => ' + obj[i];
+                break;
+            case 'bool':
+            case 'boolean':
+                m+= ' => ' + (obj[i] ? 'true' : 'false');
+                break;
+            case 'object':
+                //if ('constructor' in obj[i]) m+= ' : ' + obj[i].constructor;
+                m+= showObj(obj[i], deep + '- ');
+                break;
+        }
+        m+= '\n';
+    }
+    return m;
+}
+
+var oldEditCell = $.fn.jqGrid.editCell;
+$.jgrid.extend({
+    getRecordByRowId : function(rowid) {
+        // PreCondition: rowid is a number && this[0] is a object
+        if (isNaN(rowid) || !this[0]) return 0;
+        
+        try {
+            var indexRC = this[0].p._index[rowid];
+            return this[0].p.data[indexRC];
+        } catch(e) {
+            alert('Ungültige Rowid: ' + rowid + ' Error: ' + e);
+        }
+    },
+    setRecordByRowId : function(rowid, data) {
+        // PreCondition: rowid is a number && this[0] is a object
+        if (isNaN(rowid) || !this[0]) return 0;
+        
+        return this.each(function () {
+            try {
+                var indexRC = this.p._index[rowid];
+                var record = this.p.data[indexRC];
+                for(i in record) if (i in data) record[i] = data[i];
+            } catch(e) {
+                alert('Ungültige Rowid: ' + rowid + ' Error: ' + e);
+            }
+        });
+    },
+    triggerChildReload : function( parentid ) {
+            //return this.each(function(){
+            var $t = this[0];
+            // we suppose tha the id is autoincremet and
+            var expanded = $t.p.treeReader.expanded_field,parentindex,parentdata;
+            var prow = $($t).jqGrid('getInd', parentid);
+            
+            // if not a parent we assume root
+            if ( parentid !== undefined  && parentid !== null && parentid!=="") {
+                parentindex = $t.p._index[parentid];
+                parentdata = $t.p.data[parentindex];
+                if(parentdata && !parentdata[expanded]) {
+                    $($t.rows[prow])
+                        .find("div.treeclick")
+                        .click();
+                }
+            }
+    },
+    reloadNode: function(rowid) {
+        return this.each(function(){
+            if(!this.grid || !this.p.treeGrid) {return;}
+            
+            var $t = this, $self = $($t),
+                rid = $t.p.localReader.id,
+                lft = $t.p.treeReader.left_field,
+                rgt = $t.p.treeReader.right_field;
+            
+            var editUrl = $self.jqGrid('getGridParam', 'editurl');
+            var rc = $self.jqGrid('getRecordByRowId', rowid);
+            
+//            var ch = $self.jqGrid( 'getNodeChildren', rc);
+//            if (ch) $(ch).each(function() { $self.jqGrid('delTreeNode', this[rid] ); });
+            
+            $( $($t).jqGrid('getFullTreeNode', rc) ).each(function(i){
+                if (i) { // 0 ist der Basis-Node (=rowid) selbst
+                    $($t).jqGrid('delRowData', this[rid] );
+            }});
+            
+            $.post( editUrl, {id:rowid,oper:'getNodeById'}, function(data, textStatus, jqXHR) {
+                $.extend({}, data.data.name, { loaded:false, expanded:false });
+                rc[ lft ] = data.data[ lft ];
+                rc[ rgt ] = data.data[ rgt ];
+                rc[ $t.p.treeReader.isLeaf ]  = false;
+                rc[ $t.p.treeReader.loaded ]  = rc.loaded = false;
+                rc[ $t.p.treeReader.expanded] = rc.expanded = false;
+                
+                $self.jqGrid('setRecordByRowId', rowid, rc);
+                $self.jqGrid('setRowData', rowid, data.data);
+                $self.jqGrid('triggerChildReload', rowid);
+            }, 'json');
+            return;
+        });
+    }
+
+});
+
+    var lastJqGridFormId = '';
+    jQuery(document).ready(function(){
+        //    Funktioniert nicht mit colspans und Zellen mit Links
+        //    tableToGrid("table#toGrid");
+
+        if (1) 
+        jQuery("#west-gridJRead").jqGrid(
+        { 
+            treeGrid: true,
+            treeGridModel: 'nested',
+            ExpandColumn : 'name',
+            url: '<?php echo $ctrUrl; ?>/list?jsonReader=true',
+            editurl: '<?php echo $ctrUrl; ?>/node?jsonReader=true',
+            datatype: "json",
+            mtype: "POST",
+            colNames:["Aktionen", "id","Name"],
+            colModel:[		
+                {name:'act',index:'act', hidden:true, width:115,sortable:false, editable:false},
+                {name:'id',index:'id', width:1,hidden:true,key:true, editable:false},
+                {name:'name',index:'name', width:180, editable:true}
+            ],
+            height:'auto',
+            pager : "#ptreegrid",
+            caption: "Mitarbeiter Kategorien",
+            jsonReader: {
+                repeatitems: false,
+                         id: 0,
+                       root: "rows"
+            },
+            loadError: function(xhr, status, error) {
+                alert(status + "\n" + error);
+            },
+            loadComplete: function(data) {
+//                alert(data.toString());
+            },
+            gridComplete: function(){
+                var $this = $( this );
+                var ids = $this.jqGrid('getDataIDs');
+                
+                <?php /*
+                for(var i=0;i < ids.length;i++){
+                        var cl = ids[i];
+                        var 
+                        ad = "<button class=\"jqgrid-row-btn jqgrid-row-btn-add\"     style='height:20px;width:18px;' type='button' value='I' onclick=\"jQuery('#west-gridJRead').jqGrid('addChildNode','"+cl+"');\">I</button>",
+                        ed = "<button class=\"jqgrid-row-btn jqgrid-row-btn-edit\"    style='height:20px;width:18px;' type='button' value='E' onclick=\"jQuery('#west-gridJRead').jqGrid('editRow','"+cl+"');\">E</button>",
+                        tr = "<button class=\"jqgrid-row-btn jqgrid-row-btn-trash\"   style='height:20px;width:18px;' type='button' value='D' onclick=\"jQuery('#west-gridJRead').jqGrid('delTreeNode','"+cl+"');\">E</button>",
+                        se = "<button class=\"jqgrid-row-btn jqgrid-row-btn-save\"    style='height:20px;width:18px;display:none;' type='button' value='S' onclick=\"jQuery('#west-gridJRead').jqGrid('saveRow','"+cl+"');\">S</button>",
+                        ce = "<button class=\"jqgrid-row-btn jqgrid-row-btn-cancel\"  style='height:20px;width:18px;display:none;' type='button' value='R' onclick=\"jQuery('#west-gridJRead').restoreRow('"+cl+"');\">C</button>",
+                        rf = "<button class=\"jqgrid-row-btn jqgrid-row-btn-refresh\" style='height:20px;width:18px;' type='button' value='L' onclick=\"jQuery('#west-gridJRead').jqGrid('reloadNode', '"+cl+"');\">C</button>"; 
+                        $this.jqGrid('setRowData',ids[i],{act:ad+ed+tr+se+ce+rf});
+                }
+                jQuery("button.jqgrid-row-btn-add",     $this).button({text:false,icons:{primary:"ui-icon-plus"  }});
+                jQuery("button.jqgrid-row-btn-edit",    $this).button({text:false,icons:{primary:"ui-icon-pencil"  }});
+                jQuery("button.jqgrid-row-btn-trash",   $this).button({text:false,icons:{primary:"ui-icon-trash"   }});
+                jQuery("button.jqgrid-row-btn-save",    $this).button({text:false,icons:{primary:"ui-icon-disk"    }});
+                jQuery("button.jqgrid-row-btn-cancel",  $this).button({text:false,icons:{primary:"ui-icon-cancel"  }});
+                jQuery("button.jqgrid-row-btn-refresh", $this).button({text:false,icons:{primary:"ui-icon-refresh" }});
+                
+//                jQuery("button.jqgrid-row-btn-add, button.jqgrid-row-btn-edit", $this ).bind("click", function() {
+//                    $("button.jqgrid-row-btn-add, button.jqgrid-row-btn-edit, button.jqgrid-row-btn-trash, button.jqgrid-row-btn-refresh" , $(this).parent()).hide();
+//                    $("button.jqgrid-row-btn-save, button.jqgrid-row-btn-cancel" , $(this).parent()).show();
+//                });
+//                
+//                jQuery("button.jqgrid-row-btn-save, button.jqgrid-row-btn-cancel", $this ).bind("click", function() {
+//                    $("button.jqgrid-row-btn-save, button.jqgrid-row-btn-cancel" , $(this).parent()).hide();
+//                    $("button.jqgrid-row-btn-add, button.jqgrid-row-btn-edit, button.jqgrid-row-btn-trash, button.jqgrid-row-btn-refresh" , $(this).parent()).show();
+//                });
+                 */ ?>
+            }
+        }).jqGrid('sortableRows');
+        
+        var params = prmEdit = prmAdd = prmDel = prmSearch = prmView = null;
+        
+        prmAdd = {
+            afterShowForm : function (formid) {
+//                alert('afterShowForm(' + formid + ')');
+            },
+            onclickSubmit: function (formid) {
+                return {pos: $('input[name=withchilds]', $(formid)).val()};
+            },
+            beforeShowForm: function(formid) {
+                lastJqGridFormId = formid;
+//                alert('beforeShowForm(' + formid + ')');
+            },
+            afterComplete : function (response, postdata, formid) {
+//                alert('afterComplete(args:' +arguments.length + ' => ' + $.makeArray(arguments).join(',') + ')');
+                //                alert('afterComplete(' + $.makeArray(arguments).join(',') + ')');
+            },
+            onInitializeForm : function(formid) {
+//                alert('onInitializeForm(' + formid + ')' + formid.html() );
+                
+                var nodeDst = { 
+                    last:  'Letztes Kindelement',
+                    first: 'Erstes Kindelement',
+                    prev:  'Vor aktuellem Element',
+                    next:  'Nach aktuellem Element',
+                    parent:  'Als Elternelement'
+                }
+                var inpPos = "<select name='pos' id='pos' class='FormElement ui-widget-content ui-corner-all' role='selectbox'>\n";
+                for ( i in nodeDst) inpPos+= "<option value='"+i+"'>"+nodeDst[i]+"</option>\n";
+                inpPos+= "</select>";
+                
+                $("table.EditTable tr#tr_name", formid).after(
+                    $("<tr/>").addClass("FormData")
+                    .append( $("<td>").addClass("CaptionTD").text("Ziel-Pos") )
+                    .append( $("<td>").addClass("DataTD").html( inpPos ) )
+                );
+                    
+//                alert('onInitializeForm(' + formid + ')' + formid.html() );
+            }
+        };
+        prmDel = {
+            afterShowForm : function (formid) {
+//                alert('afterShowForm(' + formid + ')');
+            },
+            onclickSubmit: function () { 
+                var withChilds = true; // default               
+                if (typeof(lastJqGridFormId) == 'undefined' || !lastJqGridFormId) {
+                    alert('lastJqGridFormId is not defined!');
+                    return { 'withchilds':1};
+                }
+                
+                if ( $('input[name=withchilds]', $(lastJqGridFormId) ).length ) {
+                    withChilds = $('input[name=withchilds]', $(lastJqGridFormId) ).attr('checked') ? 1 : 0;
+                }
+                
+                return { 'withchilds': withChilds };
+            },
+            beforeShowForm : function (formid) {
+                lastJqGridFormId = formid;
+                if ($("input:[name=withchilds]", formid).length) return;
+                var inpPos = $(
+                    "<tr><td>"  +
+                    "<input type='checkbox' name='withchilds' id='withchilds' " +
+                    " class='FormElement ui-widget-content ui-corner-all' " + 
+                    " role='checktbox'><label for='withchilds'>Inkl. Unterkategorien</label></td></tr>\n"
+                );
+                $("table.DelTable tr:has(td.delmsg)", formid).after( inpPos  );
+            },
+            afterComplete : function (response, postdata) {
+//                alert('#257 afterComplete(args:' +arguments.length + ' => ' + $.makeArray(arguments).join(',') + ')');
+            }
+        };
+        
+        jQuery("#west-gridJRead").jqGrid('navGrid',"#ptreegrid", params, prmEdit, prmAdd, prmDel, prmSearch, prmView);
+        
+//        }).navGrid('#gridpager',params, prmEdit, prmAdd, prmDel, prmSearch, prmView);
+
+        jQuery("#addtree").jqGrid({
+            url: 'http://localhost/jqgrid_demo40/jqgrid_demo40/server.php?q=tree',
+            treedatatype: "xml",
+            mtype: "GET",
+            colNames:["id","Account","Acc Num", "Debit", "Credit","Balance"],
+            colModel:[
+                {name:'id',index:'id', width:1,hidden:true,key:true, editable:true},
+                {name:'name',index:'name', width:180, editable:true},
+                {name:'num',index:'acc_num', width:80, align:"center",editable:true},
+                {name:'debit',index:'debit', width:80, align:"right",editable:true},
+                {name:'credit',index:'credit', width:80,align:"right",editable:true},
+                {name:'balance',index:'balance', width:80,align:"right",editable:true}
+            ],
+            height:'auto',
+            pager : "#paddtree",
+            treeGrid: true,
+            ExpandColumn : 'name',
+            editurl:'http://localhost/jqgrid_demo40/jqgrid_demo40/server.php?q=tree',
+            caption: "Add Tree node example"
+        });
+        jQuery("#addtree").jqGrid('navGrid',"#paddtree");
+    });
+
+</script> 
+<br>
+<table id="west-gridJRead"></table>
+<div id="ptreegrid"></div> 

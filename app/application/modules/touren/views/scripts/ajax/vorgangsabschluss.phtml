@@ -1,0 +1,36 @@
+<?php
+$this->layout()->disableLayout();
+
+// Time-Recording
+$timeRecUrl  = $this->url( array('action' => 'vorgangsabschluss-zeiterfassung'))
+                .'?tour_id=' . $this->tour_id;
+
+echo <<<EOT
+<style>
+#tab-vorgang-kopfdaten fieldset,
+#tab-vorgang-kopfdaten fieldset table,
+#tab-vorgang-kopfdaten * fieldset * table,
+#tab-vorgang-kopfdaten * fieldset * table {
+    width:100%;
+    box-sizing: border-box;
+}
+#tab-vorgang-kopfdaten fieldset {
+    margin-bottom: 15px;
+}
+</style>
+<div id="tabs-vorgangsdaten">
+<ul>
+<li><a id="Anchor-tabs-Zeiterfassung" xhref="#tab-vorgang-zeiterfassung" href="$timeRecUrl">Zeiterfassung</a></li>
+</ul>
+
+</div>
+
+<script>
+    try { 
+        $("#tabs-vorgangsdaten").tabs( {selected: 1} );
+    } catch(e) { 
+        alert("jQuery tabs ist nicht verfuegbar!" + e); 
+    }
+</script>
+EOT;
+

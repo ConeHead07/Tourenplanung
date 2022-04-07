@@ -1,0 +1,454 @@
+<?php 
+$front = Zend_Controller_Front::getInstance();
+$request = $front->getRequest();
+$modul = $request->getModuleName();
+$controller = $request->getControllerName();
+
+// Get-TPL-Vars
+$rsrcType = $this->rsrcType;
+$rsrcID   = $this->rsrcID;
+$rsrcName = $this->rsrcName;
+$disableLayout = $this->disableLayout;
+
+if ($disableLayout) 
+$this->layout()->disableLayout();
+
+$GridIdBasename = 'gridRsrcSperrLst';
+
+// Cache id
+$cacheID = md5($this->module .'/'.$this->controller.'/'.$this->action);
+$cacheTL = 3600 * 1;
+
+$aTplCacheVars = [
+    '{rsrcType}' => $rsrcType,
+    '{rsrcID}' => $rsrcID,
+    '{rsrcName}' => $rsrcName,
+    '{GridIdBasename}' => $GridIdBasename,
+];
+
+$cache = Zend_Registry::get( 'cache' );
+$cache->remove($cacheID);
+$appendGridScript = $cache->load($cacheID);
+
+if (!$appendGridScript) {
+
+
+    $dateFormatter = new JsFunction(
+        'function(cellvalue) {'
+        .' if (!cellvalue || !cellvalue.match(/2[0-9]{3}-(0[1-9]|1[012])-([012][0-9]|3[01])/)) return cellvalue;'
+        .' var t = cellvalue.substr(0,10).split("-");'
+        .' t[1] = parseInt( t[1].charAt(0) != "0" ? t[1] : t[1].substr(1) ); '
+        .' t[2] = parseInt( t[2].charAt(0) != "0" ? t[2] : t[2].substr(1)); '
+        .' var d = new Date(t[0], t[1]-1, t[2]);'
+        .' var D = ["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()];'
+        .' return D + ", " + cellvalue'
+        .'}'
+    );
+
+     $dateUnformatter = new JsFunction(
+        'function(cellvalue) {'
+        .' return (cellvalue.indexOf(", ")!=-1) ? cellvalue.split(", ")[1] : cellvalue;'
+        .'}'
+    );
+
+    require_once 'JqGridColModelFormatter.php';
+
+        /* @var $this Zend_View */
+        require_once 'JqGridHeader.php';
+        JqGridHeader::enable(true);
+        
+        $GridId = '#{GridIdBasename}';
+        $GridIdPager = '#{GridIdBasename}_pager';
+        $JqGrid = new JqGrid($GridId);
+        // Grid-Options definieren
+        $JqGrid->height('auto')
+        ->jsonReader(array( "repeatitems" => false, "id" => 0 ) )
+        ->sortname('gesperrt_von')
+        ->sortorder('desc')
+        ->width(400)
+        ->rowList(array(10, 20, 30, 40, 50,100))
+        ->rowNum(10)
+        ->rownumbers(true)
+        ->resizable(false)
+        ->sortable(true)
+        ->datatype('json')
+        ->url(APPLICATION_BASE_URL . '/touren/resourcesSperrzeiten/gridlistdata?rsrcType={rsrcType}&rsrcID={rsrcID}')
+        ->editurl(APPLICATION_BASE_URL . '/touren/resourcesSperrzeiten/grideditdata?rsrcType={rsrcType}&rsrcID={rsrcID}')
+        ->enableInlineEditingDefaults()
+        ->setNavGrid($GridIdPager, $properties = array())
+        ->caption("Sperrzeiten fur {rsrcName}")
+        ->shrinkToFit(true)
+        ->pager($GridIdPager)
+        ->on_loadError( new JsFunction("function(xhr,status,error){ alert(status+'\\n'+error);}") )
+        ->addChainMethod('.jqGrid("filterToolbar",{stringResult: true,searchOnEnter : false})')
+//        ->addChainMethod( ".jqGrid('searchGrid', {sopt:['cn','bw','eq','ne','lt','gt','ew']} )")
+        ->colNames( array('sperrzeiten_id', 'ressourcen_typ', 'ressourcen_id', 'Gesperrt von', 'bis', 'num_removed' ) )
+        ->colModel(array('addFieldsProperties' => array(
+                "sperrzeiten_id" => array('key'=>true),
+                "ressourcen_typ" => array('editable'=>false),
+                "ressourcen_id"  => array('editable'=>false),
+                "gesperrt_von"   => array('editable'=>true, 'edittype'=>'text', 'formatter'=>$dateFormatter, 'unformat' => $dateUnformatter
+                     // 'formatoptions'=>array( 'srcformat' => 'Y-m-d', 'newformat' => 'D, Y-m-d' )
+                ),
+                "gesperrt_bis"   => array('editable'=>true,  'edittype'=>'text', 'formatter'=>$dateFormatter, 'unformat' => $dateUnformatter
+                    // , 'formatter'=>'date', 'formatoptions'=>array( 'srcformat' => 'Y-m-d', 'newformat' => 'D, Y-m-d' )
+                ),
+                'num_removed' => array( 'editable' => false)
+        )));
+        
+        $jqGridMethods = new JqGridMethods();
+        $JqGrid->addChainMethod(
+            $jqGridMethods->gridResize(array())
+        );
+        
+        
+        /* @var $colModelList JqGridColModelList */
+        if (1) $editOpts = array(
+            'oneditfunc' => new JsFunction(
+                'function (id){'
+               .'   var el = "#"+id+"_gesperrt_von,#"+id+"_gesperrt_bis"; '
+               .'   $(el).datepicker({'
+               .'           dateFormat:"yy-mm-dd",'
+               .'           beforeShow:function(input, inst) {'
+               .'                $(this).data("timeval", $(this).val().substr(10) );'
+               .'           },'
+               .'           onSelect:function(dateText, inst){'
+//               .'                alert( dateText.substr(0,10) + " | " + $(this).data("timeval"));'
+               .'                $(this).val(dateText.substr(0,10) + $(this).data("timeval") );'
+               .'          }'
+               .'   });'
+               .'   $(el).bind("keyup", function(){'
+               .'         $(this).data("timeval", $(this).val().substr(10) );'
+//               .'         alert("keyup " + $(this).val() + " " + $(this).val().substr(10) + " " +$(this).data("timeval"));'
+               .'   });'
+               .'}'
+            ),
+//            'successfunc' => new JsFunction(
+//                'function(response) {'
+//               .'      alert("'.__LINE__.' onedit successfunc: ");'
+//               .'}'
+//            )
+        );
+        
+        $saveOpts = null; 
+//        array(
+//            'successfunc' => new JsFunction(
+//                'function(response) {'
+//               .'      alert("'.__LINE__.' onsave successfunc: ");'
+//               .'}'
+//            )
+//        );
+        
+        $JqGrid->enableInlineEditingDefaults($editOpts, $saveOpts);
+        
+        /* @var $colModelList JqGridColModelList */
+        $colModelList = $JqGrid->colModel();
+        
+        $dateTimeEditOptions = array(
+            'size' => 16,
+            'dataInit'     => new JsFunction(
+                'function(el){' 
+               .'         $(el).datepicker({'
+               .'                 dateFormat:"yy-mm-dd",'
+               .'                 changeMonth: true,'
+               .'                 showWeek: true,'  
+               .'                 beforeShow:function(input, inst) {'
+               .'                      $(this).data("timeval", $(this).val().substr(10) );'
+               .'                 },'
+               .'                 onSelect:function(dateText, inst){'
+//               .'                      alert( dateText.substr(0,10) + " | " + $(this).data("timeval"));'
+               .'                      $(this).val(dateText.substr(0,10) + $(this).data("timeval") );'
+               .'                }'
+               .'         });'
+               .'         $(el).bind("keyup", function(){'
+               .'               $(this).data("timeval", $(this).val().substr(10) );'
+//               .'               alert("keyup " + $(this).val() + " " + $(this).val().substr(10) + " " +$(this).data("timeval"));'
+               .'         });'
+               .'}'
+            ),
+            'defaultValue' => new JsFunction(
+                'function(el){ '
+               .' return $.datepicker.formatDate(\'yy-mm-dd\', new Date())'
+               .'}'
+            )
+        );
+        $dvField = $colModelList->getItem('gesperrt_von');
+        $dvField->set_editoptions($dateTimeEditOptions);
+        
+        $dbField = $colModelList->getItem('gesperrt_bis');
+        $dbField->set_editoptions($dateTimeEditOptions);
+                
+        $colModelList->getItem('sperrzeiten_id')->set_hidden(true);
+        $colModelList->getItem('ressourcen_typ')->set_hidden(true);
+        $colModelList->getItem('ressourcen_id')->set_hidden(true);
+
+        /** @var JqGridNavGrid $navGrid */
+        $navGrid = $JqGrid->getInstanceNavGrid($GridIdPager);
+        $navGrid->set_edit(true);
+        $navGrid->set_addicon('ui-icon-plus');
+        $navGrid->set_search(
+                new JsFunction(
+                         '{'
+                        .'multipleSearch:true,'
+                        .'overlay:false,'
+                        .'beforeShowSearch:function() { '
+                        .' $("'.$GridId.'")[0].toggleToolbar(); },'
+                        .'onClose:function() {    	$("'.$GridId.'")[0].toggleToolbar();   }'
+                        .'}'
+                        )
+        )
+        ->addNavButton(new JqGridNavGridButton(array(
+                       'id' => 'btnTbarSearch',
+               'buttonicon' => 'ui-icon-pin-s',
+                  'caption' => '.',
+                    'title' => 'Toggle Searching Toolbar',
+            'onclickButton' => 'function () { $("'.$GridId.'")[0].toggleToolbar(); }'
+        )));
+        
+        /** @var JqGridNavGridEditFormOptions $addPrm */
+        $addPrm = $navGrid->getInstanceAddFormOptions();
+        $addPrm->set_width(450);
+        $addPrm->onafterShowForm(new JsFunction(
+            'function(formid){
+                if ($(formid).closest("div.ui-jqdialog").css("zIndex") < 1050)
+                $(formid).closest("div.ui-jqdialog").css("zIndex", 1050); }'
+        ));
+
+        $addPrm->onbeforeShowForm(new JsFunction('function(formid){ checkDispoToursByRsrc(formid);}'));
+
+
+        /** @var JqGridNavGridEditFormOptions $editPrm */
+        $editPrm = $navGrid->getInstanceEditFormOptions();
+        $editPrm->set_width(450);
+        $editPrm->onbeforeShowForm(new JsFunction('function(formid){ checkDispoToursByRsrc(formid);}'));
+        $editPrm->onafterSubmit(new JsFunction('function(rsp, data){
+            checkUnlinkedToursByRsrc();
+        }'));
+        $editPrm->onafterclickPgButtons(new JsFunction('function(formid){ checkDispoToursByRsrc(formid);}'));
+
+        /* @var $searchPrm JqGridNavGridSearchFormOptions */
+        $searchPrm = $navGrid->getInstanceSearchFormOptions();
+        $searchPrm->set_sopt(array('eq'));
+        $searchPrm->set_beforeShowSearch('function() { '.' $("'.$GridId.'")[0].toggleToolbar(); }');
+        $searchPrm->set_onClose('function() { $("'.$GridId.'")[0].toggleToolbar();   }');
+        $searchPrm->set_multipleSearch(true);
+        
+        if (0) {
+        $colChooser = new JqGridColumnChooserOptions();
+        $navGrid->addNavButton(new JqGridNavGridButton(array(
+                       'id' => 'btnColCh',
+                  'caption' => '.',
+                    'title' => 'Spalten',
+            'onclickButton' => new JsFunction('function(){'.$colChooser->renderMethod($GridId).'}')
+        ))); 
+        }
+
+    $appendGridScript =
+        '/** ' . PHP_EOL
+        . 'Cached at ' . date('Y-m-d H:i:s') . PHP_EOL
+        . ' for ' . $cacheTL . ' Seconds. ' . PHP_EOL
+        . ' Expires at ' . date('Y-m-d H:i:s', strtotime('+ ' . $cacheTL . ' Seconds')) . PHP_EOL
+        . ' */' . PHP_EOL
+        .'jQuery(function() {' . PHP_EOL
+        . (string)$JqGrid->getJsCode()
+        . '});'
+        .<<<EOT
+    var checkDispoToursByRsrc = function(formid){
+        checkUnlinkedToursByRsrc(formid);
+
+        var jgrid = $("$GridId");
+        if (!jgrid.data('formid') && typeof formid == 'object') {
+            jgrid.data('formid', formid).data('dialog', $(formid).closest( '.ui-widget-content' ) ) ; // '.ui-jqdialog-content'
+            
+            if ($(formid).closest("div.ui-jqdialog").css("zIndex") < 1050) {
+                $(formid).closest("div.ui-jqdialog").css("zIndex", 1050);
+            }
+            
+            var url = jgrid.jqGrid("getGridParam", "url");
+            var matches = url.match(/rsrcType[\/=]([A-Z]*)[\/&]rsrcID[\/=]([0-9]*\b)/);
+            
+            if (matches) {
+                $(formid).data("url", url).data("rsrcType", matches[1]).data("rsrcID", matches[2]);
+            }
+        }
+
+        var dialog = jgrid.data('dialog');
+        var saveBtn = $('#sData', dialog);
+        var previewID = "{GridIdBasename}Preview";
+        var previewPagerID = previewID + "Pager";
+        var previewBtnID = 'checkData';
+        var previewBtn = $('#' + previewBtnID, dialog);
+        var previewBox = $('#' + previewID);
+        
+        if ( $(dialog).offset().top < 0) {
+            $(dialog).css('top', 0);
+        }
+        if ( $(dialog).offset().left < 0) {
+            $(dialog).css('left', 0);
+        }
+
+        if ( !previewBtn.length ) {
+            console.log({formid, dialog, previewID, previewPagerID, previewBtnID, previewBtn, previewBox});
+            previewBox = $('<table/>').attr('id',previewID);
+            $('.EditTable:first').after( previewBox );
+            previewBox.after( $('<div/>').attr('id',previewPagerID) );
+            loadGridDispoTouren("#"+previewID, "#"+previewPagerID, [], "Gebuchte Touren");
+
+            previewBtn = $('#sData', dialog).clone();
+            previewBtn.attr('id', previewBtnID).text('Prüfen').bind('click', function() {
+
+                var DtVon = $('input[name=gesperrt_von]', formid).val().substr(0, 10);
+                var DtBis = $('input[name=gesperrt_bis]', formid).val().substr(0, 10);
+                var typ = $(formid).data('rsrcType');
+                var id = $(formid).data('rsrcID');
+
+                var url = '/touren/resourcesDispozeiten/tourlist/rsrcType/'+
+                    encodeURI(typ)+'/rsrcID/'+encodeURI(id)+'/DatumVon/'+
+                    encodeURI(DtVon)+'/DatumBis/'+encodeURI(DtBis);
+
+                $.getJSON( url, function( data ) {
+
+                    window.tourenlist = data.rows;
+
+                    loadGridDispoTouren("#"+previewID, "#"+previewPagerID);
+                    previewBox.clearGridData();
+                    previewBox.setGridParam({data:data.rows}).trigger("reloadGrid");
+
+                    saveBtn.show();
+                    // previewBtn.hide();
+                });
+
+                /*
+                console.log({typ, id, DtVon, DtBis, url});
+                previewBox.load(url, function() {
+                  if ( $(".table-to-grid").length ) {
+                    tableToGrid(".table-to-grid", {
+                       width:"100%",
+                       rownumbers:true,
+                       sortable:true,
+                       altRows:true,
+                       rowNum:10,
+                       pager: '#'+previewPagerID});
+                    $(".table-to-grid", formid).jqGrid('gridResize');
+                  }
+                  saveBtn.show();
+                  previewBtn.hide();
+                });
+                */
+            });
+            previewBtn.insertBefore('#sData').show();
+        }
+        saveBtn.hide();
+        previewBtn.show();
+
+
+    };
+    var checkUnlinkedToursByRsrc = function(formid){
+        var jgrid = $("$GridId");
+
+        var unlinkedGridID = "{GridIdBasename}Unlinked";
+        var unlinkedPagerID = unlinkedGridID + "Pager";
+        var unlinkedBox = $('#' + unlinkedGridID);
+
+        var rowId = jgrid.jqGrid('getGridParam', 'selrow');
+        console.log(formid, rowId, unlinkedBox);
+
+        if (!unlinkedBox.length && (typeof formid == "undefined" ||  !formid) ) {
+            alert("Tabelle mit entzogenen Touren existiert nicht und konnte nicht angelegt werden!");
+            return;
+        }
+
+        if ( !unlinkedBox.length ) {
+            unlinkedBox = $('<table/>').attr('id',unlinkedGridID);
+            $('.EditTable:first').after( unlinkedBox );
+            unlinkedBox.after( $('<div/>').attr('id',unlinkedPagerID) );
+        }
+
+        if (rowId) {
+
+            $.getJSON('/touren/resourcesSperrzeiten/tourlist/id/' + encodeURI(rowId), function (data) {
+
+                window.tourenlist = data.rows;
+
+                loadGridDispoTouren("#" + unlinkedGridID, "#" + unlinkedPagerID, [], "Entfernt aus den Touren");
+                unlinkedBox.clearGridData();
+                unlinkedBox.setGridParam({data: data.rows}).trigger("reloadGrid");
+            });
+        }
+
+
+    };
+
+function loadGridDispoTouren(gridIdSelector, gridPagerID, data, title) {
+
+    console.log('loadGridDispoTouren', gridIdSelector, gridPagerID, data);
+    
+    jQuery(gridIdSelector).jqGrid({
+        data: data,
+        datatype: "local",
+        height: "auto",
+        width:420,
+        rowNum: 10,
+        rowList: [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+        colNames: [
+            'ID', 'R-ID', 'Typ',
+            'Datum', 'Von', 'D-Bis', 'Bis',
+            'Pos', 'Mnd', 'ANR',
+            'Kunde', 'Vorgang'
+        ],
+        colModel: [
+            {name: 'id', index: 'id', width: 40, hidden:true, sorttype: "int"},
+            {name: 'ressourcen_id', index: 'ressourcen_id', hidden:true, width: 40},
+            {name: 'ressourcen_typ', index: 'ressourcen_typ', hidden:true, width: 40},
+            {name: 'DatumVon', align:"right", index: 'DatumVon', width: 65, sorttype: "date",
+                formatter: 'date', formatoptions: { srcformat: 'Y-m-d', newformat: 'D, j.n.y'}},
+            {name: 'ZeitVon', index: 'ZeitVon', width: 40, formatter: function(v){ return v.substr(0,5); }},
+            {name: 'DatumBis', index: 'DatumBis', hidden:true, width: 80},
+            {name: 'ZeitBis', index: 'ZeitBis', width: 40, formatter: function(v){ return v.substr(0,5); }},
+            {name: 'tagesnr', index: 'tagesnr', width: 20, align: "right"},
+            {name: 'Mandant', index: 'Mandant', hidden:true, width: 30},
+            {name: 'Auftragsnummer', index: 'Auftragsnummer', width: 55},
+            {name: 'LieferungName', index: 'LieferungName', width: 150},
+            {name: 'Vorgangstitel', index: 'Vorgangstitel', hidden:true, width: 150}
+        ],
+        pager: gridPagerID,
+        viewrecords: true,
+        caption: title
+    }).jqGrid('gridResize');
+}
+EOT;
+
+
+    // end cache
+    $cache->save($appendGridScript, $cacheID, [], $cacheTL); // Cache fuer eine Stunde
+}
+
+$appendGridScript = strtr($appendGridScript, $aTplCacheVars);
+?>
+
+<style>
+    div.ui-jqgrid,
+    #gbox_treeSelectDialog {
+        border:2px #d2d2d2 solid;
+        padding:1px;
+    }
+</style>
+<?php
+/*
+<script xsrc="<?php echo APPLICATION_BASE_URL; ?>/jquery/jquery-1.7.2.min.js"></script>
+<script xsrc="<?php echo APPLICATION_BASE_URL; ?>/jquery/jquery-ui-1.9.2.min.js"></script>
+<script xsrc="http://trentrichardson.com/examples/timepicker/jquery-ui-timepicker-addon.js"></script>
+<script xsrc="<?php echo APPLICATION_BASE_URL; ?>/jquery/ui/jquery.ui.datetimepicker.js"></script>
+<script xsrc="http://trentrichardson.com/examples/timepicker/jquery-ui-sliderAccess.js"></script>
+ */
+?>
+<?php
+if (!$disableLayout) {
+    $this->headScript()->appendScript( $appendGridScript );
+} else {
+    echo '<script>'.PHP_EOL . $appendGridScript . PHP_EOL . '</script>'.PHP_EOL;
+}
+?>
+
+<table id="<?=$GridIdBasename?>"></table>
+<div id="<?=$GridIdBasename?>_pager"></div>

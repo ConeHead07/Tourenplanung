@@ -1,0 +1,1 @@
+java -jar .\compiler.jar --js=..\public\jquery\jquery.treeview\jquery.treeview.js ..\public\jquery\jquery.treeview\jquery.treeview.edit.js ..\public\jquery\jquery.treeview\jquery.treeview.async.js --js_output_file=..\public\jquery\jquery.treeview\min\jquery.treeview-all.min.js

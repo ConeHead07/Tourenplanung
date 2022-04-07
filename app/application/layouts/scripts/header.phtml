@@ -1,0 +1,77 @@
+<?php
+$baseUrl  = $this->baseUrl();
+$userName = MyProject_Auth_Adapter::getUserName();
+$userRole = MyProject_Auth_Adapter::getUserRole();
+$acl = Zend_Registry::get('acl');
+
+?>
+<!-- start menu HTML -->
+<div id="menu" class="droplinebar" style="z-index:99999;display:block;">
+    <ul>
+        <!-- li><a href="<?php echo $baseUrl; ?>">Home</a></li -->
+        <?php if ($userRole !== 'guest'): ?>
+        <?php if ($acl->isAllowed($userRole, 'touren_index')): ?>
+        <li><a href="<?php echo $baseUrl; ?>/touren/index">Touren</a>
+          <ul style="padding-left:0px">
+          <li><a href="<?php echo $baseUrl; ?>/touren/index">Tagesdispo</a></li>
+          <li><a href="<?php echo $baseUrl; ?>/tourlist/index">Suche</a></li>
+          </ul></li>
+        <?php endif; ?>
+        <li><a href="<?php echo $baseUrl; ?>/vorgaenge/subgridlist">Vorg&auml;nge</a>
+          <ul>
+          <li><a href="<?php echo $baseUrl; ?>/vorgaenge/insertpool">Poolvorgaenge</a></li>
+          </ul></li>
+        <?php if (in_array($userRole, array( 'admin', 'dispo') ) ): ?>  
+        <li><a href="<?php echo $baseUrl; ?>/config/index">Admin</a>
+            <ul>
+                <li><a href="<?php echo $baseUrl; ?>/config/user">Benutzer</a></li>
+            </ul>
+        </li>
+        <?php endif; ?>
+        <?php if (in_array($userRole, array('dispo', 'admin'))): 
+      ?><li><a href="<?php echo $baseUrl; ?>/macategories/index">Kategorien</a>
+          <ul>
+          <li><a href="<?php echo $baseUrl; ?>/macategories/index">Mitarbeiter</a></li>
+          <li><a href="<?php echo $baseUrl; ?>/fpcategories/index">Fuhrpark</a></li>
+          <li><a href="<?php echo $baseUrl; ?>/wzcategories/index">Werkzeug</a></li>
+          </ul></li>
+        <li><a href="<?php echo $baseUrl; ?>/mitarbeiter/list">Ressourcen</a>
+          <ul>
+          <li><a href="<?php echo $baseUrl; ?>/mitarbeiter/list">Mitarbeiter</a></li>
+          <li><a href="<?php echo $baseUrl; ?>/fuhrpark/list">Fuhrpark</a></li>
+          <li><a href="<?php echo $baseUrl; ?>/werkzeug/list">Werkzeug</a></li>
+          <li><a href="<?php echo $baseUrl; ?>/extern/list">Externe Anbieter</a></li>
+          <li><a href="<?php echo $baseUrl; ?>/leistung/list">Leistungskatalog</a></li>
+          </ul>
+        </li>
+        <li><a href="<?php echo $baseUrl; ?>/auswertungen/auftragssummen">Auswertungen</a>
+          <ul>
+          <li><a href="<?php echo $baseUrl; ?>/auswertungen/auftragssummen">Auftragssummen</a></li>
+          </ul>
+        </li>
+        <?php endif; ?>
+        <li><a href="<?php echo $baseUrl; ?>/user/logout">Logout</a></li>
+        <?php else: ?>
+        <li><a href="<?php echo $baseUrl; ?>/user/login">Login</a></li>
+        <?php endif; ?>
+        <li style="border:0;background-color:transparent;margin:0 0 0 25px;padding:0;vertical-align: bottom;"><a 
+            style="font-size:30px;vertical-align: bottom; margin:0;display:inline;text-decoration:none;border:0;color:#000;background:none;">
+                merTens <span style="font-size:inherit;color:#85B5D9">Ressourcen Management</span></a>
+        </li>
+    </ul>
+    
+    <!-- Sub-Menu-Area -->
+    <div style="display:block;clear:both;height:30px;background-color:#70A8D2;text-align:right;position:relative;">
+        <div style="position:absolute;right:5px;bottom:3px;z-index:999;color: #fff;"><?php echo $userName . ' (' . $userRole . ')'; ?></div>
+    </div>
+</div>
+<?php 
+
+echo 
+<<<EOT
+<script type="text/javascript">
+//build menu with DIV ID="myslidemenu" on page:
+droplinemenu.buildmenu("menu")
+</script>
+EOT;
+?>

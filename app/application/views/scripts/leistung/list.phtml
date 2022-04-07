@@ -1,0 +1,140 @@
+<?php
+$front = Zend_Controller_Front::getInstance();
+$request = $front->getRequest();
+$modul = $request->getModuleName();
+$controller = $request->getControllerName();
+
+$lagerOptions = $this->lagerOptionsList;
+?>
+<!-- link type="text/css" rel="stylesheet" href="<?php echo APPLICATION_BASE_URL; ?>/jquery/autocomplete_chooser/chooser.css" / -->
+<style>
+    div.ui-jqgrid,
+    #gbox_treeSelectDialog {
+        border:2px #d2d2d2 solid;
+        padding:1px;
+    }
+</style>
+<!-- requires /jquery/util/jquery.chooser.js, ist in jquery.util-all.min.js enthalten -->
+
+<?php
+
+require_once 'JqGridColModelFormatter.php';
+
+$JsOnInitForm = new JsFunction('null');
+
+        /* @var $this Zend_View */
+        require_once 'JqGridHeader.php';
+        JqGridHeader::enable(true);
+        
+        $GridId = '#gridExternLst';
+        $GridIdPager = '#gridExternLst_pager';
+        $JqGrid = new JqGrid($GridId);
+        // Grid-Options definieren
+        $JqGrid->height('auto')
+        ->jsonReader(array( "repeatitems" => false, "id" => 0 ) )
+        ->width(1000)
+        //->hiddengrid(true)
+        ->rowList(array(10, 20, 30, 40, 50,100))
+        ->rowNum(10)
+        ->rownumbers(true)
+        ->resizable(true)
+        ->sortable(true)
+        ->datatype('json')
+        ->url(APPLICATION_BASE_URL . '/leistung/gridresponsedata')
+        ->editurl(APPLICATION_BASE_URL . '/leistung/grideditdata')
+        ->setNavGrid($GridIdPager, $properties = array())
+        ->caption("Test-Grid")
+        ->shrinkToFit(true)
+        ->pager($GridIdPager)
+//        ->on_cellSelect(new JsFunction('function(){ alert("onCellSelect:"+$.makeArray(arguments))}'))
+        ->on_loadError( new JsFunction("function(xhr,status,error){ alert(status+'\\n'+error);}") )
+        ->addChainMethod('.jqGrid("filterToolbar",{stringResult: true,searchOnEnter : false})')
+//        ->addChainMethod( ".jqGrid('searchGrid', {sopt:['cn','bw','eq','ne','lt','gt','ew']} )")
+        ->colNames( array(
+            'ID', 'Typ', 'Leistung', 'Kosten' ))
+        ->colModel(array('addFieldsProperties' => array(
+                  "leistungs_id"       => array('key'=>true, 'width'=>20),            
+                  "ressourcen_typ"     => array('editable'=>true, 'edittype'=>'select', 'width'=>20, 'editoptions'=>array( 'value' => 'FP:FP;MA:MA;WZ:WZ') ),
+                  "leistungs_name"     => array('editable'=>true, 'edittype'=>'text',   'editoptions'=>array( 'size' =>20, 'maxlength' => 80) ),
+                  "kosten_pro_einheit" => array('editable'=>true, 'edittype'=>'text' ),
+         )));
+        
+//        die( '#' . __LINE__ . ' ' . date('H:i:s') . ' ' . (string) $JqGrid->getJsCode()  );
+        
+        $jqGridMethods = new JqGridMethods();
+        $JqGrid->addChainMethod(
+            $jqGridMethods->gridResize(array())
+        );
+        
+        /* @var $colModelList JqGridColModelList */
+        $colModelList = $JqGrid->colModel();
+        
+        $JqGrid->enableInlineEditingDefaults();
+        
+        // Make all Fields (also invisible, hidden) searchable!
+        /* @var $_cmItem JqGridColModel */
+        foreach($colModelList as $_cmItem) {
+            /* @var $_itemSearchOpts JqGridColModelSearchOptions */
+            $_itemSearchOpts = $_cmItem->getInstanceSearchOptions();
+            if ($_itemSearchOpts && method_exists($_itemSearchOpts, 'set_searchhidden') ) {
+                $_itemSearchOpts->set_searchhidden(true);
+            }
+        }
+        
+        $navGrid = $JqGrid->getInstanceNavGrid($GridIdPager);
+        $navGrid->set_edit(true);
+//        $navGrid->set_addicon('ui-icon-suitcase');
+        $navGrid->set_search(
+                new JsFunction(
+                         '{'
+                        .'multipleSearch:true,'
+                        .'overlay:false,'
+                        .'beforeShowSearch:function() { '
+                        .' $("'.$GridId.'")[0].toggleToolbar(); },'
+                        .'onClose:function() {    	$("'.$GridId.'")[0].toggleToolbar();   }'
+                        .'}'
+                        )
+        )
+        ->addNavButton(new JqGridNavGridButton(array(
+                       'id' => 'btnTbarSearch',
+               'buttonicon' => 'ui-icon-pin-s',
+                  'caption' => 'ColSearch',
+                    'title' => 'Toggle Searching Toolbar',
+            'onclickButton' => 'function () { $("'.$GridId.'")[0].toggleToolbar(); }'
+        )));
+        
+        /* @var $searchPrm JqGridNavGridSearchFormOptions */
+        $searchPrm = $navGrid->getInstanceSearchFormOptions();
+        $searchPrm->set_sopt(array('eq'));
+        $searchPrm->set_beforeShowSearch('function() { '.' $("'.$GridId.'")[0].toggleToolbar(); }');
+        $searchPrm->set_onClose('function() { $("'.$GridId.'")[0].toggleToolbar();   }');
+        $searchPrm->set_multipleSearch(true);
+        
+        /* @var $editPrm JqGridNavGridEditFormOptions */
+        $addPrm = $navGrid->getInstanceAddFormOptions();
+        $addPrm->onInitializeForm($JsOnInitForm);
+        
+        $editPrm = $navGrid->getInstanceEditFormOptions();
+        $editPrm->onInitializeForm($JsOnInitForm);
+        
+        $colChooser = new JqGridColumnChooserOptions();
+        $navGrid->addNavButton(new JqGridNavGridButton(array(
+                       'id' => 'btnColCh',
+                  'caption' => 'Spalten',
+                    'title' => 'Spalten',
+            'onclickButton' => new JsFunction('function(){'.$colChooser->renderMethod($GridId).'}')
+        )));        
+        
+        $this->headScript()->appendScript( 
+                'jQuery(function() {' 
+               .(string) $JqGrid->getJsCode() 
+               .'});'
+        );
+        
+        // put your code here
+        ?>
+      
+    <table id="gridExternLst"></table> 
+    <div id="gridExternLst_pager"></div>
+        
+    <div id="DialogSperrzeiten" title="Sperrzeiten"></div>

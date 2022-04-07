@@ -1,0 +1,260 @@
+<?php 
+$this->layout()->disableLayout();
+$rsp = Zend_Controller_Front::getInstance()->getResponse();
+$rsp->setHeader('Content-Type', 'text/html; charset=UTF-8', true);
+//$rsp->setHeader('Content-Type', 'text/html', $replace = true);
+if (property_exists($this->vorgangsdaten, 'error')) echo $this->vorgangsdaten->error . "<br>\n";
+
+$data = &$this->vorgangsdaten->data;
+$d = (isset($this->vorgangsdaten->data)) ? $this->vorgangsdaten->data : array();
+foreach($d as $k => $v) if (is_string($v)) $d[$k] = htmlentities($v);
+$d['blank'] = '<span style="color:#f00;">WWS-Feld unbekannt</span>';
+
+if ( count($d) > 1 ) {
+    // print_r([__LINE__, __FILE__, 'd', $d]);
+}
+
+
+if (count($d) > 1) {
+    $aDefaultsForMissingWWSFields = [
+        'Auftragsart' => '',
+        'Referenznummer' => '',
+        'RechnungInklMWSt' => '',
+        'IstAlternativ' => '',
+        'Zahlungsbedingung' => '',
+        'Debitorenkonto' => '',
+        'Verkaufsteam' => '',
+        'Kostenstelle' => '',
+        'Projektkennung' => '',
+        'AnfrageVom' => '',
+        'Bestellnummer' => '',
+        'Angebotsbindefrist' => '',
+        'Lieferanschrift' => '',
+        'Tournummer' => '',
+        'AnsprechpartnernummerLief' => '',
+        'AnsprechpartnerVornameLief' => '',
+        'AnsprechpartnerMailLief' => '',
+        'AnsprechpartnerTelefonLief' => '',
+        'AnsprechpartnerFaxLief' => '',
+        'AnsprechpartnerAnredeAng' => '',
+        'LieferungStellplatz' => '',
+        'AnsprechpartnerAnrede2Ang' => '',
+        'AvisierungsAnschrift' => '',
+        'AnsprechpartnerNummerAvis' => '',
+        'AvisierungName' => '',
+        'AnsprechpartnerNachnameAvis' => '',
+        'AnsprechpartnerVornameAvis' => '',
+        'AnsprechpartnerMailAvis' => '',
+        'AnsprechpartnerTelefonAvis' => '',
+        'AnsprechpartnerFaxAvis' => '',
+        'AvisierungStrassePostfach' => '',
+        'AnsprechpartnerAnredeAvis' => '',
+        'AvisierungLand' => '',
+        'AvisierungPostleitzahl' => '',
+        'AvisierungOrt' => '',
+        'AnsprechpartnerAnrede2Avis' => '',
+        'AbschlussStatus' => '',
+        'Realisierungswahrschkt' => '',
+        'Erledigungsgrund' => '',
+        'Mitbewerber' => '',
+        'Realisierungstermin' => '',
+        'Bemerkung' => '',
+        'AvisierterTermin' => '',
+        'AvisierterTerminFix' => '',
+        'Bestellinfo' => '',
+        'Lieferbedingung' => '',
+        'Versandbedingung' => '',
+        'Kopftext' => '',
+        'Fusstext' => '',
+    ];
+    // foreach($aDefaultsForMissingWWSFields as $k => &$v) $v = '.....';
+    // Bereist existierende Keys in d werden nicht überschrieben !!!
+    $d+= $aDefaultsForMissingWWSFields;
+    echo <<<EOT
+<style>
+#tab-vorgang-kopfdaten fieldset,
+#tab-vorgang-kopfdaten fieldset table,
+#tab-vorgang-kopfdaten * fieldset * table,
+#tab-vorgang-kopfdaten * fieldset * table {
+    width:100%;
+    box-sizing:border-box;
+}
+
+#tab-vorgang-kopfdaten fieldset {
+    margin-bottom:15px;
+}
+</style>
+<div id="tabs-vorgangsdaten">
+<ul>
+<li><a id="Anchor-tabs-Kopfdaten" href="#tab-vorgang-kopfdaten">Kopfdaten</a></li>
+<li><a id="Anchor-tabs-Lieferdaten" href="#tab-vorgang-lieferdaten">Lieferdaten</a></li>
+<li><a id="Anchor-tabs-Lieferdaten" href="#tab-vorgang-alledaten">Alle Daten</a></li>
+</ul>
+
+<div id="tab-vorgang-kopfdaten">
+    <fieldset>
+    <table>
+        <tr>
+            <td>Vorgangs-Nr</td>
+            <td>{$d['Auftragsnummer']}</td>
+                      
+             <td>Vorgangsart</td>
+             <td>{$d['Auftragsart']}</td>
+             
+            <td>GruppierungsNr</td>
+            <td>{$d['Gruppierungsnummer']}</td>
+        </tr>
+        <tr>
+            
+            <td>Zus.Vorg.art</td>
+            <td>{$d['ZusatzVorgangsArtBezeichnung']}</td>
+            
+            <td>Bearb.status</td>
+            <td>{$d['Bearbeitungsstatus']}</td>
+               
+            <td>FirmenNr</td>
+            <td>{$d['Kundennummer']}</td>
+
+        </tr>
+        
+        <tr>
+            
+            <td>G-bereich</td>
+            <td colspan="5">{$d['Geschaeftsbereich']}</td>
+        </tr>
+        
+        <tr>
+            <td>Vorgangstitel</td>
+            <td colspan=5>{$d['Vorgangstitel']}</td>
+        </tr>
+        
+    </table>
+    </fieldset>
+    
+    <fieldset>
+        <legend>Anschriften und Ansprechpartner</legend>
+    
+        <div id="tabs-vorgang-anschriften">
+        <ul>
+        <li><a id="Anchor-tabs-Lieferung"   href="#tab-vorgang-kopfdaten-lieferung">Lieferung</a></li>
+        </ul>
+    <div id="tab-vorgang-kopfdaten-lieferung">
+        <table>
+            <tr>
+                <td>Tournr</td>
+                <td>{$d['tour_id']}</td>
+            </tr>
+            <tr>
+                <td>Kunde</td>
+                <td>{$d['LieferungName']}</td>
+            </tr>
+            <tr>  
+                <td>Ansprechpartner</td>
+                <td>{$d['AnsprechpartnerNachnameLief']}</td>
+            </tr>
+            <tr>
+                <td>Stra&szlig;e</td>
+                <td>{$d['LieferungStrassePostfach']}</td>
+            </tr>
+            <tr>
+                <td>Land/PLZ/Ort</td>   
+                <td>{$d['LieferungLand']} {$d['LieferungPostleitzahl']} {$d['LieferungOrt']}</td>
+            </tr>
+        </table>
+    </div>
+    </fieldset>
+    
+    <fieldset>
+        <legend>Bemerkungen</legend>
+        <table>
+            <tr>
+                <td>{$d['Bemerkung']}</td>
+            </tr>
+        </table>
+    </fieldset>
+</div>
+
+<div id="tab-vorgang-lieferdaten">
+    <table border=0 cellpadding=0 cellspacing=0 width="100%">
+        <tr>
+            <td valign="top">
+            <fieldset>
+                <legend>Terminwunsch des Kunden</legend>
+                Woche/Jahr <?php ?> Fixtermin <?php ?> Tag
+            </fieldset>
+            </td>
+            
+            <td valign="top">
+                <fieldset>
+                    <legend>Lieferung avisiert f&uuml;r</legend>
+                    Termin {$d['AvisierterTermin']} Fixtermin {$d['AvisierterTerminFix']} Tag<br>
+                    Uhrzeit von/bis | disponiert	
+                </fieldset>
+            </td>
+        </tr>
+    </table>
+    <fieldset>
+        <legend>Lieferdaten</legend>
+        <table>
+            <tr>                
+                <td>Lieferinfo</td>
+                <td>{$d['LieferterminHinweisText']}</td>
+                
+                <td>LieferterminHinweisText</td>
+                <td>{$d['LieferterminHinweisText']}</td>
+            </tr>
+        </table>
+    </fieldset>
+
+    <fieldset>
+        <legend>Kopf- und Fu&szlig;texte</legend>
+        <table>
+            <tr><td>Kopftext:</td><td>{$d['Kopftext']}</td> </tr>
+            <tr><td>Fu&szlig;text::</td><td>{$d['Fusstext']}</td> </tr>
+        </table>   
+    </fieldset>
+</div>
+
+<div id="tab-vorgang-alledaten">
+EOT;
+}
+
+if ($data) {
+    $firstWordBefore = '';
+    echo '<table>' . PHP_EOL;
+    foreach($data as $k => $v) {
+        $firstWord = '';
+        if (preg_match('/^([A-Z][a-z0-9]*)[A-Z]/', $k, $m)) $firstWord = $m[1];
+
+        if ($firstWord !== $firstWordBefore) {
+            echo '<tr><td colspan=2>&nbsp;</td></tr>' . PHP_EOL;
+        }
+
+        if ($firstWord) {
+            if ($firstWord !== $firstWordBefore) {
+                echo '<tr><td colspan=2><b>' . $firstWord . '</b></td></tr>' . PHP_EOL;
+            }
+            //$k = substr($k, strlen($firstWord));
+        }
+        echo '<tr>'. PHP_EOL;
+        echo '<td><label>' . $k . '</label></td><td>'. $v . '</td></tr>'. PHP_EOL;
+
+        $firstWordBefore = $firstWord;
+    }
+    echo '</table>' . PHP_EOL;
+}
+
+echo <<<EOT
+</div>
+
+</div>
+<script>
+    try { 
+        $("#tabs-vorgangsdaten").tabs();
+        $("#tabs-vorgang-anschriften").tabs();
+    } catch(e) { 
+        alert("jQuery tabs ist nicht verfuegbar!" + e); 
+    }
+</script>
+EOT;
+

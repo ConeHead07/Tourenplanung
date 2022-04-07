@@ -1,0 +1,79 @@
+<?php
+/* @var $this Zend_View */
+require_once 'JqGridHeader.php';
+JqGridHeader::enable(true);
+?>
+<script type="text/javascript">
+//<![CDATA[
+jQuery(function() {jQuery("#gridVorgaengeLst").jqGrid(
+{
+    "colNames":["Mandant","Autragsnumme"],
+    "colModel":[
+        {"name":"Mandant","index":"Mandant","editable":false},
+        {"name":"Auftragsnummer","index":"Auftragsnummer","editable":false, "key":true}
+     ],
+    "jsonReader":{"repeatitems":false,"id":0},
+    "datatype":"json",
+    "url": APP_BASE_URL + "/vorgaenge/gridresponsedata",
+    "pager":"#gridVorgaengeLst_pager",
+    "loadError":function(xhr,status,error){ alert(status+'\n'+error);},
+    "subGridRowExpanded": function(subgrid_id, row_id) {
+        var subgrid_table_id, pager_id;
+        subgrid_table_id = subgrid_id+"_t";
+        pager_id = "p_"+subgrid_table_id;
+
+        $("#"+subgrid_id).html(
+            "<table id='"+subgrid_table_id+"' class='scroll'></table>"
+           +"<div id='"+pager_id+"' class='scroll'></div>");
+
+        jQuery("#"+subgrid_table_id).jqGrid({ /*grid-Anweisungen*/ 
+            "url": APP_BASE_URL + "/bestellkoepfe/gridresponsedata/id/"+row_id,
+            "colNames":["Mandant","Auftragsnummer","Bestellnummer"],
+            "colModel":[
+                    {"name":"Mandant","index":"Mandant","editable":false},
+                    {"name":"Auftragsnummer","index":"Auftragsnummer","editable":false},
+                    {"name":"Bestellnummer","index":"Bestellnummer","editable":false, "key":true}
+            ],
+            "jsonReader":{"repeatitems":false,"id":0},
+            "datatype":"json",
+            "caption":"Test-Grid",
+            "pager":pager_id,
+            "loadError":function(xhr,status,error){ alert(status+'\n'+error);},
+        
+            "subGridRowExpanded": function(subgrid_id, row_id) {
+                var subgrid_table_id, pager_id;
+                subgrid_table_id = subgrid_id+"_t";
+                pager_id = "p_"+subgrid_table_id;
+
+                $("#"+subgrid_id).html(
+                    "<table id='"+subgrid_table_id+"' class='scroll'></table>"
+                   +"<div id='"+pager_id+"' class='scroll'></div>");
+
+                jQuery("#"+subgrid_table_id).jqGrid({ /*grid-Anweisungen*/ 
+                    "url": APP_BASE_URL + "/bestellpositionen/gridresponsedata/uniqueid/"+row_id,
+                    "colNames":["Mandant","Bestellnummer","Positionsnummer"],
+                    "colModel":[
+                            {"name":"Mandant","index":"Mandant","editable":false, "key":true},
+                            {"name":"Auftragsnummer","index":"Auftragsnummer","editable":false},
+                            {"name":"Bestellnummer","index":"Bestellnummer","editable":false, "key":true},
+                            {"name":"Positionsnummer","index":"Positionsnummer","editable":false, "key":true}
+                    ],
+                    "jsonReader":{"repeatitems":false,"id":0},
+                    "datatype":"json",
+                    "caption":"Test-Grid",
+                    "pager":pager_id,
+                    "loadError":function(xhr,status,error){ alert(status+'\n'+error);}
+                })
+            },
+            "subGridRowColapsed": function(subgrid_id, row_id) {
+            }
+        })
+        
+    },
+    "subGridRowColapsed": function(subgrid_id, row_id) {
+    }
+})
+});    //]]>
+</script>        
+    <table id="gridVorgaengeLst"></table> 
+        <div id="gridVorgaengeLst_pager"></div>

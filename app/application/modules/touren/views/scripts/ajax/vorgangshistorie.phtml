@@ -1,0 +1,33 @@
+<?php
+$this->layout()->disableLayout();
+
+$rows = $this->rows;
+if (count($rows)) {
+    $aCols = array_keys( $rows[0] );
+    $thead = '<tr><th>'. implode('</th><th>', $aCols) . '</th></tr>' . "\n";
+} else {
+    $thead = '';
+}
+
+$tbody = '';
+
+foreach($rows as $row) {
+    $tbody.= '<tr><td>'. implode('</td><td>', array_values($row)) . '</td></tr>' . "\n";
+}
+
+?>
+<table class="table-to-grid">
+    <?= $thead ?>
+    <?= $tbody ?>
+</table>
+<div id="vorgangshistoriePager"></div>
+
+<script>
+    tableToGrid( $("table.table-to-grid"), {
+        autowidth: true,
+        height:'auto',
+        rowNum: <?= count($rows) ?>,
+        rowList: [10,20,30,40,50, <?= max(100, count($rows)) ?>],
+        pager: "#vorgangshistoriePager"
+    } );
+</script>

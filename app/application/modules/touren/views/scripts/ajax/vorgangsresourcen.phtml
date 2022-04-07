@@ -1,0 +1,144 @@
+<?php 
+$this->layout()->disableLayout();
+$r = Zend_Controller_Front::getInstance()->getResponse();
+$r->setHeader('Content-Type', 'text/html; charset=UTF-8', true);
+
+$tour_id = &$this->ajax_response->data->tour_id;
+$mandant = &$this->ajax_response->data->mandant;
+$auftragsnummer = &$this->ajax_response->data->auftragsnummer;
+//echo '<pre>' . print_r($this->ajax_response->data,1).'</pre>';
+
+$updateUrl = $this->baseUrl() . '/' . $this->module.'/'.$this->controller.'/updateresources';
+
+$total = 0;
+$treeId = 'RsrcTree'.( substr(md5(rand().time()), 0, 8) );
+
+foreach($this->ajax_response->data->result as $key => $items) {
+    $total+= count($items);
+}
+echo 'Anzahl Resourcen: ' . $total.'<br>'.PHP_EOL;
+
+$ma_einsatz_ab_opts = array(
+    'Lager Neuss',
+    'Baustelle',
+);
+$ma_einsatz_ab_html = '';
+foreach($ma_einsatz_ab_opts as $v)
+    $ma_einsatz_ab_html.= '<option value="'.htmlentities($v).'" chck="'.htmlentities($v).'">'.$v;
+
+echo '<form style="display:inline;margin:0;">';
+echo '<ul id="'.$treeId.'">';
+foreach($this->ajax_response->data->result as $key => $items) {
+    switch($key) {
+        case 'MA':
+            $title = 'Mitarbeiter';
+            break;
+        
+        case 'FP':
+            $title = 'Fuhrpark';
+            break;
+        
+        case 'WZ':
+            $title = 'Werkzeug';
+            break;
+        
+        default:
+            $title = $key;
+    }
+    echo '<li>' . $title ;
+    if (count($items)) {
+        echo '<ul>';
+        foreach($items as $_item) {
+            $_rKey = $key . ':' . $_item['id'];
+            echo '<li style="display:block;" class="rsrc-'.$key.'">';
+            
+            if ($this->ajax_response->allowResourceRemove)
+            echo '<span class="del $key" rsrctype="'.$key.'" rsrcid="'.$_item['id'].'" style="float:left"></span>';
+            
+            if('MA' == $key) 
+                echo '<span class="edtxt '.$key.'" style="float:left"></span>';
+            
+            echo '<span class="rsrc-title" style="float:left">' . $_item['name'];
+            if ('FP' == $key) {
+                echo ' ' . $_item['kennzeichen'] . ' / ' . $_item['fahrzeugart'];
+            }
+            echo '</span>';
+            
+            if ('MA' == $key) {
+                if ($this->ajax_response->allowResourceUpdate) {
+                    echo '<select   name="rsrc['.$_rKey.'][einsatz_ab]">';
+                    echo str_replace('chck="'.htmlentities($_item['einsatz_ab']).'"', 'selected="1"', $ma_einsatz_ab_html);
+                    echo '</select>';
+                    echo '<div class="txtBmk"><textarea name="rsrc['.$_rKey.'][bemerkung]" style="width:100%">';
+                    echo $_item['bemerkung'];
+                    echo '</textarea></div>';
+                } else {
+                    echo '<span>'.$_item['einsatz_ab'].'</span>';
+                    echo '<div class="txtBmk"><span name="rsrc['.$_rKey.'][bemerkung]" style="width:100%">';
+                    echo $_item['bemerkung'];
+                    echo '</span></div>';
+                }
+            }
+            echo '<span style="clear:both">&nbsp;</span></li>';
+        }
+        if ($this->ajax_response->allowResourceUpdate) {
+            echo '<button id="rsrcUpdate">&Uuml;bernehmen</button>';
+        }
+        echo '</ul>';  
+    }
+    echo '</li>';
+}
+echo '</ul>';
+echo '</form>';
+
+echo <<<EOT
+<script>
+    try { 
+        var maxRsrcTiWidth = 0;
+        $("li.rsrc-MA span.rsrc-title", "#{$treeId}").each(function() {
+            maxRsrcTiWidth = Math.max(maxRsrcTiWidth, $(this).width() );
+        });
+        $("li.rsrc-MA span.rsrc-title", "#{$treeId}").width(maxRsrcTiWidth+5);
+        
+        $("li.rsrc-MA div.txtBmk", "#{$treeId}").hide();
+        $("#{$treeId}").find("li span.edtxt").fbIcon({icon:'comment',css:{}}).css({marginRight:'3px'}).click(function(){
+            $(this).closest("li").find("div.txtBmk").toggle();
+        });
+        
+        $("#{$treeId}").find("li span.del").fbIcon({icon:'trash',css:{}}).css({marginRight:'3px'}).click(function(){
+            var self = this;
+            var data = {
+                id: $(this).attr('rsrcid'),
+                resourceType: $(this).attr('rsrctype'),
+                name: $(this).parent().find('span.rsrc-title').text()
+            };
+            //alert('Search for Route $tour_id');
+            $("div.fbDispoRoute").each(function() {
+                if ($(this).fbDispoRoute('getData', 'id') == $tour_id) {
+                    //alert('#60 Found Route, trigger removeResource an fbDispoRoute!');
+                    if ($(this).fbDispoRoute('_trigger', this, 'removeResource', data) !== false) {
+                        $(self).closest("li").remove();
+                    }
+                }
+            });
+        });
+        
+        $("#rsrcUpdate", "#{$treeId}").click(function(e) {
+            e.preventDefault();
+            $.ajax({
+                type: 'GET', dataType: 'json', async: false, data: $(this).closest("form").serialize(),
+                url: "$updateUrl",
+                success:function(data) { 
+                    if (0) alert('#41 Fb.DispoCheckConcurrency callback data:' + data);
+                    re = data;
+                    alert('Daten wurden aktualisiert');
+                }
+            });
+            return false;
+        });
+        
+        $("#{$treeId}").treeview({}); }
+    catch(e) { alert("Tree konnte nicht gerendert werden. jQuery treeview ist nicht verfügbar)!"); }
+</script>
+EOT;
+

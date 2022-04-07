@@ -1,0 +1,57 @@
+@todo
+
+INSTALLATION
+=======================================================================
+This application requires that you either have Zend Framework on your
+include_path, or that you will be symlinking your Zend Framework library
+into the library directory. If you do not yet have Zend Framework, you
+can get it from one of the following sources:
+
+  * Official Release:
+    http://framework.zend.com/dowload/latest
+
+  * Using Subversion; use either the current trunk or the 1.10.2 release branch:
+    svn co http://framework.zend.com/svn/framework/standard/trunk/library/Zend
+    svn co
+    http://framework.zend.com/svn/framework/standard/branches/release-1.10.2/library/Zend
+
+  * Using Git; use either the current trunk or the 1.10.2 release branch:
+    git clone http://tjohns.net/git/zf.git
+    git fetch
+    git checkout --track -b release-1.10.2 origin/tags/release-1.10.2
+
+DEPENDENCY
+=======================================================================
+
+PHP Package
+    php5 php-pear php5-mysqli php5-pgsql php5-curl php5-xmlrpc php5-json
+
+PHP PEAR Modules (pear channel-discover pear.phpunit.de)
+    PHP_CodeSniffer phpunit/PHPUnit phpunit/phpcpd phpunit/phploc
+
+Documentation Generation (useless in production)
+    doxygen graphviz
+
+
+DOCUMENTATION
+======================================================================
+
+@todo
+
+FEATURES
+=======================================================================
+
+@todo
+
+REQUESTS
+=======================================================================
+If you have any feature requests, feel free to send them to:
+
+    François Pietka
+    francois [at] nextcode [dot] fr
+
+I may or may not honor them. :)
+
+LICENSE
+=======================================================================
+Please see COPYING

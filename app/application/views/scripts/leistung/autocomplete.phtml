@@ -1,0 +1,18 @@
+<?php
+
+$this->layout()->disableLayout();
+$rsp = Zend_Controller_Front::getInstance()->getResponse();
+$rqt = Zend_Controller_Front::getInstance()->getRequest();
+
+$rsp->setHeader('Content-Type', 'application/json; charset=UTF-8');
+
+echo '[';
+for($i = 0; $i < count($this->autocomplete); ++$i) {
+    $node = $this->autocomplete[$i];
+    echo ($i?"\n,":"").'{'
+        .'"value":'.json_encode($node['leistungs_id']) . ','
+        .'"label":'.json_encode(utf8_encode($node['leistungs_name'])) . ''
+        .'}' . PHP_EOL;    
+}
+echo ']' . PHP_EOL;
+return;

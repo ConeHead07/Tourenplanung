@@ -1,0 +1,22 @@
+/* 
+    Document   : forms
+    Created on : 11.12.2011, 21:24:22
+    Author     : rybka
+    Description:
+        Purpose of the stylesheet follows.
+*/
+
+/* 
+   TODO customize this sample style
+   Syntax recommendation http://www.w3.org/TR/REC-CSS2/
+*/
+
+root { 
+    display: block;
+}
+
+div.myform { }
+label.left { float: left; width:10em; }
+div.row { margin-bottom:1em; clear:left; }
+ul.errors { color:red; list-style-type: square; margin-top:0.2em; padding-left:1em; }
+

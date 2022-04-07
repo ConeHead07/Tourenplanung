@@ -1,0 +1,103 @@
+<?php 
+$this->layout()->disableLayout();
+$r = Zend_Controller_Front::getInstance()->getResponse();
+$r->setHeader('Content-Type', 'application/json; charset=UTF-8', true);
+
+if (property_exists($this->vorgangsdaten, 'error') && $this->vorgangsdaten->error) echo $this->vorgangsdaten->error . "<br>\n";
+
+$tipTagId = "toolTipRsrcUpdate".substr(md5(time()),0,5);
+$cuser = '';
+$cdate = '';
+$muser = '';
+$mdate = '';
+$tour_id = 0;
+$astatus = $this->vorgangsdaten->data_auftragsstatus;
+if ($this->vorgangsdaten->data) {
+    $data = &$this->vorgangsdaten->data;
+    echo $data['Auftragsnummer'] . " :: " . PHP_EOL;
+    echo $data['Vorgangstitel'] . "<br>" . PHP_EOL;
+    echo $data['LieferungStrassePostfach'] . ", ";
+    echo $data['LieferungPostleitzahl'] . " " . $data['LieferungOrt'] . "<br>" . PHP_EOL;
+    echo $data['LieferungName'] . "<br>" . PHP_EOL;
+    if ($data['LieferterminHinweisText'] ) {
+        echo '<div style="border-top:1px solid #ccc;margin-top:4px;padding-top:4px; ">'
+            .'<div class="ui-state-hover" style="display: inline-block; width: 15px; height: 15px;margin-right:5px;">'
+            .'<span class="ui-icon ui-icon-alert" title="Direkt-Lieferinfo"></span>'
+            .'</div>'
+            .'</div>'
+            .'<div>' . $data['LieferterminHinweisText'] . '</div>'
+            .'</div>' . PHP_EOL;
+    }
+    $cuser = $data['created_user'];
+    $muser = $data['modified_user'];
+    $cdate = $data['created'];
+    $mdate = $data['modified'];
+    $tour_id = $data['tour_id'];
+//    print_r($data);
+}
+
+if (property_exists($this->vorgangsdaten, 'resources') && $this->vorgangsdaten->resources) {
+    $data = &$this->vorgangsdaten->resources;
+    
+    echo '<table id="'.$tipTagId.'">';
+    foreach($data as $k => $_list) {
+        if (!count($_list)) continue;
+        
+        echo '<tr><td><b>' . $k . ' ' . count($_list) . ':</b></td><td>';
+        foreach($_list as $k2 => $_row) {
+            $_id = $_row['id'];
+            //echo $k.'->'.$k2.'->'.print_r($_row,1);
+            switch($k) {
+                case 'FP': $_ti = $_row['kennzeichen'].' / '.$_row['fahrzeugart'];      break;
+                case 'MA': $_ti = $_row['name'].': '.$_row['eingestellt_als'];  break;
+                case 'WZ': $_ti = $_row['bezeichnung'];                         break;
+            }
+            echo '<div class="del '.$k.'" style="margin-right: 3px;" rsrcid="'.$_id.'" rsrctype="'.$k.'"><span class="rsrc-title">'.$_ti.'</span></div>' . PHP_EOL;
+        }
+        echo '</td></tr>' . PHP_EOL;
+    }
+    echo '</table>';
+}
+echo '<div style="text-align:right;margin-right:4px;font-style:italic;">Angelegt von: '.$cuser.'</div>';
+
+if (!isset($data['tour_disponiert_am']))         $data['tour_disponiert_am'] = ''; 
+if (!isset($data['tour_disponiert_user']))       $data['tour_disponiert_user'] = ''; 
+
+if (!isset($data['zeiten_erfasst_am']))          $data['zeiten_erfasst_am'] = ''; 
+if (!isset($data['zeiten_erfasst_user']))        $data['zeiten_erfasst_user'] = ''; 
+
+if (!isset($data['tour_abgeschlossen_am']))   $data['tour_abgeschlossen_am'] = ''; 
+if (!isset($data['tour_abgeschlossen_user']))   $data['tour_abgeschlossen_user'] = ''; 
+
+if (!isset($data['auftrag_disponiert_am']))      $data['auftrag_disponiert_am'] = ''; 
+if (!isset($data['auftrag_disponiert_user']))    $data['auftrag_disponiert_user'] = ''; 
+
+if (!isset($data['auftrag_abgeschlossen_am']))   $data['auftrag_abgeschlossen_am'] = ''; 
+if (!isset($data['auftrag_abgeschlossen_user'])) $data['auftrag_abgeschlossen_user'] = ''; 
+
+echo ''
+    .'<span onclick=\'$("#baseDataStatus").slideToggle();\'>[+/-]</span>'
+    .'<table id="baseDataStatus" style="display:none;">' . PHP_EOL
+    . '<tr><td>Tour disponiert:</td><td>' . $data['tour_disponiert_am'] . '<td>' . $data['tour_disponiert_user'] . ' ' . PHP_EOL
+    . '<tr><td>Tourzeiten erfasst:<td> '  . $data['zeiten_erfasst_am'] . '<td>' . $data['zeiten_erfasst_user'] . ' ' . PHP_EOL
+    . '<tr><td>Tour abgeschlossen:<td> '  . $data['tour_abgeschlossen_am'] . '<td>' . $data['tour_abgeschlossen_user'] . PHP_EOL
+    . '<tr><td>Auftrag disponiert:<td> '  . $astatus['auftrag_disponiert_am'] . '<td>' . $astatus['auftrag_disponiert_user']
+    . '<tr><td>Auftrag abgeschlossen:<td> ' . $astatus['auftrag_abgeschlossen_am'] . '<td>' . $astatus['auftrag_abgeschlossen_user']
+    . '<tr><td>Wiedervorlage am:<td> '    . $astatus['auftrag_wiedervorlage_am']
+    . '<tr><td>Disponierte Touren:<td> '  . $astatus['tour_dispo_count']
+    . '<tr><td>Abgeschlossene Touren:<td> ' . $astatus['tour_abschluss_count']
+    . '<tr><td>Neulieferungen:<td> '      . $astatus['tour_neulieferungen_count']
+    . '<tr><td>WWS Stand:<td> '           . $astatus['wws_last_geaendertam']
+    . '<tr><td colspan=2><pre>data: '     . print_r($data, 1) . '</pre></td>'
+    . '<tr><td colspan=2><pre>astatus: ' . print_r($astatus, 1) . '</pre></td>'
+    .'</table>';
+
+if ($this->vorgangsdaten->allowResourceRemove):
+echo <<<EOT
+<script>
+    if ($tour_id && Fb && Fb.RenderResourceDelAction && typeof(Fb.RenderResourceDelAction) == "function") {
+        Fb.RenderResourceDelAction("table#{$tipTagId}", "div.del", "{$tour_id}");
+    }
+</script>
+EOT;
+endif;

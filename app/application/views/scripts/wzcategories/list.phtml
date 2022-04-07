@@ -1,0 +1,102 @@
+<?php
+
+$this->layout()->disableLayout();
+$rsp = Zend_Controller_Front::getInstance()->getResponse();
+$rqt = Zend_Controller_Front::getInstance()->getRequest();
+$defaultExpanded = ( isset($this->defaultExpanded) ? (bool) $this->defaultExpanded : false);
+
+if ($rqt->getParam('format') == 'xml'):
+    $rsp->setHeader('Content-Type', 'application/xml; charset=UTF-8');
+    echo <<<EOT
+<?xml version='1.0' encoding="utf-8"?>
+<rows>
+    <page>1</page>
+    <total>1</total>
+    <records>1</records>
+EOT;
+foreach($this->treelist as $node) {
+    echo '<row>'
+        .'<cell>'.$node['category_id'] . '</cell>'
+        .'<cell>'.utf8_encode($node['name']) . '</cell>'
+        .'<cell>'.$node['level'] . '</cell>'
+        .'<cell>'.$node['lft'] . '</cell>'
+        .'<cell>'.$node['rgt'] . '</cell>'
+        .'<cell>'.($node['rgt']==$node['lft']+1 ? 'true' : 'false') . '</cell>'
+        .'<cell>false</cell>'
+        .'</row>' . PHP_EOL;    
+}
+echo '</rows>' . PHP_EOL;
+return;
+endif;
+
+if (!$rqt->getParam('jsonReader')) {
+    header("Content-type: text/html;charset=utf-8");
+    $response = new stdClass();
+    $response->page = 1;
+    $response->total = 1;
+    $response->records = count($this->treelist);
+
+    foreach($this->treelist as $row) {
+        if($row['rgt'] == $row['lft']+1) $leaf = 'true';else $leaf='false';
+        $response->rows[]['cell']=array(
+            $row['category_id'],
+            utf8_encode($row['name']),
+            $row['level'],
+            $row['lft'],
+            $row['rgt'],
+            $leaf,
+            'false'
+        );    
+    } 
+    echo json_encode($response);
+    return;
+}
+
+header("Content-type: text/html;charset=utf-8");
+$response = new stdClass();
+$response->page = 1;
+$response->total = 1;
+$response->records = count($this->treelist);
+
+foreach($this->treelist as $row) {
+    $isLeaf = ($row['rgt'] == $row['lft']+1);
+    $expanded = ($defaultExpanded || (isset($node['expanded']) && $node['expanded']));
+//    die( Zend_Debug::dump($expanded,null, false));
+    $response->rows[]=array(
+              'id' => $row['category_id'],
+            'name' => utf8_encode($row['name']),
+           'level' => $row['level'],
+             'lft' => $row['lft'],
+             'rgt' => $row['rgt'],
+          'isLeaf' => $isLeaf,
+        'expanded' => $expanded,
+          'loaded' => $expanded,
+    );    
+}
+echo json_encode($response);
+return;
+
+
+$rsp->setHeader('Content-Type', 'application/json; charset=UTF-8');
+
+header("Content-type: text/html;charset=utf-8");
+$isFirst = true;
+echo '{"page":1,"total":1,"records":"' . count($this->treelist) . '","rows":[' . PHP_EOL;
+
+foreach($this->treelist as $node) {
+    if ( !$isFirst ) echo ',';
+    else $isFirst = false;
+    
+    echo '['
+        .(int)$node['category_id'] . ','
+        .json_encode(utf8_encode($node['name'])) . ','
+        .(int)$node['depth'] . ','
+        .(int)$node['lft'] . ','
+        .(int)$node['rgt'] . ','
+        .($node['rgt']==$node['lft']+1 ? 'true' : 'false') . ','
+        .'false'
+        .']' . PHP_EOL;
+}
+echo ']' . PHP_EOL;
+echo '}' . PHP_EOL . PHP_EOL;
+

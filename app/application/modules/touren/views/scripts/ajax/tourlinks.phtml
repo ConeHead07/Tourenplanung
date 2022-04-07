@@ -1,0 +1,61 @@
+<?php
+$this->layout()->disableLayout();
+
+$status = $this->data->status;
+
+if ($this->data->tourlist) {
+    $tourlist = &$this->data->tourlist->rows;
+    //Zend_Debug::dump($tourlist, 'Tourlist', true);
+    //exit;
+    if (count($tourlist)) {
+        $auftragStatus = 0;
+        if ($status['auftrag_abgeschlossen_am']) {
+            $auftragStatus = 2;
+            echo 'Auftrag wurde abgeschlossen: ' . substr($status['auftrag_abgeschlossen_am'],0,10) . ' ' . $status['auftrag_abgeschlossen_user'] . PHP_EOL;
+        } elseif( $status['auftrag_disponiert_am'] ) {
+            $auftragStatus = 1;
+            echo 'Auftrag wurde disponiert: ' . substr($status['auftrag_disponiert_am'],0,10) . ' ' . $status['auftrag_disponiert_user'] . PHP_EOL;
+        }
+
+        foreach($tourlist as $row) {
+            echo '<li style="cursor:pointer;" onclick="if (Fb && Fb.addCalendar) Fb.addCalendar(\''
+               . $row['DatumVon'].'\');"><b>#' . $row['tagesnr'] . '</b> ' . date_de('D d.m.Y', $row['DatumVon']) . ' ' . substr($row['ZeitVon'],0,5) . ' ' 
+//               . $row['NumDP'] . '/' . $row['NumAP'] . ' FP:' . $row['NumDF'] . ' MA:' . $row['NumDM'] 
+               . PHP_EOL;
+            if (!$auftragStatus && $row['tour_disponiert_user']) echo 'Disponiert am ' . substr($row['tour_disponiert_am'],0,10) . ' ' . $row['tour_disponiert_user'] . PHP_EOL;
+        }
+    } else {
+        echo 'Es wurden noch keine Touren disponiert';
+    }
+} else {
+    echo 'Es wurden noch keine Touren disponiert';
+}
+
+//[Mandant] => 10
+//[tour_id] => 264
+//[timeline_id] => 203
+//[tour_disponiert_am] => 
+//[tour_disponiert_user] => 
+//[auftrag_disponiert_am] => 
+//[auftrag_disponiert_user] => 
+//[auftrag_abgeschlossen_am] => 
+//[auftrag_abgeschlossen_user] => 
+//[lager_id] => 1
+//[tagesnr] => 1
+//[Auftragsnummer] => 1028891
+//[DatumVon] => 2012-10-01
+//[DatumBis] => 2012-10-01
+//[ZeitVon] => 06:00:00
+//[ZeitBis] => 08:00:00
+//[Vorgangstitel] => SRV / Pflegevertrag Concept Office
+//[Kundennummer] => 14822
+//[LieferungName] => neueRäume GmbH
+//[LieferungPostleitzahl] => 51063
+//[LieferungOrt] => Köln
+//[NumAP] => 6
+//[NumDP] => 0
+//[NumDF] => 0
+//[NumDM] => 0
+//[name] => 
+   
+

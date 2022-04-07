@@ -1,0 +1,222 @@
+<?php
+        /* @var $this Zend_View */
+        require_once 'JqGridHeader.php';
+        JqGridHeader::enable(true);
+        
+        $GridId = '#gridUsrLst';
+        $GridIdPager = '#gridUsrLst_pager';
+        $JqGrid = new JqGrid($GridId);
+        // Grid-Options definieren
+        $JqGrid->height('auto')
+        ->jsonReader(array( "repeatitems" => false, "id" => 0 ) )
+        ->autowidth(true)
+        ->rowList(array(10, 20, 30, 40, 50,100))
+        ->rowNum(10)
+        ->rownumbers(true)
+        ->resizable(false)
+        ->sortable(true)
+        ->datatype('json')
+        ->url(APPLICATION_BASE_URL . '/bestellpositionen/gridresponsedata')
+        ->editurl(APPLICATION_BASE_URL . '/bestellpositionen/grideditdata')
+        ->enableInlineEditingDefaults()
+        ->setNavGrid($GridIdPager, $properties = array())
+        ->caption("Test-Grid")
+        ->shrinkToFit(true)
+        ->pager($GridIdPager)
+        ->on_loadError( new JsFunction("function(xhr,status,error){ alert(status+'\\n'+error);}") )
+        ->addChainMethod('.jqGrid("filterToolbar",{stringResult: true,searchOnEnter : false})')
+//        ->addChainMethod( ".jqGrid('searchGrid', {sopt:['cn','bw','eq','ne','lt','gt','ew']} )")
+        ->colNames( array('Mandant','Bestellnummer','Positionsnummer','StruPosnr','Positionsart','Artikelnummer','Bezeichnung','ErfassMenge','Bestellmenge','Bestellmengeneinheit','BestaetigteMenge','Umrechnungsfaktor','Liefermenge','LieferantenBestellnummer','EinkaufsPreis','EinkaufsPreisHW','EinkaufsPreiseinheit','EinkaufsPreisart','EinkaufsRabatt','ListenEK','Lieferanschrift','Lieferwoche','Lieferjahr','Liefertermin','LieferterminFix','Lagerkennung','Auftragsnummer','AuftragsPositionsnummer','TKDAuftragsnummer','TKDAuftragsAbschnittsnummer','TKDAuftragsPositionsnummer','Langtext','LangtextAnfrage','LangtextBE','LangtextMA','Nachkommastellen','Serie','ErwarteterEingang','ErwarteterEingangWoche','ErwarteterEingangJahr','ErwarteterEingangterminFix','REMenge','REBelegID','Positionstext','TextAufAnfrage','TextAufBestellung','TextAufMahnung','TextId','Variantentext','VariantentextAnfrage','VariantentextBE','VariantentextMA','VariantenCode','VariantenCodeExt','GrundArtikelnummer','Quelle','LieferantenAufbestNummer','LieferantenABPosNr','HerstellerKuerzel','SeitenumbruchKennz','RahmenvertragsNr','PosNrPPS','AngelegtProgramm','AngelegtDurch','AngelegtAm','GeaendertProgramm','GeaendertDurch','GeaendertAm','UniqueId','Bilddateiname'))
+        ->colModel(array('addFieldsProperties' => array(
+            'Mandant' => array('editable'=>false, 'hidden'=>true),
+            'Bestellnummer' => array('editable'=>false, 'hidden'=>true),
+            'Positionsnummer' => array('editable'=>false, 'hidden'=>true),
+            'StruPosnr' => array('editable'=>false, 'hidden'=>true),
+            'Positionsart' => array('editable'=>false),
+            'Artikelnummer' => array('editable'=>false, 'hidden'=>true),
+            'Bezeichnung' => array('editable'=>false),
+            'ErfassMenge' => array('editable'=>false),
+            'Bestellmenge' => array('editable'=>false, 'hidden'=>true),
+            'Bestellmengeneinheit' => array('editable'=>false, 'hidden'=>true),
+            'BestaetigteMenge' => array('editable'=>false, 'hidden'=>true),
+            'Umrechnungsfaktor' => array('editable'=>false, 'hidden'=>true),
+            'Liefermenge' => array('editable'=>false),
+            'LieferantenBestellnummer' => array('editable'=>false, 'hidden'=>true),
+            'EinkaufsPreis' => array('editable'=>false, 'hidden'=>true),
+            'EinkaufsPreisHW' => array('editable'=>false, 'hidden'=>true),
+            'EinkaufsPreiseinheit' => array('editable'=>false, 'hidden'=>true),
+            'EinkaufsPreisart' => array('editable'=>false, 'hidden'=>true),
+            'EinkaufsRabatt' => array('editable'=>false, 'hidden'=>true),
+            'ListenEK' => array('editable'=>false, 'hidden'=>true),
+            'Lieferanschrift' => array('editable'=>false),
+            'Lieferwoche' => array('editable'=>false),
+            'Lieferjahr' => array('editable'=>false),
+            'Liefertermin' => array('editable'=>false),
+            'LieferterminFix' => array('editable'=>false),
+            'Lagerkennung' => array('editable'=>false, 'hidden'=>true),
+            'Auftragsnummer' => array('editable'=>false, 'hidden'=>true),
+            'AuftragsPositionsnummer' => array('editable'=>false, 'hidden'=>true),
+            'TKDAuftragsnummer' => array('editable'=>false, 'hidden'=>true),
+            'TKDAuftragsAbschnittsnummer' => array('editable'=>false, 'hidden'=>true),
+            'TKDAuftragsPositionsnummer' => array('editable'=>false, 'hidden'=>true),
+            'Langtext' => array('editable'=>false, 'hidden'=>true),
+            'LangtextAnfrage' => array('editable'=>false, 'hidden'=>true),
+            'LangtextBE' => array('editable'=>false, 'hidden'=>true),
+            'LangtextMA' => array('editable'=>false, 'hidden'=>true),
+            'Nachkommastellen' => array('editable'=>false, 'hidden'=>true),
+            'Serie' => array('editable'=>false, 'hidden'=>true),
+            'ErwarteterEingang' => array('editable'=>false, 'hidden'=>true),
+            'ErwarteterEingangWoche' => array('editable'=>false),
+            'ErwarteterEingangJahr' => array('editable'=>false, 'hidden'=>true),
+            'ErwarteterEingangterminFix' => array('editable'=>false, 'hidden'=>true),
+            'REMenge' => array('editable'=>false, 'hidden'=>true),
+            'REBelegID' => array('editable'=>false, 'hidden'=>true),
+            'Positionstext' => array('editable'=>false,'hidden'=>true),
+            'TextAufAnfrage' => array('editable'=>false, 'hidden'=>true),
+            'TextAufBestellung' => array('editable'=>false, 'hidden'=>true),
+            'TextAufMahnung' => array('editable'=>false, 'hidden'=>true),
+            'TextId' => array('editable'=>false, 'hidden'=>true),
+            'Variantentext' => array('editable'=>false, 'hidden'=>true),
+            'VariantentextAnfrage' => array('editable'=>false, 'hidden'=>true),
+            'VariantentextBE' => array('editable'=>false, 'hidden'=>true),
+            'VariantentextMA' => array('editable'=>false, 'hidden'=>true),
+            'VariantenCode' => array('editable'=>false, 'hidden'=>true),
+            'VariantenCodeExt' => array('editable'=>false, 'hidden'=>true),
+            'GrundArtikelnummer' => array('editable'=>false, 'hidden'=>true),
+            'Quelle' => array('editable'=>false, 'hidden'=>true),
+            'LieferantenAufbestNummer' => array('editable'=>false, 'hidden'=>true),
+            'LieferantenABPosNr' => array('editable'=>false,'hidden'=>true),
+            'HerstellerKuerzel' => array('editable'=>false, 'hidden'=>true),
+            'SeitenumbruchKennz' => array('editable'=>false, 'hidden'=>true),
+            'RahmenvertragsNr' => array('editable'=>false, 'hidden'=>true),
+            'PosNrPPS' => array('editable'=>false,'hidden'=>true),
+            'AngelegtProgramm' => array('editable'=>false, 'hidden'=>true),
+            'AngelegtDurch' => array('editable'=>false, 'hidden'=>true),
+            'AngelegtAm' => array('editable'=>false, 'hidden'=>true),
+            'GeaendertProgramm' => array('editable'=>false, 'hidden'=>true),
+            'GeaendertDurch' => array('editable'=>false, 'hidden'=>true),
+            'GeaendertAm' => array('editable'=>false, 'hidden'=>true),
+            'UniqueId' => array('editable'=>false, 'hidden'=>true),
+            'Bilddateiname' => array('editable'=>false,'hidden'=>true)
+        )));
+        
+        /* @var $colModelList JqGridColModelList */
+        $colModelList = $JqGrid->colModel();
+        
+        // Make all Fields (also invisible, hidden) searchable!
+        /* @var $_cmItem JqGridColModel */
+        foreach($colModelList as $_cmItem) {
+            /* @var $_itemSearchOpts JqGridColModelSearchOptions */
+            $_itemSearchOpts = $_cmItem->getInstanceSearchOptions();
+            $_itemSearchOpts->set_searchhidden(true);
+        }
+        
+        $navGrid = $JqGrid->getInstanceNavGrid($GridIdPager);
+        $navGrid->set_edit(true);
+        $navGrid->set_addicon('ui-icon-suitcase');
+        $navGrid->set_search(
+                new JsFunction(
+                         '{'
+                        .'multipleSearch:true,'
+                        .'overlay:false,'
+                        .'beforeShowSearch:function() { '
+                        .' $("'.$GridId.'")[0].toggleToolbar(); },'
+                        .'onClose:function() {    	$("'.$GridId.'")[0].toggleToolbar();   }'
+                        .'}'
+                        )
+        )
+        ->addNavButton(new JqGridNavGridButton(array(
+                       'id' => 'btnTbarSearch',
+               'buttonicon' => 'ui-icon-pin-s',
+                  'caption' => 'ColSearch',
+                    'title' => 'Toggle Searching Toolbar',
+            'onclickButton' => 'function () { $("'.$GridId.'")[0].toggleToolbar(); }'
+        )));
+        
+        /* @var $searchPrm JqGridNavGridSearchFormOptions */
+        $searchPrm = $navGrid->getInstanceSearchFormOptions();
+        $searchPrm->set_sopt(array('eq'));
+        $searchPrm->set_beforeShowSearch('function() { '.' $("'.$GridId.'")[0].toggleToolbar(); }');
+        $searchPrm->set_onClose('function() { $("'.$GridId.'")[0].toggleToolbar();   }');
+        $searchPrm->set_multipleSearch(true);
+        
+        $colChooser = new JqGridColumnChooserOptions();
+        $navGrid->addNavButton(new JqGridNavGridButton(array(
+                       'id' => 'btnColCh',
+                  'caption' => 'Spalten',
+                    'title' => 'Spalten',
+            'onclickButton' => new JsFunction('function(){'.$colChooser->renderMethod($GridId).'}')
+        )));        
+        
+        $this->headScript()->appendScript( 
+                'jQuery(function() {' 
+               .(string) $JqGrid->getJsCode() 
+               .'});'
+        );
+        
+        // put your code here
+        ?>
+      
+    <table id="gridUsrLst"></table> 
+        <div id="gridUsrLst_pager"></div> 
+        
+        <table id="grid1"></table> 
+        <div id="grid1_pager"></div>
+        
+<script>
+if (0) jQuery("#grid1").jqGrid({        
+   	     xurl: '<?php echo APPLICATION_BASE_URL; ?>/jquery/jqgrid4.0/jqgrid_demo38/server.php?q=4',
+   	     url: '<?php echo APPLICATION_BASE_URL; ?>/bestellpositionen/datalist',
+	datatype: "json",
+   	colNames: ['Inv No','Date', 'Client', 'Amount'],
+   	colModel: [
+   		{name:'bestellpositionenid',index:'bestellpositionenid', width:55},
+   		{name:'invdate',index:'invdate', width:90, jsonmap:"invdate"},
+   		{name:'name',index:'name asc, invdate', width:100},
+   		{name:'amount',index:'amount', width:80, align:"right"},		
+   	],
+   	  rowNum: 10,
+   	 rowList: [10,20,30],
+   	   pager: 'grid1_pager',
+   	sortname: 'bestellpositionenid',
+     viewrecords: true,
+       sortorder: "desc",
+      jsonReader: {
+                  repeatitems: false,
+		           id: "0"
+	},
+       loadError: function(xhr, status, error) {
+            alert(status+"\n"+error);  
+        },
+	 caption: "JSON Mapping",
+	  height: '100%'
+});
+else if(0)  jQuery("#grid1").jqGrid({        
+   	     url: '<?php echo APPLICATION_BASE_URL; ?>/bestellpositionen/datalist',
+	datatype: "json",
+   	colNames: ['ID','Name', 'PW', 'Role'],
+   	colModel: [
+   		{name:'mid',index:'mid', width:55},
+   		{name:'bestellpositionen_name',index:'bestellpositionen_name', width:90, jsonmap:"bestellpositionen_name"},
+   		{name:'bestellpositionen_pw',index:'bestellpositionen_pw', width:100},
+   		{name:'bestellpositionen_role',index:'bestellpositionen_role', width:80, align:"right"}		
+   	],
+   	  rowNum: 10,
+   	 rowList: [10,20,30],
+   	   pager: 'grid1_pager',
+   	sortname: 'mid',
+     viewrecords: true,
+       sortorder: "desc",
+      jsonReader: {
+     repeatitems: false,
+	      id: "0"
+	},
+        loadError: function(xhr, status, error) {
+          alert(status+"\n"+error);  
+        },
+	caption: "JSON Mapping",
+	height: '100%'
+});
+
+jQuery("#grid1").jqGrid('navGrid','#grid1_pager',{edit:false,add:false,del:false});
+</script>

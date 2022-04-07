@@ -1,0 +1,20 @@
+
+        div.sForm label,
+        div.sForm input.ui-autocomplete-input { width:80px;  float:left; display:inline; font-weight:bold; padding: 0.48em 0 0.47em 0.45em; }
+        div.sForm td .sQuery { width:100px; float:right; display:inline; margin: 0; padding: 0.48em 0 0.47em 0.45em; }
+        div.sForm br { clear:both; }
+        div.sForm table { display:block; width:100%; }
+        div.sForm table tbody { width:100%; }
+        div.sForm td.columns { width:38%; white-space:nowrap; padding-right:18px; }
+        div.sForm td.columns input { width:90%; display:block; min-width:40px; background:none; }
+        div.sForm td.data { width:36%; white-space:nowrap; text-align:right; vertical-align: middle; }
+        div.sForm td.data input,
+        div.sForm td.data select { width:99%; xmin-width:40px; }
+        div.sForm td.operators { text-align:center; }
+        td button.ui-button-icon-only { width:18px; }
+        td.del-rule { text-align: left;}
+        tr.simpleInput td input.ui-button {
+            padding-left: 0;
+            padding-right: 0;
+        }
+        

@@ -1,0 +1,335 @@
+<?php 
+
+$defaultData = array(       
+    'Mandant' => '',
+    'Auftragsnummer' => '',
+    'Kundennummer'   => '',
+    'Vorgangstitel'  => '',
+    'LieferungName'  => '',
+    'AnsprechpartnerNachnameLief' => '',
+    'LieferungStrassePostfach' => '',
+    'LieferungPostleitzahl' => '',
+    'LieferungOrt' => '',
+    'LieferungLand' => 'D',
+    'Lieferwoche' => date('W'),
+    'Lieferjahr' => date('y'),
+    'Liefertermin' => date('Y-m-d'),
+    'LieferterminFix' => '0',
+    'LieferterminHinweisText' => '',
+);
+
+if (!isset($this->wwsRefItems)) $this->wwsRefItems = array();
+if (!$this->data) $this->data = array();
+$d = (object)array_merge( $defaultData, (array)$this->data);
+
+$wwsRefs = array();
+foreach($this->wwsRefItems as $_item) {
+    $wwsRefs[] = array_intersect_key($_item, $defaultData);
+}
+//echo '<pre>' . print_r($wwsRefs, 1) . '</pre>';
+
+
+$plainHtml = (property_exists($this, 'format') && $this->format == 'partial');
+
+$mandantOptions = '';
+foreach($this->mandantList as $_id => $_label) {
+    $_selected = ($_id == $d->Mandant) ? ' selected="selected"' : '';    
+    $mandantOptions.= '<option value="'.$_id.'"' . $_selected . '>'.$_label.'</option>' . PHP_EOL;
+}
+
+?>
+<?php if (!$plainHtml) echo '<div id="PoolFormBox">'; ?>
+
+<style>
+    #frmInsertPoolVorgang .maxWidth {
+        width:100%;
+    }
+    #frmInsertPoolVorgang td.lbl {
+        max-width: 200px;
+        min-width: 140px;
+        width:30%;
+    }
+    #frmInsertPoolVorgang td.val {
+        min-width: 200px;
+        width:70%;
+    }
+</style>
+<fieldset><legend><b><?php echo (($d->Auftragsnummer) ? 'Vorgang bearbeiten' : 'Vorgang anlegen'); ?></b></legend>
+<?php if ($this->error) echo '<div class="error">' . $this->error . '</div>'; ?>
+<form id="frmInsertPoolVorgang">    
+    <div style="text-align:right;padding-right:5px;"><?php if ($d->Auftragsnummer) echo 'Auftragsnr: '. $d->Auftragsnummer; ?></div>
+    <table width="100%">
+        <?php if (!$d->Auftragsnummer && count($this->mandantList) > 1 ): ?>
+        <tr>
+            <td class="lbl"><label>Mandant</label></td>
+            <td class="val"><select name="Mandant" value="<?=@htmlentities($d->Mandant);?>">
+                <?=$mandantOptions;?>
+            </select></td>
+        </tr>
+        <?php endif; ?>
+        <tr>
+            <td class="lbl"><label>Vorgangstitel</label></td>
+            <td class="val"><input type="text" name="Vorgangstitel" class="maxWidth" value="<?=@htmlentities($d->Vorgangstitel);?>"/></td>
+        </tr>
+        <tr>
+            <td class="lbl"><label>Kundennummer</label></td>
+            <td class="val"><input type="text" name="Kundennummer" class="maxWidth" value="<?=@htmlentities($d->Kundennummer);?>"/></td>
+        </tr>
+        <tr>
+            <td class="lbl"><label>LieferungName</label></td>
+            <td class="val"><input type="text" id="AbholungName" name="LieferungName" class="maxWidth" value="<?=@htmlentities($d->LieferungName);?>"/></td>
+        </tr>
+        <tr>
+            <td class="lbl"><label>Strasse</label></td>
+            <td class="val"><input type="text" name="LieferungStrassePostfach" class="maxWidth" value="<?=@htmlentities($d->LieferungStrassePostfach);?>"/></td>
+        </tr>
+        <tr>
+            <td class="lbl"><label>PLZ</label></td>
+            <td class="val"><input type="text" style="width:65px" maxlength="10" name="LieferungPostleitzahl" value="<?=@htmlentities($d->LieferungPostleitzahl);?>"/>
+            <label>Ort</label> <input type="text" name="LieferungOrt" value="<?=@htmlentities($d->LieferungOrt);?>"/>
+            <label>Land</label> <input type="text" style="width:30px" maxlength="2" name="LieferungLand" value="<?=@htmlentities($d->LieferungLand);?>"/>
+            </td>
+        </tr>
+        <tr>
+            <td class="lbl"><label>Ansprechpartner</label></td>
+            <td class="val"><input type="text" name="AnsprechpartnerNachnameLief" class="maxWidth" value="<?=@htmlentities($d->AnsprechpartnerNachnameLief);?>"/></td>
+        </tr>
+        <tr>
+            <td class="lbl"><label>Lieferjahr/-woche (int)</label></td>
+            <td class="val"><input type="text" name="Lieferjahr" value="<?=@htmlentities($d->Lieferjahr);?>"/> / 
+                <input type="text" name="Lieferwoche" value="<?=@htmlentities($d->Lieferwoche);?>"/></td>
+        </tr>
+        <tr>
+            <td class="lbl"><label>Liefertermin (datetime)</label></td>
+            <td class="val"><input type="text" name="Liefertermin" value="<?=@htmlentities($d->Liefertermin);?>"/></td>
+        </tr>
+        <tr>
+            <td class="lbl"><label>LieferterminFix (int/bool)</label></td>
+            <td class="val"><select name="LieferterminFix">
+                <?php foreach(array('0'=>'', '1'=>'Fix') as $k => $v) {
+                    $_selected = ((int)$k == (int)$d->LieferterminFix) ? ' selected="selected"' : '';
+                    echo '<option value="'.$k.'" '.$_selected.'>'.$v.'</option>' . PHP_EOL;
+                }
+                ?>
+                </select></td>
+        </tr>
+        <tr>
+            <td class="lbl"><label>LieferterminHinweisText (varchar(255))</label></td>
+            <td class="val"><textarea class="maxWidth" name="LieferterminHinweisText"><?=@htmlentities($d->LieferterminHinweisText);?></textarea></td>
+        </tr>
+    </table>
+    
+    <div style="margin:15px 0">
+        <b>Verkn&uuml;pfte WWS-Vorg&auml;nge</b>
+        <ul id="RefPool2WWS">
+            
+        </ul>
+    </div>
+
+    <input type="hidden" id="PoolEditAuftrag" name="Auftragsnummer" value="<?php echo htmlentities($d->Auftragsnummer); ?>" />
+    <input type="hidden" id="PoolEditMandant" name="Mandant" value="<?php echo htmlentities($d->Mandant); ?>" />
+    <div id="addWwsLnk">WWS-Vorg&auml;nge hinzuf&uuml;gen</div>
+    <div id="savePool">Speichern</div>
+</form>
+</fieldset>
+
+    <div style="display:none;">
+        <form id="findWWSAuftraege">
+        <table>
+            <thead><tr><th>Mandant</th><th>WWS-Nr</th><th>Vorgang</th><th>LieferungName</th><th></th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="val"><input type="text" rel-op="eq" name="Mandant" value="10"/></td>
+                <td class="val"><input type="text" rel-op="bw" name="Auftragsnummer"/></td>
+                <td class="val"><input type="text" rel-op="bw" name="Vorgangstitel"/></td>
+                <td class="val"><input type="text" rel-op="bw" name="LieferungName"/></td>
+                <td class="val"><input type="button" name="find" value="suchen"><input type="reset" value="Reset"></td>
+            </tr>
+        </tbody>
+        </table>
+        </form>
+    </div>
+<script>
+$(function(){           
+    var tourNodeId = <?php echo json_encode($this->tourNodeId); ?>;
+    $("#addWwsLnk").button().bind( 'click', function(){
+//        $("#WwsRefGridBox").toggle();
+        $("#WwsRefGridBox").dialog({
+            width:'auto',
+            height:'auto'
+        });
+    });
+    
+    $("#frmInsertPoolVorgang input[name=LieferungName]").autocomplete({
+        minLength: 3,
+        source: APP_BASE_URL + '/vorgaenge/autocompleteabholungen',
+        select:function(event, ui) {            
+            if (!ui.item || !ui.item.value || typeof(ui.item.Ort) == 'undefined') { return;}            
+//            var m="ui.item: \n"; for(var i in ui.item) { m+=i+":"+ui.item[i]+"\n";} alert(m);
+
+            $(this).val( ui.item.value );
+            
+            $("#frmInsertPoolVorgang")
+            .find("input[name=Kundennummer]").val(ui.item['Anschriftsnummer']).end()
+            .find("input[name=LieferungPostleitzahl]").val(ui.item['Postleitzahl']).end()
+            .find("input[name=LieferungOrt]").val(ui.item.Ort).end()
+            .find("input[name=LieferungStrassePostfach]").val(ui.item.Strasse).end()
+            .find("input[name=LieferungLand]").val(ui.item.Land); //.end();
+        }
+    }).addClass("ui-corner-all ui-state-default").css('padding', '3px 2px');
+    
+    $("#savePool").button().bind( 'click', function(){
+        //alert( '#164 savePool '  );
+        
+        $("#frmInsertPoolVorgang").serialize();
+        $.ajax({
+            type: "POST",
+            url: APP_BASE_URL + '/vorgaenge/savepool',
+            data: $("#frmInsertPoolVorgang").serialize(),
+            success: function(data){
+                //alert( data.Mandant + ', ' + data.Auftragsnummer + '; l:'+ $("#PoolEditAuftrag").length );
+                var isInsert = ( !$("#PoolEditAuftrag").val() );
+                $("#PoolEditMandant").val(data.Mandant);
+                $("#PoolEditAuftrag").val(data.Auftragsnummer);
+                
+                if (isInsert && tourNodeId) {
+                    if ($.fn.fbDispoRoute && $("#"+tourNodeId+".fbDispoRoute").length ) {
+                        var tour = $("#"+tourNodeId );
+                            tour.fbDispoRoute( "setData", "Mandant", data.Mandant );
+                            tour.fbDispoRoute( "setData", "Auftragsnummer", data.Auftragsnummer );
+                            tour.fbDispoRoute( "setTitle", data.Auftragsnummer ); // + ", " + data.data.LieferungOrt
+                            tour.attr("id", "fbDispoRoute_" + data.Auftragsnummer);
+                            
+                        Fb.DispoCalendarEvents.onDropRoute.apply(tour.get(0));
+                        $("#PoolAddDialog").dialog('close');
+                    } else {
+                        alert( 'Tour mit ID ' + tourNodeId + ' (length:'+$("#"+tourNodeId+".fbDispoRoute").length+') nicht gefunden!');
+                    }
+                } else {
+//                    alert( 'Not in InsertMode!' );
+                }
+            },
+            dataType: 'json',
+            async: false
+        });
+    }); 
+    
+    $("input[name=Liefertermin]", "#PoolFormBox").datepicker({
+        dateFormat: 'yy-mm-dd',
+        changeMonth: true,
+        showWeek:true,
+        firstDay: 1, // Startet die Woche mit Mo
+        onSelect:function(date) {
+            var d = $.datepicker.parseDate("yy-mm-dd", date);
+            $("input[name=Lieferjahr]",  "#PoolFormBox").val( $.datepicker.formatDate("yy", d) );
+            $("input[name=Lieferwoche]", "#PoolFormBox").val( $.datepicker.iso8601Week( d ) );
+        }
+    });
+    
+    $("input[name=Lieferjahr], input[name=Lieferwoche]", "#PoolFormBox").datepicker({
+        dateFormat: 'yy-mm-dd',
+        changeMonth: true,
+        showWeek: true,
+        firstDay: 1, // Startet die Woche mit Mo
+        onSelect:function(date) {
+            var d = $.datepicker.parseDate("yy-mm-dd", date);
+            $("input[name=Lieferjahr]",  "#PoolFormBox").val( $.datepicker.formatDate("yy", d) );
+            $("input[name=Lieferwoche]", "#PoolFormBox").val( $.datepicker.iso8601Week( d ) );
+        }
+    });
+});
+</script>
+    <div id="WwsRefGridBox" style="display:none;">
+        <table id="WWSRefGridLst"></table> 
+        <div   id="WWSRefGridLst_pager"></div>
+    </div>
+<script>
+
+var addWwsRefItem = function(row) {
+    $("ul#RefPool2WWS").append(
+        $( "<li/>" ).attr("id",row.Auftragsnummer).append(
+            $( "<input/>").attr({name:"WwsRefs[]",value:row.Mandant+":"+row.Auftragsnummer,type:"hidden"})
+        ).append(
+            $( "<span/>").text(row.Auftragsnummer + " " + row.LieferungName + " " + row.Vorgangstitel)
+        ).fbIcon({icon:'trash', click:function(){
+            $(this).closest("li").remove();
+        }})
+        
+    );
+}
+
+var addWwsRefItems = function(rows) {
+    for(var i in rows) addWwsRefItem(rows[i]);
+}
+
+$(function(){
+    $.getScript(APP_BASE_URL + "/jquery/data/wws_auftragskoepfe.jqgrid.js", function(){
+        
+        if (typeof(createGridAuftragskoepfe)=="function") {
+            createGridAuftragskoepfe(
+                "#WWSRefGridLst", 
+                "#WWSRefGridLst_pager", 
+                null, 
+                {
+                    'onSelectRow': function(rowid) {
+//                        alert('#140 select row(id:'+rowid+')! this.class: ' + $(this).attr("class"));
+                        var row = $("#WWSRefGridLst").jqGrid( 'getRowData', rowid);
+                        if (row) addWwsRefItem(row);
+                        $("#WwsRefGridBox").dialog("close");
+                    }
+                }
+            );
+            $( "#WWSRefGridLst" )
+            .jqGrid('setGridParam', {"datatype":"json"})
+            .jqGrid('setGridParam',{
+                search:true, 
+                url: APP_BASE_URL + '/vorgaenge/findvorgaenge/view/touren'
+            });
+        } else {
+            alert("#140 Function createGridAuftragskoepfe() not found!");
+        }
+    })
+});
+
+$("form#findWWSAuftraege input[name=find]").click(function(){
+    
+    var rules = "";
+    $("form#findWWSAuftraege :input").each(function(){
+        if ($(this).attr("rel-op") && $(this).val()) {
+            rules+= (rules ? "," : "") +
+                '{"field":"' + escape($(this).attr("name")) + '",' +
+                '"op":"' + $(this).attr("rel-op") + '",' +
+                '"data":"' + escape($(this).val()) + '"}';
+        }
+    });
+    
+    $( "#WWSRefGridLst" ).jqGrid('setGridParam',{
+        search:true, 
+        url: APP_BASE_URL + '/vorgaenge/findvorgaenge/view/touren?filters={"groupOp":"AND","rules":['+rules+']}'
+    }).trigger("reloadGrid");
+    return;
+    
+    if (0) $.get( 
+        APP_BASE_URL + "/vorgaenge/findvorgaenge/view/touren", 
+        {
+            rows:10,
+            filters:'{"groupOp":"AND","rules":['+rules+']}',
+            nd: Math.random(),
+            page: 1,
+            sidx: "Auftragsnummer",
+            sord: "asc",
+            _search:true
+        }, 
+        function(){
+            alert('load Results!');
+        }, 'JSON'
+    )
+});
+</script>
+<?php if (!$plainHtml): ?>
+</div>
+<?php endif; ?>
+<script>
+$(function(){ addWwsRefItems(<?=json_encode($this->wwsRefItems);?>)});
+</script>

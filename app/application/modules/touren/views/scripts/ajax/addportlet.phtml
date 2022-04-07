@@ -1,0 +1,8 @@
+<?php 
+
+$this->layout()->disableLayout();
+$r = Zend_Controller_Front::getInstance()->getResponse();
+$r->setHeader('Content-Type', 'application/json; charset=UTF-8', true);
+
+echo JqGridHelper::json_encode($this->ajax_response);
+//echo json_encode($response);

@@ -1,0 +1,92 @@
+<script>
+<?php 
+
+$id = 0;
+$mydata = array();
+foreach($this->items as $_item) {
+    $mydata[] = array(
+        'id'       => (++$id),
+        'menu'     => utf8_encode($_item['label']),
+        'url'      => $_item['link'],
+        'level'    => 0,
+        'parent'   =>'',
+        'isLeaf'   => true,
+        'expanded' => false,
+        'loaded'   => true,
+    );
+}
+
+// Bsp: http://stackoverflow.com/questions/6788727/jqgrid-tree-grid-with-local-data
+echo 'var mydata = ' . json_encode($mydata).';' . PHP_EOL;
+?>
+$(function() {
+   if (pageLayout) {
+<?php if (isset($this->sidebar) && $this->sidebar['openOnload']) { ?>
+        if (pageLayout && !$.cookie('layout2WestIsClosed' ) ) pageLayout.open( "west" );
+<?php } ?>
+        $("body").bind("west_resize_end", function(_, name){ 
+            var state = pageLayout.state, 
+                panes = pageLayout.panes;
+            
+            if ( !state.west.isClosed ) {
+              $( 'table.ui-jqgrid-btable', panes[name]).jqGrid('setGridWidth', parseInt(state.west.size)-4);
+            }
+            
+        });
+   } 
+   
+    jQuery("#west-grid").jqGrid({
+//        url: "tree.xml",
+//        datatype: "xml",
+        
+        datatype: "jsonstring",
+        datastr: mydata,
+    
+        height: "auto",
+        pager: false,
+        loadui: "disable",
+        colNames: ["id","Items","url"],
+        colModel: [
+            {name: "id",width:1,hidden:true, key:true},
+            {name: "menu", width:150, resizable: false, sortable:false},
+            {name: "url",width:1,hidden:true}
+        ],
+        gridview: true,
+        treeGrid: true,
+	caption: "Administration",
+        ExpandColumn: "menu",
+        autowidth: true,
+        //width: 180,
+        rowNum: 200,
+        ExpandColClick: true,
+        treeIcons: {leaf:'ui-icon-radio-on'},
+        
+        jsonReader: {
+            repeatitems: false,
+            root: function (obj)    { return obj; },
+            page: function (obj)    { return 1; },
+            total: function (obj)   { return 1; },
+            records: function (obj) { return obj.length; }
+        },
+        
+        onSelectRow: function(rowid) {
+            var treedata = $("#west-grid").jqGrid('getRowData',rowid);
+            
+            if(treedata.isLeaf=="true") {
+                $(pageLayout.panes.center).load(treedata.url + (treedata.url.indexOf("?")==-1?"?":"&") + "&layout=0");
+            }
+        },
+        loadError: function(xhr, status, error) {
+            alert('error: ' + status + '!');
+        },
+        loadComplete: function( data ) {
+//            var m = "";
+//            for (var i in data) m+= i+":"+typeof(data[i]) + "\n"; alert(m);
+//            alert('complete: data ' + typeof(data) + '!');
+        }
+    });
+});
+</script>
+<table id="west-grid"></table>
+
+

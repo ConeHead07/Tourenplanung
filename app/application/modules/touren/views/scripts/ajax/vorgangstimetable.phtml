@@ -1,0 +1,524 @@
+<?php 
+$this->layout()->disableLayout();
+$r = Zend_Controller_Front::getInstance()->getResponse();
+$r->setHeader('Content-Type', 'text/html; charset=UTF-8', true);
+
+$data = &$this->ajax_response->data;
+//echo '<pre>' . print_r($data, 1) . '</pre>';
+
+$allowRR  = $this->ajax_response->allowed->removeresource;
+$allowUT  = $this->ajax_response->allowed->updatetimetable;        
+$allowAPS = $this->ajax_response->allowed->addportletandrouteserie;
+$allowAPR = $this->ajax_response->allowed->addportletandroute;
+
+$wiedervorlageUrl   = $this->baseUrl() . '/' . $this->module.'/'.$this->controller.'/setwiedervorlage';
+$updateUrl   = $this->baseUrl() . '/' . $this->module.'/'.$this->controller.'/updatetimetable';
+$addTourUrl  = $this->baseUrl() . '/' . $this->module.'/'.$this->controller.'/addportletandroute';
+$delTourUrl  = $this->baseUrl() . '/' . $this->module.'/'.$this->controller.'/removeroute';
+$addSerieUrl = $this->baseUrl() . '/' . $this->module.'/'.$this->controller.'/addportletandrouteserie';
+$delTourenUrl = $this->baseUrl() . '/' . $this->module.'/'.$this->controller.'/removeroutes';
+
+$WT = array('So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa');
+
+echo '<fieldset><legend>Vorgang zurueckstellen</legend>' . PHP_EOL;
+echo '<form style="display:inline;margin:0;">';
+echo '<input type="hidden" name="tour_id" value="'.htmlentities($data['tour_id']).'">' . PHP_EOL;
+echo '<input type="hidden" name="Mandant" value="'.htmlentities($data['Mandant']).'">' . PHP_EOL;
+echo '<input type="hidden" name="Auftragsnummer" value="'.htmlentities($data['Auftragsnummer']).'">' . PHP_EOL;
+
+echo '<div>';
+echo '<div style="display:block;">';
+echo '<label for="DatumWiedervorlage" >Bis:</label> '
+    .'<input type="hidden" name="date" id="inputDatumWiedervorlage" value="'.(!empty($data['auftrag_wiedervorlage_am']) ? $data['auftrag_wiedervorlage_am'] : '').'"/>'
+    .'<input type="text" readonly="true" id="DatumWiedervorlage" '
+    .'value="'.(!empty($data['auftrag_wiedervorlage_am']) ? date_de('D d.m.Y', $data['auftrag_wiedervorlage_am']) : '').'" /> ' . PHP_EOL;
+echo '<button id="wiedervorlageUpdate"'.(!$allowUT?' disabled="true"':'').'>Uebernehmen</button>';
+echo '<button id="wiedervorlageAufheben"'.(!$allowUT?' disabled="true"':'').'>Aufheben</button>';
+echo '</div>';
+echo '<div style="clear:both"></div>';
+echo '</div>';
+echo '</form>';
+echo '</fieldset>';
+
+
+echo '<fieldset style="margin-top:15px;"><legend>Zeitplan dieser Tour</legend>' . PHP_EOL;
+echo '<form style="display:inline;margin:0;">';
+echo '<input type="hidden" name="tour_id" value="'.htmlentities($data['tour_id']).'">' . PHP_EOL;
+
+echo '<div>';
+echo '<div style="float:left;display:block;width:100px;">';
+echo '<label for="DatumVon" style="display:block">Am:</label>'
+    .'<input type="hidden" id="inputDatumVon" name="data[DatumVon]" value="'.$data['DatumVon'].'"/>'
+    .'<input type="text" readonly="true" id="DatumVon" value="'.date_de('D d.m.Y', $data['DatumVon']).'" style="width:100%;background:#ddd;color:#222">' . PHP_EOL;
+//echo '<label for="DatumBis">Bis:</label> <input type="text" id="DatumBis" name="data[DatumBis]" value="'.htmlentities($data['DatumBis']).'"><br>' . PHP_EOL;
+echo '</div>';
+
+echo '<div style="float:left;display:block;width:100px;">';
+echo '<label for="ZeitVon" style="display:block">Von:</label>'
+    .'<input type="text" id="ZeitVon" name="data[ZeitVon]" value="'.htmlentities($data['ZeitVon']).'" style="width:100%">' . PHP_EOL;
+echo '</div>';
+
+echo '<div style="float:left;display:block;width:100px;">';
+echo '<label for="ZeitBis" style="display:block">Bis:</label>'
+    .'<input type="text" id="ZeitBis" name="data[ZeitBis]" value="'.htmlentities($data['ZeitBis']).'" style="width:100%">' . PHP_EOL;
+echo '</div>';
+
+echo '<div style="clear:both"></div>';
+echo '</div>';
+
+echo '<button id="timetableUpdate"'.(!$allowUT?' disabled="true"':'').'>Uebernehmen</button>';
+echo '</form>';
+echo '</fieldset>';
+
+echo '<fieldset style="margin-top:15px;"><legend>Weitere Touren in Serie buchen</legend>' . PHP_EOL;
+echo '<form style="display:inline;margin:0;">';
+echo '<input type="hidden" name="ref_tour_id" value="'.htmlentities($data['tour_id']).'">' . PHP_EOL;
+echo '<input type="hidden" name="data[Mandant]" value="'.htmlentities($data['Mandant']).'">' . PHP_EOL;
+echo '<input type="hidden" name="data[Auftragsnummer]" value="'.htmlentities($data['Auftragsnummer']).'">' . PHP_EOL;
+echo '<div id="DispoSerie">';
+
+echo '<div style="float:left;display:block;width:100px;">';
+echo '<label for="DatumVon2" style="display:block">Von:</label>'
+    .'<input type="hidden" id="inputDatumVon2" name="data[DatumVon]" value="'.$data['DatumVon'].'"/>'
+    .'<input type="text" id="DatumVon2" style="width:99%" value="'.date_de('D d.m.Y', $data['DatumVon']).'">' . PHP_EOL;
+//echo '<label for="DatumBis">Bis:</label> <input type="text" id="DatumBis" name="data[DatumBis]" value="'.htmlentities($data['DatumBis']).'"><br>' . PHP_EOL;
+echo '</div>';
+
+echo '<div style="float:left;display:block;width:100px;">';
+echo '<label for="DatumBis" style="display:block">Bis:</label>'
+    .'<input type="hidden" id="inputDatumBis" name="data[DatumBis]" value="">'
+    .'<input type="text" id="DatumBis" style="width:99%" value="">' . PHP_EOL;
+echo '</div>';
+
+echo '<div style="float:left;display:block;width:350px;">';
+echo '<label style="display:block;padding:0 2px">An den Tagen:</label>';
+$tage = array('Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So');
+echo '<span class="DispoWochentage">';
+foreach($tage as $_tag) {
+    $_id = 'tage_' . $_tag;
+    echo '<input type="checkbox" class="DispoWochentag" id="'.$_id.'" name="Wochentage[]" value="'.$_tag.'">'
+        .'<label for="' . $_id . '">' . $_tag . '</label>' . PHP_EOL;
+}
+echo '</span>';
+//echo '<label for="DatumBis">Bis:</label> <input type="text" id="DatumBis" name="data[DatumBis]" value="'.htmlentities($data['DatumBis']).'"><br>' . PHP_EOL;
+echo '</div>';
+
+echo '<div style="clear:both"></div>';
+echo '<button id="addSerie_Send"'.(!$allowAPS?' disabled="true"':'').'>Anlegen</button>';
+echo '</form>';
+echo '</div>';
+echo '</fieldset>';
+
+
+
+echo '<fieldset style="margin-top:15px;"><legend>Einzelne Tour hinzuf&uuml;gen</legend>';
+
+echo '<form id="addTour">';
+echo '<input type="hidden" name="ref_tour_id" value="'.htmlentities($data['tour_id']).'">' . PHP_EOL;
+echo '<input type="hidden" name="data[Mandant]" value="'.htmlentities($data['Mandant']).'">' . PHP_EOL;
+echo '<input type="hidden" name="data[Auftragsnummer]" value="'.htmlentities($data['Auftragsnummer']).'">' . PHP_EOL;
+
+echo '<div style="float:left;display:block;width:100px;">'
+    .'<label for="addTour_DVon" style="display:block">Am:</label>'
+    .'<input type="hidden" id="inputaddTour_DVon" name="data[DatumVon]" value="">'
+    .'<input type="text" id="addTour_DVon" value="">'
+    .'</div>';
+echo '<div style="float:left;display:block;width:100px;">'
+    .'<label for="addTour_ZVon" style="display:block">Von:</label>'
+    .'<input type="text" id="addTour_ZVon" name="data[ZeitVon]" value="09:00">'
+    .'</div>';
+echo '<div style="float:left;display:block;width:100px;">'
+    .'<label for="addTour_ZBis" style="display:block">Bis:</label>'
+    .'<input type="text" id="addTour_ZBis" name="data[ZeitBis]" value="17:00">'
+    .'</div>';
+echo '<div style="clear:both"></div>';
+echo '<input type="button" id="addTour_Send"'.(!$allowAPR?' disabled="true"':'').' value="anlegen">';
+echo '</form>';
+echo '</fieldset>';
+
+
+
+
+
+
+
+
+echo '<fieldset style="margin-top:15px;"><legend>Touren l&ouml;schen</legend>' . PHP_EOL;
+echo '<form style="display:inline;margin:0;">';
+echo '<input type="hidden" name="ref_tour_id" value="'.htmlentities($data['tour_id']).'">' . PHP_EOL;
+echo '<input type="hidden" name="data[Mandant]" value="'.htmlentities($data['Mandant']).'">' . PHP_EOL;
+echo '<input type="hidden" name="data[Auftragsnummer]" value="'.htmlentities($data['Auftragsnummer']).'">' . PHP_EOL;
+echo '<div id="DeleteSerie">';
+
+echo '<div style="float:left;display:block;width:100px;">';
+echo '<label for="DatumVon2" style="display:block">Von:</label>'
+    .'<input type="hidden" id="inputDatumVon3" name="data[DatumVon]" value="'.$data['DatumVon'].'"/>'
+    .'<input type="text" id="DatumVon3" style="width:99%" value="'.date_de('D d.m.Y', $data['DatumVon']).'">' . PHP_EOL;
+echo '</div>';
+
+echo '<div style="float:left;display:block;width:100px;">';
+echo '<label for="DatumBis" style="display:block">Bis:</label>'
+    .'<input type="hidden" id="inputDatumBis3" name="data[DatumBis]" value="">'
+    .'<input type="text" id="DatumBis3" style="width:99%" value="">' . PHP_EOL;
+echo '</div>';
+
+echo '<div style="float:left;display:block;width:350px;">';
+echo '<label for="DatumBis" style="display:block;padding:0 2px">An den Tagen:</label>';
+$tage = array('Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So');
+echo '<span class="DispoWochentage">';
+foreach($tage as $_tag) {
+    $_id = 'deltage_' . $_tag;
+    echo '<input type="checkbox" class="DispoWochentag" id="'.$_id.'" name="Wochentage[]" value="'.$_tag.'">'
+        .'<label for="' . $_id . '">' . $_tag . '</label>' . PHP_EOL;
+}
+echo '</span>';
+echo '</div>';
+
+echo '<div style="clear:both"></div>';
+echo '<input type="checkbox" name="removePortletIfEmpty" id="removePortletIfEmpty" checked="checked"> ';
+echo '<label for="removePortletIfEmpty">Tourenleiste l&ouml;schen, wenn keine Touren mehr enthalten sind</label><br>';
+echo '<button id="deleteTouren_Send"'.(!$allowAPS?' disabled="true"':'').'>L&ouml;schen</button>';
+echo '</form>';
+echo '</div>';
+echo '</fieldset>';
+
+
+
+
+
+    
+//echo 'Serienbuchung:<br>' . PHP_EOL;
+//echo 'taeglich:';
+//echo 'w&ouml;chentlich';
+//echo 'monatlich';
+
+echo <<<EOT
+<style>
+#vorgangsTourList th,
+#vorgangsTourList td {
+    text-align: left;
+    border:1px solid #eee;
+    padding:2px;
+}
+</style>
+
+EOT;
+
+$list = $this->ajax_response->list;
+$total = ($list->numAll > count($list->rows)) ? ' von ' . $list->numAll : ''; 
+echo '<h3 style="margin-top:15px;">Liste der Touren zu diesem Vorgang: ' . count($list->rows) . $total . '</h3>';
+echo '<table id="vorgangsTourList">';
+
+    echo '<thead>' 
+        . '<tr>' 
+        . '<th>Aktion</th>'
+        . '<th>Datum</th>'
+        . '<th>Tour</th>'
+        . '<th>Von</th>'
+        . '<th>Bis</th>'
+        . '<th>Anz. Dispo</th>'
+        . '<th>FP</th>'
+        . '<th>MA</th>'
+        . '<th>Fertig</th>'
+        . '<th>...von</th>'
+        . '</tr>'
+        . '<thead>'
+        . '<tbody>';
+
+if (!@empty($this->ajax_response->list->rows))
+foreach($this->ajax_response->list->rows as $_row) {
+    $_time = strtotime($_row['DatumVon']);
+    $_w = date('w', $_time);
+    $_wName = $WT[$_w];
+    $_kw = date('W', $_time);
+    echo '<tr>' 
+        . '<td>'.($allowRR ? '<span class="deleteTour" ref="'.$_row['tour_id'].'" title="Tour loeschen"> </span> ' : '')
+        . '<span class="loadCalendarDay" ref="'.$_row['tour_id'].'" date="'.$_row['DatumVon'].'" title="In Kalenderansicht laden"> </span></td>'
+        . '<td>KW ' . $_kw . ', ' . $_wName . ' ' . date('d.m.Y ', $_time) . '</td>'
+        . '<td>' . '#'.$_row['tagesnr']  . '</td>'
+        . '<td>' . substr($_row['ZeitVon'], 0, 5)  . '</td>'
+        . '<td>' . substr($_row['ZeitBis'], 0, 5)  . '</td>'
+        . '<td>' . $_row['NumDP']  . '</td>'
+        . '<td>' . $_row['NumDF']  . '</td>'
+        . '<td>' . $_row['NumDM']  . '</td>'
+        . '<td>' . ($_row['tour_disponiert_am'] ? date('d.m.Y', strtotime($_row['tour_disponiert_am'])) : '') . '</td>'
+        . '<td>' . $_row['tour_disponiert_user'] . '</td>'
+        . '</tr>';
+}
+echo '<tbody></table>' . PHP_EOL;
+
+//echo '<pre>' . print_r($this->ajax_response->list, 1) . '</pre>';
+
+
+echo <<<EOT
+<script>
+    try {
+
+        $("#DatumWiedervorlage").datepicker({
+            dateFormat:'D dd.mm.yy',
+            changeMonth: true,
+            showWeek: true,
+            onSelect: function(d) {
+                $("#inputDatumWiedervorlage").val(Fb.convertDate(d, "yy-mm-dd", "D dd.mm.yy"));
+            }
+        });
+        
+        $("span.deleteTour", "#vorgangsTourList").fbIcon({
+            icon: 'trash',
+            click: function(e) {
+                var tour_id = $(this).attr("ref");
+                var self = this;
+                e.preventDefault();
+                if (!confirm("Moechten Sie die Tour wirklich loeschen?")) return false;
+
+                $.ajax({
+                    type: 'GET', dataType: 'json', async: false, data: {removePortletIfEmpty:1,id:tour_id},
+                    url: "$delTourUrl",
+                    success:function(data) {
+                        if (data.error) {
+                            alert(data.error);
+                            return false;
+                        }
+                        $(self).attr({disabled: 'disabled', value:'reloading ...'});
+                        $(self).closest('tr').after('<tr><td colspan=9><span style="color:green;">Tour wurde entfernt, Liste wird aktualisiert</span></td></tr>');
+
+                        var tabs = $(self).closest("div.ui-tabs.TourTabbedSheet")
+                        var current_index = $(tabs).tabs("option","selected");
+                        $(tabs).tabs('load',current_index);
+                    },
+                    error:function() {
+                        alert('error!');
+                    }
+                });
+                return false;
+        }
+        });
+        $("span.loadCalendarDay", "#vorgangsTourList").fbIcon({
+            icon: 'calendar',
+            click: function(e) {
+                var tour_id = $(this).attr("ref");
+                var self = this;
+                e.preventDefault();
+                Fb.addCalendar( $(this).attr("date"));
+                return false;
+        }
+        });
+//            .button({icons: { primary: "ui-icon-trash" }, text: false})
+//            .attr("title","Tour loeschen")
+//            .click(function(e) {
+//            var tour_id = $(this).attr("ref");
+//            var self = this;
+//            e.preventDefault();
+//            $.ajax({
+//                type: 'GET', dataType: 'json', async: false, data: {removePortletIfEmpty:1,id:tour_id},
+//                url: "$delTourUrl",
+//                success:function(data) {
+//                    if (data.error) {
+//                        alert(data.error);
+//                        return false;
+//                    }
+//                    $(self).attr({disabled: 'disabled', value:'reloading ...'});
+//                    $(self).closest('tr').after('<tr><td colspan=9><span style="color:green;">Tour wurde entfernt, Liste wird aktualisiert</span></td></tr>');
+//                    
+//                    var tabs = $(self).closest("div.ui-tabs.TourTabbedSheet")
+//                    var current_index = $(tabs).tabs("option","selected");
+//                    $(tabs).tabs('load',current_index);
+//                },
+//                error:function() {
+//                    alert('error!');
+//                }
+//            });
+//            return false;
+//        });
+        
+        $("#addTour_DVon").datepicker({
+            dateFormat:'D dd.mm.yy',
+            changeMonth: true,
+            showWeek: true,
+            onSelect: function(d) {
+                $("#inputaddTour_DVon").val(Fb.convertDate(d, "yy-mm-dd", "D dd.mm.yy"));
+            }
+        });
+        
+        $("#addTour_Send").click(function(e){
+            var self = this;
+            e.preventDefault();
+            $.ajax({
+                type: 'GET', dataType: 'json', async: false, data: $(this).closest("form").serialize(),
+                url: "$addTourUrl",
+                success:function(data) {
+                    if (data.error) {
+                        alert(data.error);
+                        return false;
+                    }
+                    $(self).attr({disabled: 'disabled', value:'reloading ...'});
+                    $(self).after('<span style="color:green;">Tour wurde hinzugefuegt, Liste wird aktualisiert</span>');
+                    
+                    var tabs = $(self).closest("div.ui-tabs.TourTabbedSheet")
+                    var current_index = $(tabs).tabs("option","selected");
+                    $(tabs).tabs('load',current_index);
+                },
+                error:function() {
+                    alert('error!');
+                }
+            });
+            return false;
+        });
+        
+        $("#wiedervorlageAufheben").click(function(e) {
+//            alert('click #'+$(this).attr("id");
+            e.preventDefault();
+            var tmp = $(this).closest("form").serializeArray();
+            var formData = {};
+            for (var i in tmp) formData[ tmp[i].name ] = tmp[i].value;
+            formData['date'] = "";
+            $.ajax({
+                type: 'GET', dataType: 'json', async: false, data: formData,
+                url: "$wiedervorlageUrl",
+                success:function(data) {
+                    if (data.error) {
+                        alert(data.error);
+                        return false;
+                    }
+//                    alert('Daten wurden aktualisiert formData: ' + formData + '// tour_id: ' + formData.tour_id);
+                    var tour = $.fn.fbDispoRoute.getRouteById( formData.tour_id );
+//                    alert( 'Search Tour for TimeSlot-Update: ' + tour.length );
+                    if (tour.length) {
+                        $(tour).fbDispoRoute('setTimeSlot', {from:formData['data[ZeitVon]'], to:formData['data[ZeitBis]']});
+                    }
+                },
+                error:function() {
+                    alert('error!');
+                }
+            });
+            return false;
+        });
+        
+        $("#wiedervorlageUpdate").click(function(e) {
+//            alert('click #'+$(this).attr("id");
+            e.preventDefault();
+            var tmp = $(this).closest("form").serializeArray();
+            var formData = {};
+            for (var i in tmp) formData[ tmp[i].name ] = tmp[i].value;
+            $.ajax({
+                type: 'GET', dataType: 'json', async: false, data: $(this).closest("form").serialize(),
+                url: "$wiedervorlageUrl",
+                success:function(data) {
+                    if (data.error) {
+                        alert(data.error);
+                        return false;
+                    }
+//                    alert('Daten wurden aktualisiert formData: ' + formData + '// tour_id: ' + formData.tour_id);
+                    var tour = $.fn.fbDispoRoute.getRouteById( formData.tour_id );
+//                    alert( 'Search Tour for TimeSlot-Update: ' + tour.length );
+                    if (tour.length) {
+                        $(tour).fbDispoRoute('setTimeSlot', {from:formData['data[ZeitVon]'], to:formData['data[ZeitBis]']});
+                    }
+                },
+                error:function() {
+                    alert('error!');
+                }
+            });
+            return false;
+        });
+
+        
+        $("#timetableUpdate").click(function(e) {
+//            alert('click');
+            e.preventDefault();
+            var tmp = $(this).closest("form").serializeArray();
+            var formData = {};
+            for (var i in tmp) formData[ tmp[i].name ] = tmp[i].value;
+            $.ajax({
+                type: 'GET', dataType: 'json', async: false, data: $(this).closest("form").serialize(),
+                url: "$updateUrl",
+                success:function(data) {
+                    if (data.error) {
+                        alert(data.error);
+                        return false;
+                    }
+//                    alert('Daten wurden aktualisiert formData: ' + formData + '// tour_id: ' + formData.tour_id);
+                    var tour = $.fn.fbDispoRoute.getRouteById( formData.tour_id );
+//                    alert( 'Search Tour for TimeSlot-Update: ' + tour.length );
+                    if (tour.length) {
+                        $(tour).fbDispoRoute('setTimeSlot', {from:formData['data[ZeitVon]'], to:formData['data[ZeitBis]']});
+                    }
+                },
+                error:function() {
+                    alert('error!');
+                }
+            });
+            return false;
+        });
+
+        /*****************
+        * SERIEN ANLEGEN *
+        ******************/
+        $("#addSerie_Send").click(function(e){
+            var self = this;
+            e.preventDefault();
+            $.ajax({
+                type: 'GET', dataType: 'json', async: false, data: $(this).closest("form").serialize(),
+                url: "$addSerieUrl",
+                success:function(data) {
+                    if (data.error) {
+                        alert(data.error);
+                        return false;
+                    }
+                    $(self).attr({disabled: 'disabled', value:'reloading ...'});
+                    $(self).after('<span style="color:green;">Tour wurde hinzugefuegt, Liste wird aktualisiert</span>');
+                    
+                    var tabs = $(self).closest("div.ui-tabs.TourTabbedSheet")
+                    var current_index = $(tabs).tabs("option","selected");
+                    $(tabs).tabs('load',current_index);
+                },
+                error:function() {
+                    alert('error!');
+                }
+            });
+            return false;
+        });
+
+        /******************
+        * Touren loeschen *
+        *******************/
+        $("#deleteTouren_Send").click(function(e){
+            var self = this;
+            e.preventDefault();
+            $.ajax({
+                type: 'GET', dataType: 'json', async: false, data: $(this).closest("form").serialize(),
+                url: "$delTourenUrl",
+                success:function(data) {
+                    if (data.error) {
+                        alert(data.error);
+                        return false;
+                    }
+                    $(self).attr({disabled: 'disabled', value:'reloading ...'});
+                    $(self).after('<span style="color:green;">' + data.message + '</span>');
+                    
+                    var tabs = $(self).closest("div.ui-tabs.TourTabbedSheet")
+                    var current_index = $(tabs).tabs("option","selected");
+                    $(tabs).tabs('load',current_index);
+                },
+                error:function() {
+                    alert('error!');
+                }
+            });
+            return false;
+        });
+        
+        $("#DispoSerie #DatumVon2, #DispoSerie #DatumBis, #DeleteSerie #DatumVon3, #DeleteSerie #DatumBis3").datepicker({
+            dateFormat:'D dd.mm.yy',
+            changeMonth: true,
+            showWeek: true,
+            onSelect: function(d) {
+                $("#input" + $(this).attr("id") ).val(Fb.convertDate(d, "yy-mm-dd", "D dd.mm.yy"));
+            }
+        });
+        $("span.DispoWochentage input.DispoWochentag").button();
+        $("span.DispoWochentage").buttonset().find("span.ui-button-text").css({fontSize:'10px',padding:'2px 4px'});
+        
+    } catch(e) { alert("jQuery ist nicht verfügbar)!"); }
+</script>
+EOT;
+

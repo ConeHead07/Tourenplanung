@@ -1,0 +1,84 @@
+<?php 
+$this->layout()->disableLayout();
+$cnf = $this->dataConfig;
+$data = $this->data;
+$formAction = $this->url(
+        array(
+            'module' => $this->module,
+            'controller'=>$this->controller,
+            'action'=>'profile'), null, FALSE); 
+$format = (isset($this->format)) ? $this->format : '';
+//die(print_r($this->user,1));
+
+if ($format != 'partialHtml'): 
+?>
+<fieldset id="boxProfile">
+    <legend>Benutzerprofile <?php echo $this->user->user_name; ?></legend>
+    <form id="frmProfile" action="<?php echo $formAction; ?>" method="post">
+    <div id="frmProfileInnerBox">
+<?php endif; ?>
+    <input type="hidden" name="id" value="<?php echo $this->id; ?>" />
+    <input type="hidden" name="format" value="partialHtml" />
+    <?php foreach($cnf as $prop): 
+        
+        $val = (isset($data[$prop->key])) ? $data[$prop->key] : '';
+        $iName = 'profile['.$prop->key.']' ;
+    ?>
+        
+    <label><?php echo $prop->label; ?></label>
+    <?php switch($prop->type) {
+      case 'text':
+          echo '<input name="profile['.$prop->key.'] type="text"  maxlength="'.$prop->size.'" value="'.htmlentities($val).'"/>';
+          break;
+      
+      case 'radio':
+      case 'checkbox':
+      case 'select':
+      case 'select-multiple':
+          if (preg_match('/checked|select-multiple/', $prop->type)) $iName.= '[]';
+          $isAssoc = !isset($prop->options[0]);
+          $closer = '';
+          if (preg_match('/^select/', $prop->type)) {
+              echo '<select name="'. $iName . ' ' . ($prop->type=='select-multiple'?'[]" multiple="true"':'"').'>';
+              $closer = '</select>';
+          }
+          foreach($prop->options as $k => $v) {
+            if (!$isAssoc) $k = $v;
+              if (preg_match('/checked|select-multiple/', $prop->type)) 
+                  $active = (in_array( ($isAssoc ? $k : $v), (array)$val));
+              else
+                  $active = ( ($isAssoc ? $k : $v) == $val);
+              
+              if ($closer) {
+                  echo '<option value="'.$k.'" '.(!$active?'':' selected="selected"').'>' . $v . '</option>' . PHP_EOL;
+              } else {
+                  echo '<input name="'.$iName.' type='.$prop->type.' value="'.$k.'" '.(!$active?'':' checked="checked"').'/>'.$v.' ' . PHP_EOL;
+              }
+          }
+          echo $closer;
+          break;
+        
+    }
+    ?>
+    <?php endforeach; ?>
+<?php if ($format != 'partialHtml'): ?>
+    </div>
+    <hr/>
+    <button name="save">Speichern</button>
+    </form>
+<script>
+$(function(){
+    $("#frmProfile").find("button[name=save]").button().click(function(e){
+        e.preventDefault();
+        $.post(
+            $("#frmProfile").attr("action"),
+            $("#frmProfile").serialize(), 
+            function(data) {
+                $("#frmProfileInnerBox").html(data);
+            }
+            );
+    })
+})
+</script>
+</fieldset>
+<?php endif; ?>

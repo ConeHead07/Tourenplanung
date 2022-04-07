@@ -1,0 +1,109 @@
+<?php
+    /* @var $this Zend_View */
+    require_once 'JqGridHeader.php';
+    JqGridHeader::enable(true);
+
+    $GridId = '#gridUsrLst';
+    $GridIdPager = '#gridUsrLst_pager';
+    $JqGrid = new JqGrid($GridId);
+    // Grid-Options definieren
+    $JqGrid->height('auto')
+    ->jsonReader(array( "repeatitems" => false, "id" => 0 ) )
+    ->width(800)
+    ->rowList(array(10, 20, 30, 40, 50,100))
+    ->rowNum(10)
+    ->rownumbers(true)
+    ->resizable(false)
+    ->sortable(true)
+    ->datatype('json')
+    ->url( APPLICATION_BASE_URL . '/user/gridresponsedata')
+    ->editurl(APPLICATION_BASE_URL . '/user/grideditdata')
+    ->enableInlineEditingDefaults()
+    ->setNavGrid($GridIdPager, $properties = array())
+    ->caption("Test-Grid")
+    ->shrinkToFit(true)
+    ->pager($GridIdPager)
+    ->on_loadError( new JsFunction("function(xhr,status,error){ alert(status+'\\n'+error);}") )
+    ->addChainMethod('.jqGrid("filterToolbar",{stringResult: true,searchOnEnter : false})')
+//        ->addChainMethod( ".jqGrid('searchGrid', {sopt:['cn','bw','eq','ne','lt','gt','ew']} )")
+    ->colNames( array('uid', 'name', 'pw', 'pw wh', 'role') )
+    ->colModel(array('addFieldsProperties' => array(
+            "user_id" => array('key'=>true),
+            "user_name" => array('editable'=>true, 'edittype'=>'text', 'editoptions'=>null),
+            "user_pw" => array('editable'=>true, 'edittype'=>'text', 'hidden' => true, 'editrules' => array('edithidden'=>true) ),
+            "user_pw_wh" => array('editable'=>true, 'edittype'=>'text', 'hidden' => true, 'editrules' => array('edithidden'=>true) ),
+            "user_role" => array('editable'=>true, 'edittype'=>'select'),
+    )));
+        
+    /* @var $colModelList JqGridColModelList */
+    $colModelList = $JqGrid->colModel();
+    $colModelList->getItem('user_pw')->getInstanceEditRules()->set_edithidden(true);
+    $colModelList->getItem('user_pw_wh')->getInstanceEditRules()->set_edithidden(true);
+    $colModelList->getItem('user_role')->getInstanceEditOptions()->set_value(array(
+        'user'=>'user','dispo'=>'dispo','controller'=>'controller','admin'=>'admin'
+    ));
+
+//        , editoptions:{value:{1:'One',2:'Two'}}
+    // Make all Fields (also invisible, hidden) searchable!
+    /* @var $_cmItem JqGridColModel */
+    foreach($colModelList as $_cmItem) {
+        /* @var $_itemSearchOpts JqGridColModelSearchOptions */
+        $_itemSearchOpts = $_cmItem->getInstanceSearchOptions();
+        $_itemSearchOpts->set_searchhidden(true);
+    }
+
+    $navGrid = $JqGrid->getInstanceNavGrid($GridIdPager);
+    $navGrid->set_edit(true);
+    $navGrid->set_addicon('ui-icon-suitcase');
+    $navGrid->set_search(
+        new JsFunction(
+                    '{'
+                .'multipleSearch:true,'
+                .'overlay:false,'
+                .'beforeShowSearch:function() { '
+                .' $("'.$GridId.'")[0].toggleToolbar(); },'
+                .'onClose:function() {    	$("'.$GridId.'")[0].toggleToolbar();   }'
+                .'}'
+                )
+        )
+        ->addNavButton(new JqGridNavGridButton(array(
+                        'id' => 'btnTbarSearch',
+                'buttonicon' => 'ui-icon-pin-s',
+                    'caption' => 'ColSearch',
+                    'title' => 'Toggle Searching Toolbar',
+            'onclickButton' => 'function () { $("'.$GridId.'")[0].toggleToolbar(); }'
+        )));
+
+    /* @var $searchPrm JqGridNavGridSearchFormOptions */
+    $searchPrm = $navGrid->getInstanceSearchFormOptions();
+    $searchPrm->set_sopt(array('eq'));
+    $searchPrm->set_beforeShowSearch('function() { '.' $("'.$GridId.'")[0].toggleToolbar(); }');
+    $searchPrm->set_onClose('function() { $("'.$GridId.'")[0].toggleToolbar();   }');
+    $searchPrm->set_multipleSearch(true);
+
+    $colChooser = new JqGridColumnChooserOptions();
+    $navGrid->addNavButton(new JqGridNavGridButton(array(
+                    'id' => 'btnColCh',
+                'caption' => 'Spalten',
+                'title' => 'Spalten',
+        'onclickButton' => new JsFunction('function(){'.$colChooser->renderMethod($GridId).'}')
+    )));        
+        
+    $this->headScript()->appendScript( 
+            'jQuery(function() {' 
+            .(string) $JqGrid->getJsCode() 
+            .'});'
+    );
+
+    // put your code here
+?>
+      
+<table id="gridUsrLst"></table> 
+    <div id="gridUsrLst_pager"></div> 
+
+    <table id="grid1"></table> 
+    <div id="grid1_pager"></div>
+        
+<script>
+jQuery("#grid1").jqGrid('navGrid','#grid1_pager',{edit:false,add:false,del:false});
+</script>

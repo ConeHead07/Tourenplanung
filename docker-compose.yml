@@ -1,0 +1,92 @@
+###############################################################################
+#                          Generated on phpdocker.io                          #
+###############################################################################
+version: "3.0"
+services:
+
+#    memcached:
+#      image: memcached:alpine
+#      container_name: mtp-memcached
+
+#    mailhog:
+#      image: mailhog/mailhog:latest
+#      container_name: mtp-mailhog
+#      ports:
+#        - "1089:8025"
+
+#    redis:
+#      image: redis:alpine
+#      container_name: mtp-redis
+
+# mariadb:
+#   image: mariadb:10.1
+#   container_name: mtp-mariadb
+#   working_dir: /application
+#   volumes:
+#     - ./app:/application
+#   environment:
+#     - MYSQL_ROOT_PASSWORD=rCL$$qv79
+#     - MYSQL_DATABASE=mt_projects
+#     - MYSQL_USER=mt_projects
+#     - MYSQL_PASSWORD=mt_projects
+#   ports:
+#     - "1090:3306"
+
+#    elasticsearch:
+#      image: elasticsearch:5.4-alpine
+#      container_name: mertens-intern-elasticsearch
+
+#    fluentd:
+#      build: ./fluentd
+#      container_name: fluentd
+#      volumes:
+#        - ./fluentd/fluentd.conf:/fluentd/etc
+#      ports:
+#        - "24224:24224"
+#        - "24224:24224/udp"
+
+    webserver:
+      image: nginx:alpine
+      depends_on: 
+        - php-fpm
+      container_name: mtp-webserver
+      working_dir: /application
+      restart: always
+      volumes:
+        - ./app:/application
+        - ./phpdocker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      ports:
+        - "1088:80"
+      logging:
+        driver: "json-file"
+        options:
+          max-size: "200k"
+          max-file: "10"
+
+    php-fpm:
+#      build: phpdocker/php-
+      image: jackfrost2014/php7fpm-tourenplanung:tourenplanung-php-fpm
+      container_name: mtp-php-fpm
+      working_dir: /application
+      restart: always
+      volumes:
+        - ./app:/application
+        - ./phpdocker/php-fpm/php-ini-overrides.ini:/etc/php/7.2/fpm/conf.d/99-overrides.ini
+        - ./phpdocker/php-fpm/xdebug.ini:/etc/php/7.2/fpm/conf.d/20-xdebug.ini
+      environment:
+        - "PS1=\"\\u@\\h:\\w\\$$ \""
+        - "PHP_IDE_CONFIG=serverName=mytime.local"
+      logging:
+        driver: "fluentd"
+        options:
+          fluentd-address: "monitoring_fluent_bit"
+          tag: "rm_php"
+          mode: "non-blocking"
+          max-buffer-size: "2m"
+          fluentd-async-connect: "true"
+#      logging:
+#        driver: "json-file"
+#        options:
+#          max-size: "200k"
+#          max-file: "10"
+

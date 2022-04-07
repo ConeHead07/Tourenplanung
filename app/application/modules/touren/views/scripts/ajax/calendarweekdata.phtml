@@ -1,0 +1,267 @@
+<?php 
+$this->layout()->disableLayout();
+$r = Zend_Controller_Front::getInstance()->getResponse();
+$r->setHeader('Content-Type', 'text/html; charset=UTF-8', true);
+
+$DVon = $this->dateRange['Von'];
+$DBis = $this->dateRange['Bis'];
+$lagerid = $this->lager_id;
+
+$tourStatRsrc = array();
+if (count($this->tourResources) )  {
+    foreach($this->tourResources as $_tour_id => $_rsrc) {
+        $tourStatRsrc[$_tour_id] = '';
+        $tourStatRsrc[$_tour_id].= count($_rsrc['MA']).' MA';
+        if ( count($_rsrc['MA']))  {
+            $tourStatRsrc[$_tour_id].= ':';
+            foreach($_rsrc['MA'] as $_ma) {
+                $tourStatRsrc[$_tour_id].= $_ma['name'].';';
+            }
+        }
+        
+        
+        $tourStatRsrc[$_tour_id].= ' ' . count($_rsrc['FP']) . ' FP';
+        if ( count($_rsrc['FP']))  {
+            $tourStatRsrc[$_tour_id].= ':';
+            foreach($_rsrc['FP'] as $_fp) {
+                $tourStatRsrc[$_tour_id].= $_fp['fahrzeugart'].' '.$_fp['kennzeichen'].';';
+            }
+        }
+    }
+}
+
+// echo '<pre>' . $this->dateRange['Von'] . ' ' . $this->dateRange['Bis'] . ' lager_id: ' . $this->lager_id . PHP_EOL . print_r($this->data,1); 
+
+function timeToMin($time) {
+    if (preg_match('/^([0-9]{2}):([0-9]{2})/', trim($time), $m)) {
+        return intval($m[1]) * 60 + intval($m[2]);        
+    }
+    throw new Exception('Invalid Argument: ' . $time . ' is not time-formatted string!');
+}
+
+
+// Gruppieren der Touren nach Tag und Tour und Timeline
+// Summieren der Touren-Auslastung in Minuten pro Timeline
+$maxRowsPerDay = 0;
+$tourenByDate = array();
+$tourenAuslastung = array();
+if (1) foreach($this->data as $_row) {
+    $_dt = ($_row['DatumVon']) ? $_row['DatumVon'] : $_row['datum'];
+    if (!array_key_exists($_dt, $tourenByDate))
+        $tourenByDate[$_dt] = array();
+    
+    if (!array_key_exists($_row['portlet_id'], $tourenByDate[$_dt]))
+        $tourenByDate[ $_dt ][ $_row['portlet_id'] ] = array();
+    
+    if (!array_key_exists($_row['timeline_id'], $tourenByDate[ $_dt ][ $_row['portlet_id'] ]))
+        $tourenByDate[ $_dt ][ $_row['portlet_id'] ][ $_row['timeline_id']] = array();
+            
+    $tourenByDate[ $_dt ][ $_row['portlet_id'] ][ $_row['timeline_id']][] = $_row;
+    
+    if (!@isset($tourenAuslastung[ $_dt ][ $_row['portlet_id'] ][ $_row['timeline_id']]))
+        $tourenAuslastung[ $_dt ][ $_row['portlet_id'] ][ $_row['timeline_id']] = 0;
+    
+    try {
+        if ($_row['ZeitVon']) $tourenAuslastung[ $_dt ][ $_row['portlet_id'] ][ $_row['timeline_id']]+=
+            timeToMin($_row['ZeitBis']) - timetoMin($_row['ZeitVon']);
+    } catch(Exception $e) {
+        echo $e->getMessage();
+    }
+    
+    $maxRowsPerDay = max( $maxRowsPerDay, count( $tourenByDate[ $_dt ][ $_row['portlet_id'] ] ) );
+}
+
+//die( '<pre>' . print_r($tourenByDate, 1) . '</pre>');
+
+// die( '<pre>' . print_r($tourenByDate, 1) . '</pre>');
+// die( '<pre>' . print_r($this->data, 1) . '</pre>'); 
+
+$startDate = new DateTime($DVon);
+$endDate   = new DateTime($DBis);
+$interval  = $endDate->diff($startDate, true);
+$numDays = ((int)$interval->format("%d"));
+
+$colDays = array();
+for($i = 0; $i < $numDays; ++$i) {
+    $colDays[] = $startDate->getTimestamp() + ($i * 24 * 60 * 60);
+}
+
+$W = array('Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag');
+
+?>
+<style>
+    .tourGroup {
+        border-bottom:1px solid #d2d2d2;
+    }
+    .tourGroupNr {
+        float:left;
+    }
+    .tourGroupOrt {
+        float:right;
+        text-align:right;
+    }
+    .tourVorgaenge {
+        border-bottom:1px solid #d2d2d2;
+    }
+    .tourVorgang {
+    }
+    .tourVgNr,
+    .tourVgKdname {
+        float:left;
+        min-width:40px;
+        width:50%;
+        line-height:16px;
+        height:16px;
+        overflow: hidden;
+    }
+    
+    .clear-float {
+        clear:both;
+    }
+    td.tourColDay {
+        width:<?=100/$numDays; ?>% !important;
+        border-collapse: collapse;
+        empty-cells: show;
+        vertical-align:top;
+    }
+    
+    .tourAuslastung-Gruen {
+        background-color:#C4E1A4;
+    }
+    .tourAuslastung-Gelb {
+        background-color:#fcefa1;
+    }
+    .tourAuslastung-Orange {
+        background-color:#FEC;
+    }
+    .tourAuslastung-Rot {
+        background-color:#fdd;
+    }
+    
+    table.calendar-week-data,
+    table.calendar-week-data thead,
+    table.calendar-week-data thead tr,
+    table.calendar-week-data thead td,
+    table.calendar-week-data thead tr td {
+        border-spacing:0;     
+        border:1px solid #4297D7;
+    }
+    table.calendar-week-data tr th {
+        border-right:1px solid #fff;
+    }
+    table.calendar-week-data tr th:last-child {
+        border-right:1px solid #4297D7;
+    }
+    table.calendar-week-data tbody td {
+        border-right:1px solid #4297D7;
+        border-bottom:1px solid #4297D7;
+        vertical-align:top;
+    }
+    table.calendar-week-data th {
+        font-weight:bold;
+        text-align:center;
+    }
+    
+    div.GroupTop25 {
+        border:1px solid #f00;
+    }
+    div.GroupTop25 div.GroupTop25Title {
+        font-size:12px;
+        font-weight:900 !important;
+        background-color:#f00;
+        color:#fff;
+    }
+    
+    div.GroupTitles {
+        border:1px solid #ffa500;
+    }
+    div.GroupTitles div.GroupTitle {
+        font-size:12px;
+        font-weight:900 !important;
+        background-color:#ffa500;
+        color:#fff;
+    }
+</style>
+<?php 
+
+echo '<h1 style="text-align:center"> Wochenansicht ' . $startDate->format('W') . '</h1>' . PHP_EOL;
+
+echo '<table class="calendar-week-data ui-corner-top" width=100%>';
+echo '<thead class="ui-widget-header"><tr>';
+
+$dayLink = APPLICATION_URL . '/touren/index?date=%s&lager_id=%u';
+foreach($colDays as $_time) {
+    $url = sprintf($dayLink, date('Y-m-d', $_time), $lagerid);    
+    echo '<th><a href="'.$url.'">' . $W[date('w', $_time)] . ', ' . date('j.m', $_time) . '</a></th>';
+}
+$lastTopCustom = '';
+echo '</tr></thead>';
+echo '<tbody><tr>';
+foreach($colDays as $_time) {
+    $DKey = date('Y-m-d', $_time);
+    echo '<td class="tourColDay">';
+    
+    if (array_key_exists($DKey, $tourenByDate) && is_array($tourenByDate[$DKey])) {
+        
+        foreach( $tourenByDate[$DKey] as $_portlet_id => $_portlet) {
+            $lastTopCustom = '';
+			$lastTitle = '';
+            foreach($_portlet as $_timeline_id => $_timeline) {
+                //echo '#' . __LINE__ . ' ' . print_r($_timeline,1) . '<br/>' . PHP_EOL;
+                //if (!count($_timeline)) continue;
+                $groupTop25 = false;
+                $groupTitle = false;
+				
+                if ($_timeline[0]['PortletTopCustom'] && $_timeline[0]['PortletTopCustom'] != $lastTopCustom) {
+                    $groupTop25 = true;
+                    echo '<div class="GroupTop25">';
+                    echo '<div class="GroupTop25Title">' . $_timeline[0]['PortletTopCustom'] . '</div>';
+                }
+				
+                if ($_timeline[0]['PortletTitle'] && $_timeline[0]['PortletTitle'] != $lastTitle) {
+                    $groupTitle = true;
+                    echo '<div class="GroupTitles">';
+                    echo '<div class="GroupTitle">' . $_timeline[0]['PortletTitle']. '</div>';
+                }
+				
+                echo '<div class="tourGroup">'
+                . '<div class="tourGroupNr">Tour ' . $_timeline[0]['tagesnr'] . '</div> ' 
+                . '<div class="tourGroupOrt">' . $_timeline[0]['LieferungOrt'] . '</div>' . PHP_EOL
+                . '<div class="clear-float"></div>'
+                . '</div>';
+                
+                $al = $tourenAuslastung[ $DKey ][ $_portlet_id ][ $_timeline_id ];
+                if ($al < 120) $alClass = 'tourAuslastung-Gruen';
+                elseif ($al < 360) $alClass = 'tourAuslastung-Gelb';
+                elseif ($al < 640) $alClass = 'tourAuslastung-Orange';
+                else $alClass = 'tourAuslastung-Rot';
+                
+                echo '<div class="tourVorgaenge ' . $alClass . '">';
+                foreach($_timeline as $_vg) {
+                    echo '<div class="tourVorgang">';
+                    echo '<div class="tourVgKdname" title="'.$_vg['LieferungName'].'">'.$_vg['LieferungName'] . '</div>';
+                    echo '<div class="tourVgNr">'.$_vg['Auftragsnummer'] . '</div>';
+                    echo '<div class="clear-float"></div>';
+                    echo '</div>';
+                }
+                echo $tourStatRsrc[$_vg['tour_id']];
+//                echo print_r($this->tourResources[$_vg['tour_id']],1);
+                echo '</div>';
+                
+                if ($groupTitle) {
+                    echo '</div>';
+                }
+                if ($groupTop25) {
+                    echo '</div>';
+                }
+                $lastTopCustom = $_timeline[0]['PortletTopCustom'];
+                $lastTitle = $_timeline[0]['PortletTitle'];
+
+            }
+        }
+    }
+    echo '</td>';
+}
+echo '</tr>';
+echo '</tbody>';
+echo '</table>';

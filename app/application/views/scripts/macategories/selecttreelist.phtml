@@ -1,0 +1,47 @@
+<?php
+
+$this->layout()->disableLayout();
+$rsp = Zend_Controller_Front::getInstance()->getResponse();
+$rqt = Zend_Controller_Front::getInstance()->getRequest();
+
+$loopNumTree = 0;
+/**
+ *
+ * @param array $treelist
+ * @param int $offset Laufzeitvariable, die für rekursiven intern verwaltet
+ * @param int $maxRgt Laufzeitvariable, die für rekursiven intern verwaltet
+ * @return array 
+ */
+function getTreelistAsArray(&$treelist, $offset = 0, $maxRgt = 0) {
+    global $loopNumTree;
+    static $loopMax = 500;
+    if (++$loopNumTree > $loopMax) throw new Exception("Too much Loops: loopNumTree = $loopNumTree > loopMax = $loopMax!");
+    
+    $a = array();
+    $ai = 0;
+    $nextLft = 0;
+    
+    for($i = $offset; $i < count($treelist); ++$i) {
+        $node = $treelist[$i];
+        if ($maxRgt  && $maxRgt  < (int)$node['rgt']) return $a;
+        if ($nextLft && $nextLft > (int)$node['lft']) continue;
+        
+        $isLeaf = ((int)$node['rgt'] - (int)$node['lft'] == 1);
+        $nextLft = (int)$node['rgt'] + 1;
+        
+        $a[$ai] = array('id'=>$node['category_id'], 'text'=>  utf8_encode($node['name']));
+        if (!$isLeaf) {
+            $a[$ai]['hasChildren'] = true;
+            $childs = getTreelistAsArray($treelist, $i+1, (int)$node['rgt']);
+            if (count($childs)) $a[$ai]['children'] = $childs;
+        }
+        ++$ai;
+    }
+    return $a;
+}
+
+if (!$rqt->getParam('jsonReader')) {
+    header("Content-type: text/html;charset=utf-8");
+    
+    echo json_encode( getTreelistAsArray($this->treelist) );
+}

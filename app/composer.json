@@ -1,0 +1,12 @@
+{
+    "name": "frank barthold/merTens Projekte",
+    "description": "Projektverwaltung",
+    "license": "BSD-3-Clause",
+    "require": {
+        "php": ">=7.2",
+        "zendframework/zendframework": "1.12.20"
+    },
+    "require-dev": {
+        "zendframework/zend-developer-tools": "dev-master"
+    }
+}

@@ -1,0 +1,91 @@
+<?php
+$this->layout()->disableLayout();
+
+/* @var $r Zend_Controller_Request_Abstract */
+$r = Zend_Controller_Front::getInstance()->getRequest();
+
+/* @var $this Zend_View */
+$baseUrl = $this->baseUrl();    // View-Helper der via __call (magic) 
+// an Zend_View gebunden wurden
+
+$modUrl = $baseUrl . '/' . $r->getModuleName();
+$ctrUrl = $modUrl . '/' . $r->getControllerName();
+
+$treeID = (property_exists($this, "SelectTreeId") && $this->SelectTreeId) ? $this->SelectTreeId : "treeSelectDialog";
+
+require_once 'JqGridHeader.php';
+JqGridHeader::enable(true);
+$uniqueClass = 'Unique-'.md5(time()+rand());
+?>
+<table id="<?php echo $treeID; ?>" class="treeSelectDialog <?php echo $uniqueClass; ?>"></table>
+<div  id="p<?php echo $treeID; ?>" class="ptreeSelectDialog p<?php echo $uniqueClass; ?>"></div>
+<script>
+function showObj(obj, deep) {
+    if (typeof(obj)!='object') return typeof(obj) + ': ' +obj;
+    var m = '\n';
+    if (deep == null) {
+        m+= typeof(obj) + "\n";
+        deep = '';
+    }
+    if (deep.length > 2) return typeof(obj) + ': ' +obj;
+    for(var i in obj) {
+        m+= deep + i + ': ' + typeof(obj[i]);
+        switch(typeof(obj[i])) {
+            case 'string':
+            case 'number':
+                m+= ' => ' + obj[i];
+                break;
+            case 'bool':
+            case 'boolean':
+                m+= ' => ' + (obj[i] ? 'true' : 'false');
+                break;
+            case 'object':
+                //if ('constructor' in obj[i]) m+= ' : ' + obj[i].constructor;
+                m+= showObj(obj[i], deep + '- ');
+                break;
+        }
+        m+= '\n';
+    }
+    return m;
+}
+
+jQuery("#<?php echo $treeID.'.'. $uniqueClass; ?>").jqGrid(
+{ 
+    treeGrid: true,
+    treeGridModel: 'nested',
+    ExpandColumn : 'name',
+    url: '<?php echo $ctrUrl; ?>/list?jsonReader=true&showall=1',
+    datatype: "json",
+    mtype: "POST",
+    height:"auto",
+    width:"auto",
+    forceFit : true,
+    resizable: true,
+    caption:"",
+    colNames:["id","Name"],
+    colModel:[
+        {name:'id',index:'id', width:1,hidden:true,key:true, editable:false},
+        {name:'name',index:'name', width:180, editable:false}
+    ],
+    pager : "#ptreeSelectDialog.<?php echo $uniqueClass; ?>",
+    caption: "Werkzeug Kategorien",
+    jsonReader: {
+        repeatitems: false,
+                 id: 0,
+               root: "rows"
+    },
+    loadError: function(xhr, status, error) {
+        alert('#78 wzcategories/selectdialog.phtml\n' + status + "\n" + error);
+    },
+    loadComplete: function(data) {
+        var gridContainer = "#gbox_" + $(this).attr("id");
+        $("div.ui-widget-header", gridContainer).hide();
+        $("div.ui-jqgrid-pager", gridContainer).hide();
+    },
+    gridComplete: function(){                
+    },
+    onCellSelect: function(rowId, iCol, cellContent, event){
+        $( this ).trigger("selectTreeNode", $(this).jqGrid('getRowData', rowId) );
+    }
+}).jqGrid('sortableRows').jqGrid('gridResize', {minWidth:200}); // handles: 'e, w';
+</script>

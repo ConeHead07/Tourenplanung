@@ -1,0 +1,248 @@
+<?php 
+require_once 'JqGridHeader.php';
+JqGridHeader::enable(true);
+
+if ( $this->tourlist->ajax ) $this->layout()->disableLayout();
+
+$this->tourlist->grid['pager'] = '#gridTourList_pager';
+
+$colNames = implode(',', $this->tourlist->grid['colNames']);
+$colModel = '';
+foreach( $this->tourlist->grid['colModel'] as $_k => $_v ) {
+    if ($colModel) $colModel.= ",\n";
+    $colModel.= JqGridHelper::json_encode( $_v );
+}
+
+$WWSIdx = array_search('Auftragsnummer', $this->tourlist->grid['colNames']);
+$KNRIdx = array_search('Kundennummer', $this->tourlist->grid['colNames']);
+$tourIdx = array_search('tour_id', $this->tourlist->grid['colNames']);
+$avisiertIdx = array_search('avisiert', $this->tourlist->grid['colNames']);
+$timelineIdx = array_search('timeline_id', $this->tourlist->grid['colNames']);
+$DatumVonIdx = array_search('DatumVon', $this->tourlist->grid['colNames']);
+$DatumBisIdx = array_search('DatumBis', $this->tourlist->grid['colNames']);
+$ZeitVonIdx = array_search('ZeitVon', $this->tourlist->grid['colNames']);
+$ZeitBisIdx = array_search('ZeitBis', $this->tourlist->grid['colNames']);
+$TitelIdx = array_search('Vorgangstitel', $this->tourlist->grid['colNames']);
+$LieferIdx = array_search('LieferungName', $this->tourlist->grid['colNames']);
+$OrtIdx = array_search('LieferungOrt', $this->tourlist->grid['colNames']);
+$PLZIdx = array_search('LieferungPostleitzahl', $this->tourlist->grid['colNames']);
+
+$AuftrDisponiertIdx = array_search('auftrag_disponiert_am', $this->tourlist->grid['colNames']);
+$AuftrAbschlussIdx  = array_search('auftrag_abgeschlossen_am', $this->tourlist->grid['colNames']);
+$TourDisponiertIdx  = array_search('tour_disponiert_am', $this->tourlist->grid['colNames']);
+$TourAbschlussIdx   = array_search('tour_abgeschlossen_am', $this->tourlist->grid['colNames']);
+//$NumAPIdx = array_search('NumAP', $this->tourlist->grid['colNames']);
+//$NumDPIdx = array_search('NumDP', $this->tourlist->grid['colNames']);
+//$NumDFIdx = array_search('NumDF', $this->tourlist->grid['colNames']);
+//$NumDMIdx = array_search('NumDM', $this->tourlist->grid['colNames']);
+//$FirstMAIdx = array_search('name', $this->tourlist->grid['colNames']);
+
+
+$this->tourlist->grid['colNames'][$WWSIdx] = 'WWS Nr';
+$this->tourlist->grid['colNames'][$DatumVonIdx] = 'Datum';
+$this->tourlist->grid['colNames'][$ZeitVonIdx] = 'Von';
+$this->tourlist->grid['colNames'][$ZeitBisIdx] = 'Bis';
+$this->tourlist->grid['colNames'][$KNRIdx] = 'KNR';
+$this->tourlist->grid['colNames'][$TitelIdx] = 'Vorgang';
+$this->tourlist->grid['colNames'][$LieferIdx] = 'Lieferung';
+$this->tourlist->grid['colNames'][$OrtIdx] = 'Ort';
+$this->tourlist->grid['colNames'][$PLZIdx] = 'PLZ';
+if (is_int($avisiertIdx)) $this->tourlist->grid['colNames'][$avisiertIdx] = 'Avisiert';
+
+$this->tourlist->grid['colNames'][$AuftrDisponiertIdx] = 'AuftrDisponiert';
+$this->tourlist->grid['colNames'][$AuftrAbschlussIdx]  = 'AuftrAbschluss';
+$this->tourlist->grid['colNames'][$TourDisponiertIdx]  = 'TourDisponiert';
+$this->tourlist->grid['colNames'][$TourAbschlussIdx]   = 'TourAbschluss';
+
+//$this->tourlist->grid['colNames'][$NumAPIdx] = 'AP';
+//$this->tourlist->grid['colNames'][$NumDPIdx] = 'DP';
+//$this->tourlist->grid['colNames'][$NumDFIdx] = 'FP';
+//$this->tourlist->grid['colNames'][$NumDMIdx] = 'MA';
+
+$this->tourlist->grid['colModel'][$tourIdx]['hidden'] = true;
+$this->tourlist->grid['colModel'][$timelineIdx]['hidden'] = true;
+$this->tourlist->grid['colModel'][$DatumBisIdx]['hidden'] = true;
+
+$this->tourlist->grid['colModel'][$WWSIdx]['formatter'] = new JsFunction('dispoLinkFormat');
+$this->tourlist->grid['colModel'][$WWSIdx]['unformat']  = new JsFunction('dispoLinkUnFormat');
+$this->tourlist->grid['colModel'][$DatumVonIdx]['formatter'] = new JsFunction('dateFormat');
+$this->tourlist->grid['colModel'][$DatumVonIdx]['unformat']  = new JsFunction('dateUnFormat');
+$this->tourlist->grid['colModel'][$ZeitVonIdx]['formatter']  = new JsFunction('timeFormat');
+$this->tourlist->grid['colModel'][$ZeitVonIdx]['unformat']   = new JsFunction('timeUnFormat');
+$this->tourlist->grid['colModel'][$ZeitBisIdx]['formatter']  = new JsFunction('timeFormat');
+$this->tourlist->grid['colModel'][$ZeitBisIdx]['unformat']   = new JsFunction('timeUnFormat');
+
+$this->tourlist->grid['colModel'][$WWSIdx]['width'] = 70;
+$this->tourlist->grid['colModel'][$WWSIdx]['width'] = 70;
+$this->tourlist->grid['colModel'][$DatumVonIdx]['width'] = 70;
+$this->tourlist->grid['colModel'][$ZeitVonIdx]['width']  = 70;
+$this->tourlist->grid['colModel'][$KNRIdx]['width']  = 70;
+$this->tourlist->grid['colModel'][$TitelIdx]['width']  = 300;
+$this->tourlist->grid['colModel'][$LieferIdx]['width']  = 300;
+$this->tourlist->grid['colModel'][$OrtIdx]['width'] = 40;
+$this->tourlist->grid['colModel'][$PLZIdx]['width'] = 80;
+//$this->tourlist->grid['colModel'][$NumAPIdx]['width'] = 30;
+//$this->tourlist->grid['colModel'][$NumDPIdx]['width'] = 30;
+//$this->tourlist->grid['colModel'][$NumDFIdx]['width'] = 30;
+//$this->tourlist->grid['colModel'][$NumDMIdx]['width'] = 30;
+
+$bF = &$this->tourlist->baseFilter;
+
+$lager = array(
+    '1' => 'Neuss',
+    '2' => 'Wiesbaden',
+    '3' => 'Berlin',
+);
+
+$lageroptions = '';
+foreach($lager as $k => $v) {
+    $_id = md5(rand() . 'lager' . $v);
+    $lageroptions.= '<input name="lager_id" type="radio" value="'.$k.'" '. ($bF['lager_id'] == $k ? 'checked="1"' : '') . ' id="' . $_id . '" />'
+                   .'<label for="' . $_id . '">' . $v . '</label> ';
+}
+
+$lagerSelectBox = '<span class="DispoLager"><select name="lager_id">' . $this->lagerHtmlOptions . '</select></span>';
+$avisiertSelectBox = '<span class="DispoAvisiert" id="AvisiertSelectBox">'
+        . '<input type="radio" name="avisiert" id="avisiert_alle" value="*" checked="1"><label for="avisiert_alle">Avisiert: Alle</label>'
+        . '<input type="radio" name="avisiert" id="avisiert_nein" value="0"><label for="avisiert_nein">Nein</label>'
+        . '<input type="radio" name="avisiert" id="avisiert_ja" value="1"><label for="avisiert_ja">Ja</label></span>';
+
+$w = array("So", "Mo", "Di", "Mi", "Do", "Fr", "Sa");
+$DVonFormat = '';
+$DBisFormat = '';
+if ($bF['DVon']) {
+    $DVonTime  = strtotime($bF['DVon']);
+    $DVonFormat= $w[date("w", $DVonTime)] . ' ' . date('d.m.Y', $DVonTime);
+}
+if ($bF['DBis']) {
+    $DBisTime  = strtotime($bF['DBis']);
+    $DBisFormat= $w[date("w", $DBisTime)] . ' ' . date('d.m.Y', $DBisTime);
+}
+
+echo <<<EOT
+<div id="TourlistStat">
+
+<div id="SearchTours">
+$lagerSelectBox
+<span class="button">Von <input type="hidden" name="DVon" value="{$bF['DVon']}" /><input class="DateInput" id="DVon" type="text" value="{$DVonFormat}"></span>
+<span class="button">bis <input type="hidden" name="DBis" value="{$bF['DBis']}" /><input class="DateInput" id="DBis" type="text" value="{$DBisFormat}"></span>
+$avisiertSelectBox
+</div>
+EOT;
+
+?>
+
+<table id="gridTourList"></table> 
+<div   id="gridTourList_pager"></div> 
+</div>
+
+<script>
+jQuery(function() { 
+    $( "span.DispoLager", "#SearchTours")
+    .button( { test:false } )
+    .find("select[name=lager_id]").css({
+        fontWeight:"bold",
+        padding:0,
+        background:"inherit",
+        color:"inherit",
+        border:0
+    }).bind("change", function(e) {
+        reloadGridBaseQuery();
+    });
+    
+    $( "#AvisiertSelectBox").buttonset().find("input").bind("click", function(e){ reloadGridBaseQuery(); });
+    
+    function timeFormat( cellvalue, options, rowObject ){
+        return '<span rel="'+cellvalue+'" >'+cellvalue.split(':').slice(0,2).join(':')+'</span>';
+    }
+    function timeUnFormat( cellvalue, options, cell){
+       return $('span', cell).attr('rel');
+    }
+    
+    function dateFormat( cellvalue, options, rowObject ){
+        // alert('#22 linkFormat ' + cellvalue);
+        var days = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+        var v = cellvalue.split('-');
+        var d = new Date();
+        d.setFullYear.apply(d, v);
+        return '<span rel="'+cellvalue+'" >' + days[d.getDay()] + '. ' + v[2]+'.'+v[1]+'</span>';
+    }
+    function dateUnFormat( cellvalue, options, cell){
+       return $('span', cell).attr('rel');
+    }
+    
+    function dispoLinkFormat( cellvalue, options, rowObject ){
+     // options: { rowId(string) : 89, colModel(object) : [object Object], gid(string) : gridTourList, pos(number) : 2}
+     // rowObject => rowRecord assoc. Key-Value 
+     var lnk = "<?php echo $this->baseUrl(); ?>/touren/index?date=" +
+               rowObject.DatumVon + "&lager_id=" + rowObject.lager_id;
+     return '<a href="'+lnk+'" style="color:#00f; text-decoration:underline;">'+cellvalue+'</a>';
+    }
+    function dispoLinkUnFormat( cellvalue, options, cell){
+       return $('a', cell).text();
+    }
+    
+    if (1) $('#gridTourList').jqGrid(
+    <?php 
+    
+    $fKey = array_search('tour_id',  $this->tourlist->grid['colNames']);
+    if ($fKey !== false) {
+//        $this->tourlist->grid['colModel'][$fKey]['formatter'] = new JsFunction('timeFormat');
+//        $this->tourlist->grid['colModel'][$fKey]['unformat']  = new JsFunction('timeUnFormat');
+    }
+    echo JqGridHelper::json_encode( $this->tourlist->grid); ?>
+    )
+    .jqGrid('navGrid','#gridTourList_pager',{
+        edit:false,
+        add:false,
+        del:false,
+        view:false,
+        search:true
+    });
+    
+    function reloadGridBaseQuery() {
+        // Daten auslesen
+        var url = $("#gridTourList").jqGrid('getGridParam', 'url');
+        var dvon = $("div#SearchTours input[name=DVon]").val();
+        var dbis = $("div#SearchTours input[name=DBis]").val();
+        var lgid = $("div#SearchTours select[name=lager_id]").val();
+        var avis = $("div#SearchTours input[name=avisiert]:checked").val();
+
+        // Daten ersetzen, wenn bereits gesetzt
+        url = url.replace(/DatumVon=[^&]*/g, "DatumVon="+dvon);
+        url = url.replace(/DatumBis=[^&]*/g, "DatumBis="+dbis);
+        url = url.replace(/lager_id=[^&]*/g, "lager_id="+lgid);
+        url = url.replace(/avisiert=[^&]*/g, "avisiert="+avis);
+
+        // Hinzufuegen, wenn noch nicht gesetzt
+        if (!url.match(/DatumVon=/)) url+= '&DatumVon='+ dvon;
+        if (!url.match(/DatumBis=/)) url+= '&DatumBis='+ dbis;
+        if (!url.match(/lager_id=/)) url+= '&lager_id='+ lgid;
+        if (!url.match(/avisiert=/)) url+= '&avisiert='+ avis;
+
+        // alert('url 3: ' + url);
+        $("#gridTourList").jqGrid('setGridParam',{search:true, url:url} ).trigger("reloadGrid"); 
+    }
+    
+    $("div#SearchTours span.button").button();
+    $("div#SearchTours input.DateInput").datepicker({
+        dateFormat: 'D dd.mm.yy',
+        changeMonth: true,
+        showWeek: true,
+        onSelect: function(d) {
+            $("div#SearchTours input[name=" + $(this).attr("id") + "]").val( Fb.convertDate(d, "yy-mm-dd", "D dd.mm.yy") );
+            reloadGridBaseQuery();
+        }
+    }).css({
+        fontWeight:"bold",
+        padding:0,
+        background:"inherit",
+        color:"inherit",
+        border:0
+    });    
+});
+
+</script>
+<?php if (0) echo '<pre>' . print_r( $this->tourlist->grid, 1); 
+
+    

@@ -1,0 +1,20 @@
+<?php 
+
+$this->layout()->disableLayout();
+$r = Zend_Controller_Front::getInstance()->getResponse();
+$r->setHeader('Content-Type', 'application/json; charset=UTF-8', true);
+
+if (!$this->debug) {
+    try {
+        echo json_encode($this->ajax_response);
+    } catch (Exception $e) {
+        echo $e->getMessage();
+        print_r(['<pre>', $this->ajax_response, '</pre>']);
+    }
+} else {
+    echo '{};' . PHP_EOL;
+    echo '/* ' . print_r($this->ajax_response, 1) . ' */';
+}
+// echo JqGridHelper::json_encode($this->ajax_response);
+//die();
+//echo json_encode($response);

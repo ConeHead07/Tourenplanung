@@ -1,0 +1,186 @@
+
+    <ul>
+        <li><a class="tab-vg" href="#tabVorgaenge">Vorg&auml;nge</a></li>
+        <li><a class="tab-rsrc-fp" href="#tabRessourceFP">FP</a></li>
+        <li><a class="tab-rsrc-ma" href="#tabRessourceMA">MA</a></li>
+        <li><a class="tab-rsrc-wz" href="#tabRessourceWZ">WZ</a></li>
+    </ul>
+
+    <div class="tabContainer">
+        <div id="tabVorgaenge">
+            <div id="FilterDispoStatusWV" style="width:100%;margin-bottom:8px;">
+                <input type="radio" name="DispoStatusWV" id="DispoStatusWVD" value="disposition" /><label for="DispoStatusWVD" style="width:49%;overflow-x: hidden;"><span style="white-space:pre;">Disposition</span></label> 
+                <input type="radio" name="DispoStatusWV" id="DispoStatusWVR" value="zurueckgestellt" /><label for="DispoStatusWVR" style="width:49%;overflow-x: hidden;"><span style="white-space:pre;">Zurueckgestellt</span></label> 
+            </div>
+            <div id="FilterDispoStatus" style="display:none;width:100%;margin-bottom:0px;">                
+                <input type="radio" name="DispoStatus" id="DispoStatusNE" value="neu" /><label for="DispoStatusNE" style="width:24%;overflow-x: hidden;"><span style="white-space:pre;">Neu</span></label> 
+                <input type="radio" name="DispoStatus" id="DispoStatusBA" value="beauftragt" /><label for="DispoStatusBA" style="width:24%;overflow-x: hidden;"><span style="white-space:pre;">Beauftragt</span></label> 
+                <input type="radio" name="DispoStatus" id="DispoStatusTD" value="teil" /><label for="DispoStatusTD" style="width:24%;overflow-x: hidden;"><span style="white-space:pre;">Teil Disponiert</span></label>
+                <input type="radio" name="DispoStatus" id="DispoStatusFD" value="fertig" /><label for="DispoStatusFD" style="width:24%;overflow-x: hidden;"><span style="white-space:pre;">Fertig Disponiert</span></label>
+            </div>
+            
+            <script>
+            $(function() {
+               $("#FilterDispoStatus").buttonset()
+               .find("input[name=DispoStatus]").bind('click', function(){
+                   $("button[name=sendQuery]", "#sFormVorgaenge").trigger('click');
+               });               
+            });
+            $(function() {
+               $("#FilterDispoStatusWV").buttonset()
+               .find("input[name=DispoStatusWV]").bind('click', function(){
+                   $("button[name=sendQuery]", "#sFormVorgaenge").trigger('click');
+               });               
+            });
+            </script>
+            <div style="padding-left:5px;" class="sFormBox ui-widget ui-widget-content ui-corner-all ui-state-default">
+                <div>
+                    <button class="remoteToggle" rel="sFormVorgaenge" style="background:none;border:0;width:100%;">Suche einblenden</button>
+                    <button class="quickSelect" rel-field="Geschaeftsbereich" rel-tab="#tabVorgaenge" rel-form="#sFormVorgaenge">Q</button>
+                </div>
+                <div id="sFormVorgaenge" class="sForm" style="display:none;">
+                    <?php 
+                        echo $this->dynGridSearchForm(array(
+                        'sopt'=>array('bw'=> '|*', 'cn'=>'*', 'eq'=>'=', 'gt'=>'>', 'lt'=>'<'), 
+                        'showOperators'   => true,
+                        'elementId'       => '#sFormVorgaenge',
+                        'gridId'          => '#gridDispoVorgaengeLst',
+                        'gridModelUrl'    => APPLICATION_BASE_URL . "/touren/data/dispovorgaenge.jqgrid.js",
+                        'searchFieldsIni' => APPLICATION_PATH . '/modules/touren/configs/vorgaenge_suchfelder.ini',
+                        'staticFields'    => array(
+                            'Geschaeftsbereich'
+                        ),
+                        'defaultFields'   => array(
+                            'Auftragsnummer',
+                            'Mandant',
+                            'LieferungName',
+                            'LieferungOrt',
+                            'LieferungStrassePostfach',
+                            'LieferungPostleitzahl',
+                            'AnsprechpartnerNachnameLief',
+                            'Geschaeftsbereich',
+                            'dispoStatus',
+                        ),
+                        'defaultOpers'   => array(
+                            'Auftragsnummer' => 'eq'
+                        ),
+                        'liveSearchUrl'   => '',
+                        'categoryTreeFields' => array(
+                            'Mandant' => APPLICATION_BASE_URL . "/vorgaenge/selectmandantdialog",
+                            'Geschaeftsbereich' => APPLICATION_BASE_URL . "/vorgaenge/selectgbdialog"
+                        ),
+                        'searchFieldsFormat' => array(
+                            'dispoStatus' => array('type'=>'select','options'=>array(
+                                '', 'neu', 'beauftragt', 'teil', 'fertig'
+                            )),
+                        )));
+                    ?>
+                    <?php if (0) echo $this->vorgaengeSearchForm(array(
+                        'sopt'=>array('bw'=>'bw'), 
+                        'showOperators'=>false)); ?>
+                </div>            
+            </div>
+            <div id="PoolVorgangDragSrc" style="height:auto;" class="ui-widget ui-widget-content ui-corner-all ui-state-default">
+                <div style="padding:5px;">
+                    <div class="Drag-Route Is-Pool Is-Template ui-corner-all"><span class="title">Neuen Pool-Vorgang hinzuf&uuml;gen</span></div></div>
+            </div>
+            <table id="gridDispoVorgaengeLst"></table> 
+            <div   id="gridDispoVorgaengeLst_pager"></div>            
+        </div>
+        
+        <div id="tabRessourceFP">
+            <div style="padding-left:5px;" class="sFormBox ui-widget ui-widget-content ui-corner-all ui-state-default">
+                <div>
+                    <button class="remoteToggle" rel="sFormRsrcFP" style="background:none;border:0;width:100%;text-indent:30px;">Suche einblenden</button>
+                    <button class="quickSelect" rel-field="kategorie" rel-tab="#tabRessourceFP" rel-form="#sFormRsrcFP">Q</button>
+                    <span id="btnFPSwitchExtern"><input type="checkbox" id="inputFPSwitchExtern" rel-field="extern" rel-tab="#tabRessourceFP" rel-grid="#gridDispoResourceFPLst" rel-form="#sFormRsrcFP"><label for="inputFPSwitchExtern">Externe Ressourcen</label></span>
+                </div>
+                <div id="sFormRsrcFP" class="sForm">
+                    <?php 
+                        echo $this->dynGridSearchForm(array(
+                        'sopt'=>array('bw'=> '|*', 'cn'=>'*', 'eq'=>'=', 'gt'=>'>', 'lt'=>'<'), 
+                        'showOperators' => false,
+                        'elementId' => '#sFormRsrcFP',
+                        'gridId' => '#gridDispoResourceFPLst',
+                        'gridModelUrl' => APPLICATION_BASE_URL . "/touren/data/disporesources_fp.jqgrid.js",
+                        'searchFieldsIni' => APPLICATION_PATH . '/modules/touren/configs/fuhrpark_suchfelder.ini',
+                        'staticFields'  => array('kategorie'),
+                        'defaultFields' => array('kennzeichen','modell','fahrzeugart','FKL','nutzlast','kategorie'),
+                        'liveSearchUrl' => '',
+                        'categoryTreeFields' => array(
+                            'kategorie' => APPLICATION_BASE_URL . "/fpcategories/selectdialog",
+                        ),
+                        'searchFieldsFormat' => array(
+                            'standort' => array('type'=>'select','options'=>array(
+                                '', 'Neuss', 'Wiesbaden', 'Berlin'
+                            )),
+                        )));
+                    ?>
+                </div>            
+            </div>
+            <table id="gridDispoResourceFPLst"></table>
+            <div   id="gridDispoResourceFPLst_pager"></div>
+        </div>
+            
+        <div id="tabRessourceMA">
+            <div style="padding-left:5px;" class="sFormBox ui-widget ui-widget-content ui-corner-all ui-state-default">
+                <div>
+                    <button class="remoteToggle" rel="sFormRsrcMA" style="background:none;border:0;width:100%;">Suche einblenden</button>
+                    <button class="quickSelect" rel-field="kategorie" rel-tab="#tabRessourceMA" rel-form="#sFormRsrcMA">Q</button>
+                    <span id="btnMASwitchExtern"><input type="checkbox" id="inputMASwitchExtern" rel-field="extern" rel-tab="#tabRessourceMA" rel-grid="#gridDispoResourceMALst" rel-form="#sFormRsrcMA"><label for="inputMASwitchExtern">Externe Ressourcen</label></span>
+                </div>
+                <div id="sFormRsrcMA" class="sForm">
+                    <?php 
+                        echo $this->dynGridSearchForm(array(
+                        'sopt'=>array('bw'=> '|*', 'cn'=>'*', 'eq'=>'=', 'gt'=>'>', 'lt'=>'<'), 
+                        'showOperators' => false,
+                        'elementId' => '#sFormRsrcMA',
+                        'gridId' => '#gridDispoResourceMALst',
+                        'gridModelUrl' => APPLICATION_BASE_URL . "/touren/data/disporesources_ma.jqgrid.js",
+                        'searchFieldsIni' => APPLICATION_PATH . '/modules/touren/configs/mitarbeiter_suchfelder.ini',
+                        'staticFields'  => array('kategorie'),
+                        'defaultFields' => array('name','abteilung','eingestellt_als','fuehrerscheinklasse','kategorie'),
+                        'liveSearchUrl' => '',
+                        'categoryTreeFields' => array('kategorie' => APPLICATION_BASE_URL . "/macategories/selectdialog"),
+                        'searchFieldsFormat' => array(
+                            'standort' => array('type'=>'select','options'=>array(
+                                '', 'Neuss', 'Wiesbaden', 'Berlin'
+                            )),
+                        ))); 
+                    ?>
+                </div>        
+            </div>
+            <table id="gridDispoResourceMALst"></table>
+            <div   id="gridDispoResourceMALst_pager"></div>
+        </div>
+        
+        <div id="tabRessourceWZ">
+            <div style="padding-left:5px;" class="sFormBox ui-widget ui-widget-content ui-corner-all ui-state-default">
+               <div>
+                   <button class="remoteToggle" rel="sFormRsrcWZ" style="background:none;border:0;width:100%;">Suche einblenden</button>
+                   <button class="quickSelect" rel-field="kategorie" rel-tab="#tabRessourceWZ" rel-form="#sFormRsrcWZ">Q</button>
+               </div>
+                <div id="sFormRsrcWZ" class="sForm">
+                    <?php 
+                        echo $this->dynGridSearchForm(array(
+                        'sopt'=>array('bw'=> '|*', 'cn'=>'*', 'eq'=>'=', 'gt'=>'>', 'lt'=>'<'), 
+                        'showOperators' => false,
+                        'elementId' => '#sFormRsrcWZ',
+                        'gridId' => '#gridDispoResourceWZLst',
+                        'gridModelUrl' => APPLICATION_BASE_URL . "/touren/data/disporesources_wz.jqgrid.js",
+                        'searchFieldsIni' => APPLICATION_PATH . '/modules/touren/configs/werkzeug_suchfelder.ini',
+                        'staticFields'  => array('kategorie'),
+                        'defaultFields' => array('bezeichnung','kategorie'),
+                        'categoryTreeFields' => array('kategorie' => APPLICATION_BASE_URL . "/wzcategories/selectdialog"),
+                        'searchFieldsFormat' => array(
+                            'standort' => array('type'=>'select','options'=>array(
+                                '', 'Neuss', 'Wiesbaden', 'Berlin'
+                            )),
+                        ))); 
+                    ?>
+                </div>        
+            </div>
+            <table id="gridDispoResourceWZLst"></table>
+            <div   id="gridDispoResourceWZLst_pager"></div>
+        </div>
+    </div>

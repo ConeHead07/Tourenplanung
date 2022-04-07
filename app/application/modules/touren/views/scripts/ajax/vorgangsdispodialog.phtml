@@ -1,0 +1,179 @@
+<?php 
+$this->layout()->disableLayout();
+$r = Zend_Controller_Front::getInstance()->getResponse();
+$r->setHeader('Content-Type', 'text/html; charset=UTF-8', true);
+
+//echo '<pre>' . print_r($data, 1) . '</pre>';
+        
+$allowAPS = true; //$this->allowed->addportletserie;
+
+$addSerieUrl = $this->baseUrl() . '/' . $this->module.'/'.$this->controller.'/addportletserie';
+
+echo '<style>#vorgangsDispoDlg span.ui-button-text {fontSize:10px;padding:2px 4px}</style>' . PHP_EOL;
+echo '<div id="vorgangsDispoDlg">';
+
+echo '<fieldset id="vgDispoDlgBox" style="margin-top:15px;"><legend>Tagestouren kundenbasiert in Serie anlegen</legend>' . PHP_EOL;
+echo '<form style="display:inline;margin:0;">';
+echo '<input type="hidden" name="lager_id" value="' . $this->lager_id . '"/>';
+echo '<div id="DispoSerieKunde">';
+echo '<label for="DispoVorgangsKunde">Kunde:</label> <select id="DispoVorgangsKunde" name="topcustom">';
+foreach($this->grosskunden as $kunde) echo '<option value="' . $kunde . '">' . $kunde . '</option>';
+echo '</select>';
+echo '</div>';
+echo '<div id="DispoSerie">';
+
+$datumVonFormat = ($this->DatumVon ? date_de('D d.m.Y', $this->DatumVon) : '');
+$datumBisFormat = ($this->DatumBis ? date_de('D d.m.Y', $this->DatumBis) : '');
+echo '<div style="float:left;display:block;width:100px;">';
+echo '<label for="DatumVon" style="display:block">Von:</label>'
+    .'<input type="hidden" id="inputDatumVon" name="DatumVon" value="'.$this->DatumVon.'">'
+    .'<input type="text" id="DatumVon" readonly="readonly" style="width:99%" value="'.$datumVonFormat.'">' . PHP_EOL;
+//echo '<label for="DatumBis">Bis:</label> <input type="text" id="DatumBis" name="data[DatumBis]" value="'.htmlentities($data['DatumBis']).'"><br>' . PHP_EOL;
+echo '</div>';
+
+echo '<div style="float:left;display:block;width:100px;">';
+echo '<label for="DatumBis" style="display:block">Bis:</label>'
+    .'<input type="hidden" id="inputDatumBis" name="DatumBis" value="'.$this->DatumBis.'">'
+    .'<input type="text" id="DatumBis" readonly="readonly" style="width:99%" value="'.$datumBisFormat.'">' . PHP_EOL;
+//echo '<label for="DatumBis">Bis:</label> <input type="text" id="DatumBis" name="data[DatumBis]" value="'.htmlentities($data['DatumBis']).'"><br>' . PHP_EOL;
+echo '</div>';
+
+echo '<div style="float:left;display:block;width:230px;margin-left:10px;">';
+echo '<label for="DatumBis" style="display:block;padding:0 2px">An den Tagen:</label>';
+$tage = array('Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So');
+echo '<span class="DispoWochentage">';
+foreach($tage as $_tag) {
+    $_id = 'tage_' . $_tag;
+    echo '<input type="checkbox" class="DispoWochentag" id="'.$_id.'" name="Wochentage[]" value="'.$_tag.'">'
+        .'<label for="' . $_id . '">' . $_tag . '</label>' . PHP_EOL;
+}
+echo '</span>';
+echo '</div>';
+
+echo '<div style="clear:both;"></div>';
+echo '<br/>';
+echo '<div style="display:block;margin-left:0px;min-height:65px;">';
+echo '<label for="DatumBis" style="display:block;padding:0 2px">Kalenderwochenauswahl:</label>';
+echo '<div id="DispoKWsList"></div>';
+$type = array('gerade', 'ungerade', 'alle');
+echo '<span class="DispoKWs">';
+foreach($type as $_typ) {
+    $_id = 'type_' . $_typ;
+    echo '<input type="radio" checked="checked" class="DispoKW" id="'.$_id.'" name="KWType[]" value="'.$_typ.'">'
+        .'<label for="' . $_id . '">' . $_typ . '</label>' . PHP_EOL;
+}
+echo '</span><br/>';
+echo '</div>';
+
+echo '<div style="clear:both"></div>';
+echo '<button id="addSerie_Send"'.(!$allowAPS?' disabled="true"':'').'>Anlegen</button>';
+echo '</form>';
+echo '</div>';
+echo '</fieldset>';
+echo '</div>';
+
+echo <<<EOT
+<script>
+    try {
+
+        /*****************
+        * SERIEN ANLEGEN *
+        ******************/
+        $("#addSerie_Send", "fieldset#vgDispoDlgBox").click(function(e){
+            var self = this;
+            e.preventDefault();
+            $.ajax({
+                type: 'GET', dataType: 'json', async: false, data: $(this).closest("form").serialize(),
+                url: "$addSerieUrl",
+                success:function(data) {
+                    if (data.error) {
+                        alert(data.error);
+                        return false;
+                    }
+                    $(self).attr({disabled: 'disabled', value:'reloading ...'});
+                    $(self).after('<span style="color:green;">Tour wurde hinzugefuegt, Liste wird aktualisiert</span>');
+                    
+                    var tabs = $(self).closest("div.ui-tabs.TourTabbedSheet")
+                    var current_index = $(tabs).tabs("option","selected");
+                    $(tabs).tabs('load',current_index);
+                },
+                error:function() {
+                    alert('error!');
+                }
+            });
+            return false;
+        });
+        
+        var showKws = function(datumVon, datumBis) {
+            if (!datumVon || !datumBis || datumVon > datumBis ) return false;
+            
+            var srcFormat = "yy-mm-dd";
+            var curr = $.datepicker.parseDate(srcFormat, datumVon);
+            var bis = $.datepicker.parseDate(srcFormat, datumBis);
+            
+            var w = curr.getDay();
+            var moDiffTage = 0;
+            switch ( w ) {
+                case 0: // So
+                moDiffTage = 6;
+                break;
+                
+                default: 
+                moDiffTage = w-1;
+                break;
+            }
+            curr.setTime( curr.getTime() - (moDiffTage * 24 * 60 * 60 * 1000) );
+            
+            var soDate = new Date();
+            var endTime = bis.getTime();
+            var timeOfOneWeek = 7 * 24 * 60 * 60 * 1000;
+            var kwList = '';
+            var val = '';
+            var title = '';
+            var kw = '';
+            var id = 1;
+            do {
+                soDate.setTime( curr.getTime() + (6*24*60*60*1000) );
+                kw = $.datepicker.iso8601Week( curr );
+                //val = curr.getFullYear() + "-" + kw;
+				val = soDate.getFullYear() + "-" + (kw >9 ? kw : '0'+kw);
+                title = Fb.convertDate(curr, "yy-mm-dd") + " - " + Fb.convertDate( soDate, "yy-mm-dd");
+                kwList+= "<input id=\"DispoKwId"+id+"\" type=\"checkbox\" data-kw=\""+kw+"\" name=\"DispoKWs[]\" value=\""+val+"\">";
+                kwList+= "<label for=\"DispoKwId"+id+"\" title=\""+title+"\">" + kw + "</label>";
+                curr.setTime( curr.getTime() + timeOfOneWeek );
+                ++id;
+            } while ( curr.getTime() < endTime );
+            $("#DispoKWsList").html( kwList );
+            $("#DispoKWsList input:checkbox").button();
+            $("#DispoKWsList").buttonset();
+            //alert(kwList);
+            
+            
+        };
+        showKws( $("#inputDatumVon").val(), $("#inputDatumBis").val());
+        
+        $("input#DatumVon, input#DatumBis", "fieldset#vgDispoDlgBox").datepicker({
+            dateFormat:'D dd.mm.yy', 
+            changeMonth: true,
+            showWeek: true,
+            onSelect: function(d) {
+                $("#input" + $(this).attr("id")).val( Fb.convertDate(d, "yy-mm-dd", "D dd.mm.yy") );
+                showKws( $("#inputDatumVon").val(), $("#inputDatumBis").val());
+            }
+        });
+        $("span.DispoWochentage input.DispoWochentag", "fieldset#vgDispoDlgBox").button();
+        $("span.DispoWochentage", "fieldset#vgDispoDlgBox").buttonset().find("span.ui-button-text");
+        
+        $("span.DispoKWs input.DispoKW", "fieldset#vgDispoDlgBox").button().click(function(e,ui){
+            var mod = $(this).val();
+            $("#DispoKWsList input:checkbox").each(function(idx) {
+                var kw = $(this).attr('data-kw');
+                var ck = (mod == "alle" || (mod == "ungerade" && kw%2==1) || (mod == "gerade" && kw%2==0) );
+                $(this).attr("checked", ck).button("refresh");
+            });
+        });
+        $("span.DispoKWs", "fieldset#vgDispoDlgBox").buttonset().find("span.ui-button-text");
+        
+    } catch(e) { alert("jQuery ist nicht verfügbar)!"); }
+</script>
+EOT;

@@ -1,0 +1,271 @@
+<?php 
+$this->layout()->disableLayout();
+$r = Zend_Controller_Front::getInstance()->getResponse();
+$r->setHeader('Content-Type', 'text/html; charset=UTF-8', true);
+
+$DVon = $this->dateRange['Von'];
+$DBis = $this->dateRange['Bis'];
+$lagerid = $this->lager_id;
+
+// echo '<pre>' . $this->dateRange['Von'] . ' ' . $this->dateRange['Bis'] . ' lager_id: ' . $this->lager_id . PHP_EOL . print_r($this->data,1); 
+
+function timeToMin($time) {
+    if (preg_match('/^([0-9]{2}):([0-9]{2})/', trim($time), $m)) {
+        return intval($m[1]) * 60 + intval($m[2]);        
+    }
+    throw new Exception('Invalid Argument: ' . $time . ' is not time-formatted string!');
+}
+
+// Gruppieren der Touren nach Tag und Tour und Timeline
+// Summieren der Touren-Auslastung in Minuten pro Timeline
+$maxRowsPerDay = 0;
+$tourenByDate = array();
+$tourenAuslastung = array();
+if (0) foreach($this->data as $_row) {
+    if (!array_key_exists($_row['DatumVon'], $tourenByDate))
+        $tourenByDate[$_row['DatumVon']] = array();
+    
+    if (!array_key_exists($_row['portlet_id'], $tourenByDate[$_row['DatumVon']]))
+        $tourenByDate[ $_row['DatumVon'] ][ $_row['portlet_id'] ] = array();
+    
+    if (!array_key_exists($_row['timeline_id'], $tourenByDate[ $_row['DatumVon'] ][ $_row['portlet_id'] ]))
+        $tourenByDate[ $_row['DatumVon'] ][ $_row['portlet_id'] ][ $_row['timeline_id']] = array();
+            
+    $tourenByDate[ $_row['DatumVon'] ][ $_row['portlet_id'] ][ $_row['timeline_id']][] = $_row;
+    
+    if (!@isset($tourenAuslastung[ $_row['DatumVon'] ][ $_row['portlet_id'] ][ $_row['timeline_id']]))
+        $tourenAuslastung[ $_row['DatumVon'] ][ $_row['portlet_id'] ][ $_row['timeline_id']] = 0;
+    
+    try {
+        $tourenAuslastung[ $_row['DatumVon'] ][ $_row['portlet_id'] ][ $_row['timeline_id']]+=
+            timeToMin($_row['ZeitBis']) - timetoMin($_row['ZeitVon']);
+    } catch(Exception $e) {
+        echo $e->getMessage();
+    }
+    
+    $maxRowsPerDay = max( $maxRowsPerDay, count( $tourenByDate[ $_row['DatumVon'] ][ $_row['portlet_id'] ] ) );
+}
+if (1) foreach($this->data as $_row) {
+    $_dt = ($_row['DatumVon']) ? $_row['DatumVon'] : $_row['datum'];
+    if (!array_key_exists($_dt, $tourenByDate))
+        $tourenByDate[$_dt] = array();
+    
+    if (!array_key_exists($_row['portlet_id'], $tourenByDate[$_dt]))
+        $tourenByDate[ $_dt ][ $_row['portlet_id'] ] = array();
+    
+    if (!array_key_exists($_row['timeline_id'], $tourenByDate[ $_dt ][ $_row['portlet_id'] ]))
+        $tourenByDate[ $_dt ][ $_row['portlet_id'] ][ $_row['timeline_id']] = array();
+            
+    $tourenByDate[ $_dt ][ $_row['portlet_id'] ][ $_row['timeline_id']][] = $_row;
+    
+    if (!@isset($tourenAuslastung[ $_dt ][ $_row['portlet_id'] ][ $_row['timeline_id']]))
+        $tourenAuslastung[ $_dt ][ $_row['portlet_id'] ][ $_row['timeline_id']] = 0;
+    
+    try {
+        if ($_row['ZeitVon']) $tourenAuslastung[ $_dt ][ $_row['portlet_id'] ][ $_row['timeline_id']]+=
+            timeToMin($_row['ZeitBis']) - timetoMin($_row['ZeitVon']);
+    } catch(Exception $e) {
+        echo $e->getMessage();
+    }
+    
+    $maxRowsPerDay = max( $maxRowsPerDay, count( $tourenByDate[ $_dt ][ $_row['portlet_id'] ] ) );
+}
+
+$startDate = new DateTime($DVon);
+$endDate   = new DateTime($DBis);
+$interval  = $endDate->diff($startDate, true);
+
+// Formatierung %a ist leider in manchen PHP-Versionen buggie !!
+$numDays = ((int)$interval->format("%a"))+1; // %a total amount of days e.g. 40, 8450
+// http://www.php.net/manual/de/dateinterval.format.php
+
+$offsetTime = strtotime($DVon);
+while( date('Y-m-d', $offsetTime) <= $DBis) {
+    $colDays[] = $offsetTime;
+    $offsetTime = $offsetTime + (24*3600);
+}
+$numDays = count($colDays);
+
+$W = array('Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag');
+
+?>
+<style>
+    .tourGroup {
+        border-bottom:1px solid #d2d2d2;
+    }
+    .tourGroupNr {
+        float:left;
+    }
+    .tourGroupOrt {
+        float:right;
+        text-align:right;
+    }
+    .tourVorgaenge {
+        border-bottom:1px solid #d2d2d2;
+    }
+    .tourVorgang {
+    }
+    .tourVgNr,
+    .tourVgKdname {
+        float:left;
+        min-width:40px;
+        width:50%;
+        line-height:16px;
+        height:16px;
+        overflow: hidden;
+    }
+    
+    .clear-float {
+        clear:both;
+    }
+    th {
+        width:<?=99/7; ?>% !important;
+    }
+    td.tourColDay {
+        width:<?=99/7; ?>% !important;
+        border-collapse: collapse;
+        empty-cells: show;
+        vertical-align:top;
+    }
+    
+    .tourAuslastung-Gruen {
+        background-color:#C4E1A4;
+    }
+    .tourAuslastung-Gelb {
+        background-color:#fcefa1;
+    }
+    .tourAuslastung-Orange {
+        background-color:#FEC;
+    }
+    .tourAuslastung-Rot {
+        background-color:#fdd;
+    }
+    
+    table.calendar-week-data {
+        border-left:1px solid #4297D7;
+        border-top:1px solid #4297D7;
+    }
+    table.calendar-week-data td {
+        border-right:1px solid #4297D7;
+        border-bottom:1px solid #4297D7;
+        vertical-align:top;
+    }
+    table.calendar-week-data th {
+        font-weight:bold;
+        text-align:center;
+    }
+    table.calendar-week-data .cellTitleDay {
+        font-weight:bold;
+    }
+    
+    div.GroupTop25 {
+        border:1px solid #f00;
+    }
+    div.GroupTop25 div.GroupTop25Title {
+        font-size:12px;
+        font-weight:900 !important;
+        background-color:#f00;
+        color:#fff;
+    }
+    
+    div.GroupTitles {
+        border:1px solid #ffa500;
+    }
+    div.GroupTitles div.GroupTitle {
+        font-size:12px;
+        font-weight:900 !important;
+        background-color:#ffa500;
+        color:#fff;
+    }
+</style>
+<?php 
+
+echo '<h1 style="text-align:center"> Monatsansicht ' . $startDate->format('Y-m') . '</h1>' . PHP_EOL;
+
+echo '<table class="calendar-week-data ui-corner-top" width=100% cellpadding=1 cellspacing=0>';
+echo '<thead class="ui-widget-header"><tr>';
+echo '<th style="width:25px !important;">KW</th>';
+echo '<th>Montag</th><th>Dienstag</th><th>Mittwoch</th><th>Donnerstag</th><th>Freitag</th><th>Samstag</th><th>Sonntag</th>';
+echo '</tr></thead>';
+
+echo '<tbody><tr>';
+$dayLink = APPLICATION_URL . '/touren/index?date=%s&lager_id=%u';
+$lastTopCustom = '';    
+for($i = 0; $i < count($colDays); ++$i) {
+    $_time = $colDays[$i];
+    list($W,$w) = explode('-', date('W-w', $_time));
+    if ($i == 0 || ($i && $w == 1) ) {
+        echo '<tr>';
+        echo '<td style="width:25px;font-weight:bold;">' . $W . '</td>';
+    }
+    if ($i == 0) {
+        if ( $w == 0) {
+            echo '<td colspan=6>&nbsp;</td>';
+        } elseif ($w > 1) {
+            echo '<td colspan=' . ($w-1).'>&nbsp;</td>';
+        }
+    }
+    
+    $DKey = date('Y-m-d', $_time);
+    $url = sprintf($dayLink, date('Y-m-d', $_time), $lagerid);
+    
+    echo '<td class="tourColDay">';
+    echo '<div class="cellTitleDay"><a href="'.$url.'">'.date('d', $_time).'</a></div>';
+    if (array_key_exists($DKey, $tourenByDate) && is_array($tourenByDate[$DKey])) {
+        foreach( $tourenByDate[$DKey] as $_portlet_id => $_portlet) {
+            $lastTopCustom = '';
+			$lastTitle = '';
+            foreach($_portlet as $_timeline_id => $_timeline) {
+                if (!count($_timeline)) continue;
+                
+                $groupTop25 = false;
+                $groupTitle = false;
+				
+                if (!empty($_timeline[0]['PortletTopCustom']) && $_timeline[0]['PortletTopCustom'] != $lastTopCustom) {
+                    $groupTop25 = true;
+                    echo '<div class="GroupTop25">';
+                    echo '<div class="GroupTop25Title">' . $_timeline[0]['PortletTitle']. '</div>';
+                }
+				
+                if (!empty($_timeline[0]['PortletTitle']) && $_timeline[0]['PortletTitle'] != $lastTitle) {
+                    $groupTitle = true;
+                    echo '<div class="GroupTitles">';
+                    echo '<div class="GroupTitle">' . $_timeline[0]['PortletTitle']. '</div>';
+                }
+                echo '<div class="tourGroup">'
+                . '<div class="tourGroupNr">Tour ' . $_timeline[0]['tagesnr'] . '</div> ' 
+                . '<div class="tourGroupOrt">'. $_timeline[0]['LieferungOrt'] . '</div>' . PHP_EOL
+                . '<div class="clear-float"></div>'
+                . '</div>';
+                
+                $al = $tourenAuslastung[ $DKey ][ $_portlet_id ][ $_timeline_id ];
+                if ($al < 120) $alClass = 'tourAuslastung-Gruen';
+                elseif ($al < 360) $alClass = 'tourAuslastung-Gelb';
+                elseif ($al < 640) $alClass = 'tourAuslastung-Orange';
+                else $alClass = 'tourAuslastung-Rot';
+                
+                echo '<div class="tourVorgaenge ' . $alClass . '">';
+                foreach($_timeline as $_vg) {
+                    echo '<div class="tourVorgang">';
+                    echo '<div class="tourVgKdname" title="'.$_vg['LieferungName'].'">'.$_vg['LieferungName'] . '</div>';
+                    echo '<div class="tourVgNr">'.$_vg['Auftragsnummer'] . '</div>';
+                    echo '<div class="clear-float"></div>';
+                    echo '</div>';
+                }
+                echo '</div>';
+
+                if ($groupTitle) {
+                    echo '</div>';
+                }
+                if ($groupTop25) {
+                    echo '</div>';
+                }
+                $lastTopCustom = $_timeline[0]['PortletTitle'];
+            }
+        }
+    }
+    echo '</td>';
+}
+echo '</tr>';
+echo '</tbody>';
+echo '</table>';

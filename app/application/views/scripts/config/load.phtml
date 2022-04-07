@@ -1,0 +1,38 @@
+<fieldset style="background:#eee;border:1px solid #888;" class="ui-corner-all"><legend style="background:#fff;border:1px solid #888;padding:5px 30px 5px 10px;font-weight:bold;" class="ui-corner-all"><?=$this->formTitle; ?></legend>
+<div style="padding:5px;">
+<form name="frmConf" id="frmConf">
+<div id="fileInfo" style="text-align:right;"><?=basename($this->configFile).', '.date('d.m.Y H:i', $this->configModified); ?></div>
+<div><textarea name="config" id="config" style="color:#00D;min-width:600px;width:100%;min-height:500px;"><?=$this->config; ?></textarea></div>
+<input type="hidden" name="confid" value="<?=$this->confid;?>">
+<input type="submit" id="confSave" name="save"  value="speichern" />
+<input type="reset"  name="reset" value="reset" />
+</form>
+</div>
+</fieldset>
+<script>
+$(function() {
+    $("#confSave").click(function(e){
+        e.preventDefault();
+        
+        $.ajax({
+            url: <?= json_encode($this->save) ?>,
+            data: $("#frmConf").serialize(),
+            type: 'POST',
+            dataType:'json',
+            async: false,
+            success: function(data, textStatus, jqXHR) {
+                $("textarea[name=config]", "#frmConf").val(data.config);
+                if (data.type == 'success' && !data.error)
+                    alert('Daten wurden gespeichert!');
+                else
+                    alert('Es ist ein Fehler aufgetreten: \n' + data.error );
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                alert('Fehler: ' . textStatus);
+            }
+        });
+    });
+});
+
+</script>
+

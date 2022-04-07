@@ -1,0 +1,93 @@
+<?php 
+require_once 'JqGridHeader.php';
+JqGridHeader::enable(true);
+?>
+
+<?php
+$this->tourlist->grid['pager'] = '#gridTourList_pager';
+
+$colNames = implode(',', $this->tourlist->grid['colNames']);
+$colModel = '';
+foreach( $this->tourlist->grid['colModel'] as $_k => $_v ) {
+    if ($colModel) $colModel.= ",\n";
+    $colModel.= JqGridHelper::json_encode( $_v );
+}
+
+?>
+<table id="gridTourList"></table> 
+<div   id="gridTourList_pager"></div> 
+<script>
+jQuery(function() {
+    function linkFormat( cellvalue, options, rowObject ){
+     // alert('#22 linkFormat ' + cellvalue);
+     return '<a href="/'+cellvalue+'" >'+cellvalue+'</a>';
+    }
+    function linkUnFormat( cellvalue, options, cell){
+       return $('a', cell).text();
+    }
+    
+    function dispoDateFormat( cellvalue, options, rowObject ){
+     return '<a src="/'+cellvalue+'" />'+cellvalue+'</a>';
+    }
+    function dispoDateUnFormat( cellvalue, options, cell){
+       return $('a', cell).text();
+    }
+    
+    if (1) $('#gridTourList').jqGrid(
+    <?php 
+    
+    $fKey = array_search('tour_id',  $this->tourlist->grid['colNames']);
+    if ($fKey !== false) {
+        $this->tourlist->grid['colModel'][$fKey]['formatter'] = new JsFunction('linkFormat');
+        $this->tourlist->grid['colModel'][$fKey]['unformat']  = new JsFunction('linkUnFormat');
+    }
+    echo JqGridHelper::json_encode( $this->tourlist->grid); ?>
+    )
+    .jqGrid('navGrid','#gridTourList_pager',{});
+});
+</script>
+<?php echo '<pre>' . print_r( $this->tourlist->grid, 1); ?>
+<script>
+jQuery(function() {
+if (0) $('#gridTourList').jqGrid(
+    {"colModel":[
+            {"name":"tour_id","index":"tour_id","editable":false,"key":true,formatter:'showlink'},
+            {"name":"Mandant","index":"Mandant","editable":false},
+            {"name":"Auftragsnummer","index":"Auftragsnummer","editable":false},
+            {"name":"timeline_id","index":"timeline_id","editable":false},
+            {"name":"DatumVon","index":"DatumVon","editable":false},
+            {"name":"ZeitVon","index":"ZeitVon","editable":false},
+            {"name":"DatumBis","index":"DatumBis","editable":false},
+            {"name":"ZeitBis","index":"ZeitBis","editable":false},
+            {"name":"IsDefault","index":"IsDefault","editable":false},
+            {"name":"count_actions","index":"count_actions","editable":false},
+            {"name":"modified","index":"modified","editable":false}
+        ],
+        "height":"auto",
+        "jsonReader":{"repeatitems":false,"id":0},
+        "autowidth":true,
+        "rowList":[10,20,30,40,50,100],
+        "rowNum":10,
+        "rownumbers":false,
+//        "altRows":true,
+//        "altclass":"ui-jqgrid-altrow",
+        "resizable":true,
+        "sortable":true,
+        "datatype":"json",
+//        "url":"<?php echo APPLICATION_BASE_URL; ?>/tourlist/gridresponsedata",
+        "editurl":"<?php echo APPLICATION_BASE_URL; ?>/vorgaenge\/grideditdata", // +
+        "onSelectRow":function(id, status) { }, // +
+        "caption":"Test-Grid", // +
+        "shrinkToFit":true,
+        "pager":"#gridTourList_pager",
+        "loadError":function(xhr,status,error){alert(status+'\n'+error);},
+        
+        "colNames":[
+            "tour_id","Mandant","Auftragsnummer","timeline_id","DatumVon","ZeitVon","DatumBis","ZeitBis",
+            "IsDefault","count_actions","modified"
+        ]
+    }    
+    )
+    .jqGrid('navGrid','#gridTourList_pager',{});
+});
+</script>    

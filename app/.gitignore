@@ -1,0 +1,10 @@
+.idea/
+.settings/
+.svn/
+nbproject/
+application/log/
+application/cache/
+application/tmp/
+**/*.local.*
+!application/log/.gitignore
+!**/.gitignore

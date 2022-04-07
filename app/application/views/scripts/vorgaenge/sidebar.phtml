@@ -1,0 +1,215 @@
+    <ul>
+        <li><a class="tab-vg" href="#tabVorgaenge">Poolvorg&auml;nge</a></li>
+    </ul>
+
+    <div class="tabContainer PoolSelectBox">
+        <div id="tabVorgaenge">
+            <div id="FilterDispoStatus" style="width:100%;margin-bottom:8px;">
+                <input type="radio" name="DispoStatus" id="DispoStatusBA" value="beauftragt" /><label for="DispoStatusBA" style="width:29%;">Beauftragt</label> 
+                <input type="radio" name="DispoStatus" id="DispoStatusTD" value="teil" /><label for="DispoStatusTD" style="width:29%;">Teil Disponiert</label>
+                <input type="radio" name="DispoStatus" id="DispoStatusFD" value="fertig" /><label for="DispoStatusFD" style="width:39%;">Fertig Disponiert</label>
+            </div>
+            <div style="padding-left:5px;" class="sFormBox ui-widget ui-widget-content ui-corner-all ui-state-default">
+                <div>
+                    <button class="remoteToggle" rel="sFormVorgaenge" style="background:none;border:0;width:100%;">Suche einblenden</button>
+                    <button class="quickSelect" rel-field="Geschaeftsbereich" rel-tab="#tabVorgaenge" rel-form="#sFormVorgaenge">Q</button>
+                </div>
+                <div id="sFormVorgaenge" class="sForm" style="display:none;">
+                    <?php 
+                        echo $this->dynGridSearchForm(array(
+                        'sopt'=>array('bw'=> '|*', 'cn'=>'*', 'eq'=>'=', 'gt'=>'>', 'lt'=>'<'), 
+                        'showOperators'   => true,
+                        'elementId'       => '#sFormVorgaenge',
+                        'gridId'          => '#gridDispoVorgaengeLst',
+                        'gridModelUrl'    => APPLICATION_BASE_URL . "/jquery/data/wws_auftragskoepfe.jqgrid.js",
+                        'searchFieldsIni' => APPLICATION_PATH . '/modules/touren/configs/poolvorgaenge_suchfelder.ini',
+                        'staticFields'    => array(
+                            'Geschaeftsbereich'
+                        ),
+                        'defaultFields'   => array(
+                            'Auftragsnummer',
+                            'LieferungOrt',
+                            'LieferungStrassePostfach',
+                            'LieferungPostleitzahl',
+                            'AnsprechpartnerNachnameLief',
+                            'Geschaeftsbereich',
+                        ),
+                        'liveSearchUrl'   => '',
+                        'categoryTreeFields' => array(
+                            'Mandant' => APPLICATION_BASE_URL . "/vorgaenge/selectmandantdialog",
+                            'Geschaeftsbereich' => APPLICATION_BASE_URL . "/vorgaenge/selectgbdialog"
+                        )));
+                    ?>
+                </div>            
+            </div>
+                      
+            <table id="gridDispoVorgaengeLst"></table> 
+            <div   id="gridDispoVorgaengeLst_pager"></div>            
+        </div>
+    </div>
+    
+            <script>
+            $(function() {
+               $("div.tabContainer").parent().tabs();
+               
+               if (pageLayout) {
+                    //    var m="";for (var i in pageLayout ) m+=i+":"+typeof(pageLayout[i])+"\n"; alert(m);
+                    //    alert('layout show west!');
+                    <?php echo "if (".json_encode($this->sidebar['openOnload']).")"; ?> pageLayout.open( "west" );        
+               
+                    $("body").bind("west_resize_end", function(){
+                        
+                        var newWidth = parseInt( $( "div.sFormBox:visible" ).outerWidth() );
+                        $.cookie('layoutWestWidth', newWidth); 
+
+                        // alert ( 'newWidth: ' + newWidth );
+    //                    alert('onresize_end ! newWidth:' + newWidth);
+                        $( '#gridDispoVorgaengeLst'  ).jqGrid( 'setGridWidth', newWidth );
+
+                        $( 'table.subgrid', '#gridDispoVorgaengeLst' ).each(function() {
+                            var gridId = $(this).attr('id');
+                            var gridParentWidth = parseInt( $('#gbox_' + gridId).parent().width() );
+                            if (gridParentWidth > 5) gridParentWidth-= 2;
+                            $('#' + gridId).setGridWidth(gridParentWidth);
+                            
+                            $( "#PoolFormBox").html(
+                                APP_BASE_URL + '/vorgaenge/insertpool'
+                            );
+                        });
+                    });
+               }
+               
+               var loadGridTimer = null;
+               var loadGrid = function() {
+               if (typeof(createGridAuftragskoepfe)=="function") {
+                     clearInterval(loadGridTimer);
+                     createGridAuftragskoepfe(
+                         "#gridDispoVorgaengeLst", 
+                         "#gridDispoVorgaengeLst_pager", 
+                         APP_BASE_URL + '/vorgaenge/findvorgaenge/view/touren/Mandant/110', 
+                         {
+                             'onSelectRow': function(rowid) {
+                                 var rd = $(this).jqGrid('getRowData', rowid );
+                                 //var m= ''; for(var i in rd) m+= i+":"+rd[i]+"\n"; alert(m);
+                                 //alert( 'Oeffne Vorgang mit der ID ' + rowid);
+                                 
+                                 var rf = (new Date()).getTime();
+                                 $("#PoolFormBox").load(
+                                    APP_BASE_URL + '/vorgaenge/editpool?mandant='+rd['Mandant']+'&id='+rd['Auftragsnummer']+'&format=partial&rf='+rf
+                                 );
+                             }
+                         }
+                     );
+                     $( "#gridDispoVorgaengeLst" )
+                     .jqGrid('setGridParam', {"datatype":"json"})
+                     .jqGrid('setGridParam',{
+                         search:true, 
+                         url: APP_BASE_URL + '/vorgaenge/findvorgaenge/view/touren/Mandant/110'
+                     });
+                 } else {
+                     //alert("#98 Function createGridAuftragskoepfe() not found!");
+                 }
+               }
+               
+               if (typeof(createGridAuftragskoepfe)=="function") loadGrid();
+               else setInterval( function(){ loadGrid()}, 300);
+    
+                $( "div.PoolSelectBox button.remoteToggle" ).button({
+                    icons: { secondary: "ui-icon-triangle-1-s" }
+                })
+                .unbind("click").click(function() {
+                    if ( !$( "div#" + $(this).attr("rel")).length ) return;
+
+                    var options;
+                    var remoteItem = $( "div#" + $(this).attr("rel"));
+                    if ( remoteItem.css("display") == "none" ) {
+                        options = {
+                            label: $(this).text().replace("ein", "aus"),
+                            icons: { secondary: "ui-icon-triangle-1-n" }
+                        };
+                        $( "div#" + $(this).attr("rel")).slideDown( "normal", function(){} );
+                    } else {
+                        options = {
+                            label: $(this).text().replace("aus", "ein"),
+                            icons: { secondary: "ui-icon-triangle-1-s" }
+                        };
+                        $( "div#" + $(this).attr("rel")).slideUp( "normal", function(){} );
+                    }
+                    $( this ).button( "option", options );
+                });
+
+                $( "button.quickSelect" ).parent().css({position:"relative"});
+                $( "button.quickSelect" ).button({
+                    icons: {primary: "ui-icon-gear"},
+                    text:false            
+                })
+                .css({position:"absolute","border":0,top:0,left:0,margin:0})
+                .buttonset()
+                .click(function(e){
+                    var self = this;
+                    var dlgId = "quickSelectDialog",
+                        dlg = null,
+                        field = $(self).attr("rel-field"),
+                        tab = $(self).attr("rel-tab"),
+                        frm = $(self).attr("rel-form"),
+                        cUrl= $(frm).fbMultiSearchBox('categoryTreeFields'),
+                        url = (cUrl && field in cUrl) ? cUrl[field] : '';
+
+                    if (!$(  "#"+dlgId).length) 
+                        $( "<div/>")
+                        .attr({id:dlgId})
+                        .css({position:"absolute",zIndex:999})
+                        .appendTo("body")
+                        .bind('mousemove', function() {
+                            $(this).data('mouseenter', true);
+                        })
+                        .bind('mouseleave', function() {
+                            $(this).data('mouseenter', false);
+                            var tip = this;
+                            setTimeout(function(){
+                                if (!$(tip).data('mouseenter')) $(tip).hide();
+                            }, 900);
+                        })
+                        .data("target", null);
+
+                    dlg = $("#"+dlgId);
+
+                    $(this).bind("mouseleave", function(){
+                        setTimeout(function(){
+                            if (!dlg.data('mouseenter')) dlg.hide();
+                        }, 900);
+                    });
+
+                    if (dlg.data("target")!==this)        
+                        dlg    
+                        .load(
+                            url, //.../fpcategories/selectdialog", 
+                            function() {
+                                $("#treeSelectDialog").bind("selectTreeNode", function(event, data) {
+                                    $( 'select[default='+field+']', frm).parent()
+                                    .nextAll("td.data").find("input[name=data]")
+                                    .fbChooser('setData', [{value:data.id, label:data.name}] );
+
+                                    $("#quickSelectDialog").hide();
+                                    $( 'button[name=sendQuery]', tab).trigger('click');                        
+                                });
+                            }
+                        )
+                        .data("target", this);
+
+                    dlg
+                    .show()
+                    .css({
+                        left:$(self).offset()["left"],
+                        top:$(self).offset()["top"]+$(self).height()
+                    });      
+                    e.preventDefault();
+                })
+
+               
+               $("#FilterDispoStatus").buttonset()
+               .find("input[name=DispoStatus]").bind('click', function(){
+                   $("button[name=sendQuery]", "#sFormVorgaenge").trigger('click');
+               });               
+            });
+            </script>

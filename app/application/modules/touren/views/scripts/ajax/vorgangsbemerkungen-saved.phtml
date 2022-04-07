@@ -1,0 +1,69 @@
+<?php 
+$this->layout()->disableLayout();
+$r = Zend_Controller_Front::getInstance()->getResponse();
+$r->setHeader('Content-Type', 'text/html; charset=UTF-8', true);
+
+//echo '#' . __LINE__ . ' ' . basename(__FILE__). '<br>' . PHP_EOL;
+
+if (property_exists($this->vorgangsbemerkungen, 'error')) {
+    echo '<div class="err">' . $this->vorgangsbemerkungen->error . "</div>\n";
+}
+
+if ($this->vorgangsbemerkungen->data 
+    && array_key_exists('bemerkung', $this->vorgangsbemerkungen->data)) {
+    
+    if ( $this->vorgangsbemerkungen->data['bemerkung']) {
+        echo '<div class="headBemerkungen">Bisherige Bemerkungen:</div>';
+        echo '<pre>'.htmlentities($this->vorgangsbemerkungen->data['bemerkung']).'</pre>';
+        if ('<?xml ' != substr($this->vorgangsbemerkungen->data['bemerkung'], 0, 6)) {
+            echo nl2br($this->vorgangsbemerkungen->data['bemerkung']);
+        } else {
+            $xml = simplexml_load_string( $this->vorgangsbemerkungen->data['bemerkung'] );
+            $result = $xml->xpath('//div[@class="entry"]');
+            while(list( , $node) = each($result)) {
+                echo $node->asXML();
+            }
+        }
+    } else {
+        echo '<div class="headBemerkungen">Es liegen keine Bemerkungen vor!</div>';
+    }
+}
+
+?>
+<script>
+    
+if (!Fb) Fb = {};
+
+Fb.RenderBemerkungenPrintFlag = function() {
+    $("div.entry", "#boxBemerkungen").each(function() {
+        var self = this;
+        var p = $(this).attr('print');        
+        var id = $(this).attr("id");        
+        
+        $("div.bemerkung-meta", this).prepend(
+            $("<input type='checkbox' name='attr["+id+"][print]' value='1' />")
+            .attr({checked:(p==1)})
+            .after( 
+                $("<span class='ui-icon ui-icon-print'/>").fbIcon({
+                    click: function() {
+                        $(this).prev().attr( {checked: $(this).prev().attr('checked') });
+                    }
+                 }
+            ))
+        );
+    });
+    
+    $("#boxBemerkungen").append(
+        $('<input type="button" value="Druckmarkierungen speichern" />').click(function() {
+            $.post( 
+                $("form#frmBemerkung").attr('rel'), 
+                $("#boxBemerkungen").serialize(), 
+                function(data) {
+                    alert('aktualisiert!');
+                }
+            );
+        })
+    ).append(
+        $('<input type="hidden" name="attr[dummie][print]" value="0" />'));
+Fb.RenderBemerkungenPrintFlag();
+</script>

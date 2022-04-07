@@ -1,0 +1,747 @@
+<?php 
+$this->layout()->disableLayout();
+$r = Zend_Controller_Front::getInstance()->getResponse();
+$r->setHeader('Content-Type', 'text/html; charset=UTF-8', true);
+
+$updateUrl = $this->url(array('action' => 'updatetourenabschlusszeiten'));
+$reopenUrl = $this->url(array('action' => 'reopentourabschlusszeiten'));
+
+$updateTourenUrl = $this->url(array('action' => 'updatetourenabschlusszeiten'));
+$finishTourenUrl = $this->url(array('action' => 'updatetourenabschlusszeiten'));
+//$finishTourenUrl = $this->url(array('action' => 'finishtourenabschlusszeiten'));
+$reopenTourenUrl = $this->url(array('action' => 'reopentourenabschlusszeiten'));
+
+/** @todo Status muss noch aus DB ausgelesen werden, default: false */
+$zeAbgeschlossen = false;
+
+$touren = &$this->ajax_response->touren;
+$tour_data = &$this->ajax_response->tour;
+$vorgang_data = &$this->ajax_response->vorgang;
+$vorgang_status = &$this->ajax_response->vorgangsstatus;
+$tour_id   = &$this->ajax_response->tour_id;
+$tourenZeitenErfasstStatus = &$this->ajax_response->tourenZeitenErfasstStatus;
+
+$allowedUTZ = $this->ajax_response->allowed->updatetourabschlusszeiten;
+echo '<style>
+    table.my-table, table.my-table td { border:1px solid #ddd; border-collapse:collapse; }
+    input.abschluss-menge {
+        text-align:right;
+    }
+    tr.tourTitle td, tr.tourTitle th {
+        color:#aaa;
+        padding:5px;
+        border-bottom:1px solid #bbb;
+    }
+    
+    div.finished,
+    tr.tourTitle.finished td, tr.tourTitle.finished th {
+        color:#0a0
+    }
+    tr.tourTitle.odd td, tr.tourTitle.odd th {
+        background:#d8d8ff;
+    }
+    tr.tourTitle.even td, tr.tourTitle.even th {
+        background:#eee;
+    }
+    tr.tourTitle.checked td, tr.tourTitle.checked th {
+        color:blue;
+    }
+    span.sum_val {
+        float:right;
+        margin-right:8px;
+    }
+    td.tour_sum {
+        padding-bottom:15px;
+        color:blue;
+        text-align:right;
+        border-right:0 !important;
+    }
+    td.tour_sum + td {
+        border-left:0;
+    }
+    tr.sum td, tr.sum th {
+        padding-top:15px;
+    }
+    td input.abschluss-menge {
+        diplay:block;
+        width:auto;
+        float:right;
+    }
+    td.erfasst-status {
+        text-align:center;
+        font-size:16px;
+    }
+    
+    td.erfasst-status.finished::before {
+        content:"\2713";
+        color:#0c0;
+    }
+    td.erfasst-status.empty::before {
+        content:"\2205";
+        color:#f00;
+    }
+    div.errorbox {
+        border:1px solid #f00;
+        border-radius:5px;
+        padding:5px;
+        margin:5px 0;
+        background-color:#9f9;
+        color:#555;
+    }
+    .error {
+        color:#f00;
+    }
+</style>';
+echo '<div id="DispoAbschlussZeiten">' . PHP_EOL;
+echo '<fieldset><legend>Zeiterfassung f&uuml;r eingesetzte Resourcen dieser Tour</legend>' . PHP_EOL;
+echo '<form id="frmTourAbschlussZeiten" style="display:inline;margin:0;">' . PHP_EOL;
+echo '<input type="hidden" name="saveTour[]" value="' . $tour_id . '"/>' . PHP_EOL;
+echo '<table class="my-table ma-abschluss-table" id="ma-abschluss-table" style="border:1px solid #ddd">';
+
+$ma_rownr = 0;
+$fp_rownr = 0;
+$tourClass = 'tour' . $tour_id;
+if (isset($this->ajax_response->resources['MA'])) {
+    $r = $this->ajax_response->resources['MA'];
+    $ma_rowcount = count($r);
+    echo '<tr class="' . $tourClass . ' sum ma_sum" data-tourid="'.$tour_id.'" data-rsrctype="ma"><th>Mitarbeiter: ' . count($r) . '</th><th>Leistung</th><th>&euro;/Std</th><th>Zeit</th><th></th><th class="sum">Summe <span class="sum_val"/></th></tr>' . PHP_EOL;
+    foreach($r as $_ma) {
+        ++$ma_rownr;
+        $_id = $_ma['id'];
+        $rTypKey = 'MA-'.$_ma['mid'];
+        echo '<tr data-rsrctype="ma" data-rsrcid="'.$_ma['mid'].'" data-tourid="'.$tour_id.'" class="' . $tourClass . ' rsrc ma ' . $rTypKey . '"><td>' . $_ma['name'] . ', ' . $_ma['eingestellt_als'] . '</td>' . PHP_EOL
+             .'<td>' . $_ma['leistungs_name'] . '</td>' . PHP_EOL
+             .'<td id="ma-'.$_id.'-kpe" data-kpe="'.$_ma['kosten_pro_einheit'].'">' . number_format($_ma['kosten_pro_einheit'], 2, ',', '.') . '</td>' . PHP_EOL
+             .'<td><input type="text" class="abschluss-menge ma_einsatzdauer" id="ma-'.$_id.'-zeit" name="ma['.$tour_id.']['.$_id.'][einsatzdauer]" value="'.substr($_ma['einsatzdauer'],0,5).'" /></td>' . PHP_EOL
+             .'<td>' . ( (1 === $ma_rownr && $ma_rowcount > 1)? '<button class="apply_einsatzdauer" data-ref="ma-'.$_id.'-zeit">&uuml;bernehmen</button>' : '' ) . '</td>'
+             .'<td><input type="text" class="abschluss-menge ma_summe" name="ma['.$tour_id.']['.$_id.'][kosten]" value="'.number_format($_ma['kosten'],2,',','.').'"></td>' . PHP_EOL
+             .'<td><input class="autocalc" type="checkbox" id="ma-'.$_id.'-auto" checked="checked"><label for="ma-'.$_id.'-auto">Automatisch berechnen</label></td>' . PHP_EOL
+             .'</tr>' . PHP_EOL;
+    }
+}
+
+if (isset($this->ajax_response->resources['FP'])) {
+    $r = $this->ajax_response->resources['FP'];
+    
+    if (count($r)) {
+        echo '<tr class="' . $tourClass . ' sum fp_sum" data-tourid="'.$tour_id.'" data-rsrctype="fp"><th>Fahrzeuge: ' . count($r) . '</th><th>Leistung</th><th>&euro;/Ltr</th><th>Zeit</th><th>Km</th><th class="sum">Summe <span class="sum_val"/></th></tr>' . PHP_EOL;
+        foreach($r as $_fp) {
+            ++$fp_rownr;
+            $_id = $_fp['id'];
+            $rTypKey = 'FP-'.$_fp['fid'];
+            echo '<tr data-rsrctype="fp" data-rsrcid="'.$_fp['fid'].'" data-tourid="'.$tour_id.'" class="' . $tourClass . ' rsrc fp ' . $rTypKey . '"><td>' . $_fp['kennzeichen'] . ', ' . $_fp['fahrzeugart'] . '</td>' . PHP_EOL
+                 .'<td>' . $_fp['leistungs_name'] . '</td>' . PHP_EOL
+                 .'<td id="fp-'.$_id.'-kpe" data-kpe="'.$_fp['kosten_pro_einheit'].'">' . number_format($_fp['kosten_pro_einheit'], 2, ',', '.') . '</td>' . PHP_EOL
+                 .'<td><input type="text" class="fp_einsatzdauer" name="fp['.$tour_id.']['.$_id.'][einsatzdauer]" value="'.substr($_fp['einsatzdauer'],0,5).'" /></td>' . PHP_EOL
+                 .'<td><input type="text" class="abschluss-menge fp_km" id="fp-'.$_id.'-km" name="fp['.$tour_id.']['.$_id.'][km]" value="'.$_fp['km'].'" /></td>' . PHP_EOL
+                 .'<td><input type="text" class="abschluss-menge fp_summe" name="fp['.$tour_id.']['.$_id.'][kosten]" value="'.number_format($_fp['kosten'],2,',','.').'"></td>' . PHP_EOL
+                 .'<td><input class="autocalc" type="checkbox" id="fp-'.$_id.'-auto" checked="checked"><label for="fp-'.$_id.'-auto">Automatisch berechnen</label></td>' . PHP_EOL
+                 .'</tr>' . PHP_EOL;
+        }
+    }
+}
+echo '<tr class="tour-main tour_sum"><td colspan=6 class="tour_sum"><span class="sum_val"></span></td></tr>' . PHP_EOL;
+echo '</table>' . PHP_EOL;
+$disabledApply  = ($tour_data['zeiten_erfasst_am']) ? 'disabled="true"' : '';
+$disabledFinish = ($tour_data['zeiten_erfasst_am']) ? 'disabled="true"' : '';
+$disabledReopen = ($tour_data['zeiten_erfasst_am']) ? '' : 'disabled="true"';
+
+if ($this->ajax_response->error) {
+    echo '<div class="errorbox">';
+    echo $this->ajax_response->error;
+    echo '</div>';
+}
+if (!$vorgang_status['auftrag_abgeschlossen_user']) {
+    if ($tourenZeitenErfasstStatus->num_unerfasst == 0) {
+        echo '<input data-vars=\'{"finishauftrag":1}\' type="button" name="finish" id="btnFinishVorgang"'. (!$allowedUTZ ? ' disabled="true" ':'') . ' value="Vorgang schliessen" />' . PHP_EOL;
+    } else {
+        echo '<input ' . $disabledApply . ' type="button" name="update" id="btnUpdateTourAbschlussZeiten"'.(!$allowedUTZ ? ' disabled="true" ':'') . ' value="speichern" />' . PHP_EOL;
+        echo '<input ' . $disabledFinish . ' type="button" name="finish" id="btnFinishTourAbschlussZeiten"'.(!$allowedUTZ ? ' disabled="true" ':'') . ' value="Zeiterfassung abschliessen" />' . PHP_EOL;
+    }
+    echo '<input ' . $disabledReopen . ' type="button" name="open" id="btnOpenTourAbschlussZeiten"'.(!$allowedUTZ ? ' disabled="true" ':'') . ' value="Zur Bearbeitung &ouml;ffnen" />' . PHP_EOL;
+    echo '<input type="hidden" id="tour_id" value="'.$tour_id.'" />' . PHP_EOL;
+    echo '<input type="button" name="applyInputToAllTours" id="btnApplyInputToAllTours"'.(!$allowedUTZ ? ' disabled="true" ':'') . ' value="Angaben für andere Touren übernehmen" />' . PHP_EOL;
+} else {
+    echo '<div class="finished">Gesamter Vorgang wurde am ' . date('d.m.Y', strtotime($vorgang_status['auftrag_abgeschlossen_am'])) 
+        . ' von ' . $vorgang_status['auftrag_abgeschlossen_user'] . ' abgeschlossen!</div>';
+}
+echo '</form>' . PHP_EOL;
+echo '</fieldset>' . PHP_EOL;
+echo '</div>' . PHP_EOL;
+
+
+echo '<br>'; 
+echo '<div id="DispoTourenAbschlussZeiten">' . PHP_EOL;
+echo '<fieldset><legend>Zeiterfassung f&uuml;r eingesetzte Resourcen anderer Touren dieses Vorgangs</legend>' . PHP_EOL;
+echo '<form id="frmTourenAbschlussZeiten" style="display:inline;margin:0;">' . PHP_EOL;
+echo '<table class="my-table ma-abschluss-table" id="ma-abschluss-table" style="width:100%;border:1px solid #ddd">';
+
+$allToursTotal = 0;
+$w = array('So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa');
+foreach($touren as $i => $_tour) {
+    $_tour_id = $_tour['tour_id'];
+    $tourClass = 'tour' . $_tour_id;
+    $toggleClass = ($i % 2) ? 'odd' : 'even';
+    $tourTotal = 0;
+    $zeErfasst = ( !empty($_tour['zeiten_erfasst_user']));
+    $zeErfasstClass = ($zeErfasst ? 'finished' : 'empty');
+    $zeReadOnlyStat = ($zeErfasst) ? ' readonly="readonly"' : '';
+    
+    $trTitleBar = 
+          '<tr class="' . $tourClass . ' ' . $toggleClass . ' ' . $zeErfasstClass . ' tour_sum tourTitle" data-tourid="'.$_tour_id.'" data-tourclass="' . $tourClass . '">' 
+        . '<td>' . (!$zeErfasst ? '<label style="font-size:16px;"><input type="checkbox" name="saveTour[]" value="' . $_tour_id . '"/>&#x270e;</label>' : '') . '</td>'
+        . '<td colspan=3><span class="expandable tourtitle">' . $w[date('w', strtotime($_tour['DatumVon']))] . ' ' . date('d.m.Y H:i', strtotime($_tour['DatumVon'] . ' ' . $_tour['ZeitVon'])) . ' bis ' . substr($_tour['ZeitBis'], 0, 5) . '</span></td>' 
+        . '<td colspan=2>{tourMaNum} MA / {tourMaHrs} Std. | {tourFpNum} FP</td>'
+        . '<td class="tour_sum"><span class="sum_val">{tourTotal}</span></td>'
+        . '<td class="erfasst-status ' . $zeErfasstClass . '"></td>'
+        . '</tr>' . PHP_EOL;
+    $trMaTitleBar = '';
+    $trMaRows = '';
+    $trFpTitleBar = '';
+    $trFpRows = '';
+    $ma_rownr = 0;
+    $fp_rownr = 0;
+    $ma_total = 0;
+    $tourMaNum = 0;
+    $tourMaHrs = 0;
+    $tourMaSeconds = 0;
+    $tourFpNum = 0;
+    if (isset($_tour['resources']['MA'])) {
+        $r = $_tour['resources']['MA'];
+        $tourMaNum = count($_tour['resources']['MA']);
+        
+        $ma_rowcount = count($r);
+        $trMaTitleBar = '<tr class="' . $tourClass . ' sum ma_sum" data-tourid="'.$_tour_id.'" data-rsrctype="ma"><th><th>Mitarbeiter: ' . count($r) . '</th><th>Leistung</th><th>&euro;/Std</th><th>Zeit</th><th></th><th class="sum">Summe <span class="sum_val"/>'.number_format($ma_total,2,',','.').'</th></tr>' . PHP_EOL;
+       
+        foreach($r as $_ma) {
+            ++$ma_rownr;
+            $_id = $_ma['id'];
+            $ma_total+= $_ma['kosten'];
+            $rTypKey = 'MA-'.$_ma['mid'];
+            if ($_ma['einsatzdauer']) $tourMaSeconds+= MyProject_Time_Converter::timeToSeconds(substr($_ma['einsatzdauer'],0,5), 'h:m');
+            
+            $trMaRows.= '<tr data-rsrctype="ma" data-rsrcid="'.$_ma['mid'].'" data-tourid="'.$_tour_id.'" class="' . $tourClass . ' rsrc ma ' . $rTypKey . '">' 
+                 .'<td>'
+                 .'<td><span class="rsrctitle">' . $_ma['name'] . ', ' . $_ma['eingestellt_als'] . '</span></td>' . PHP_EOL
+                 .'<td><span class="rsrclstg">' . $_ma['leistungs_name'] . '</td>' . PHP_EOL
+                 .'<td id="ma-'.$_id.'-kpe" data-kpe="'.$_ma['kosten_pro_einheit'].'">' . number_format($_ma['kosten_pro_einheit'], 2, ',', '.') . '</td>' . PHP_EOL
+                 .'<td><input ' . $zeReadOnlyStat . ' type="text" class="abschluss-menge ma_einsatzdauer" id="ma-'.$_id.'-zeit" name="ma[' . $_tour_id . ']['.$_id.'][einsatzdauer]" value="'.substr($_ma['einsatzdauer'],0,5).'" /></td>' . PHP_EOL
+                 .'<td>' . ( (!$zeErfasst && 1 === $ma_rownr && $ma_rowcount > 1)? '<button class="apply_tour_einsatzdauer" data-tourclass="' . $tourClass . '" data-ref="ma-'.$_id.'-zeit">&uuml;bernehmen</button>' : '' ) . '</td>'
+                 .'<td><input ' . $zeReadOnlyStat . ' type="text" class="abschluss-menge ma_summe" name="ma[' . $_tour_id . ']['.$_id.'][kosten]" value="'.number_format($_ma['kosten'],2,',','.').'"></td>' . PHP_EOL
+                 .'<td>' . ($zeErfasst ? '' : '<input class="autocalc" type="checkbox" id="ma-'.$_id.'-auto" checked="checked"><label for="ma-'.$_id.'-auto">Automatisch berechnen</label>') . '</td>' . PHP_EOL
+                 .'</tr>' . PHP_EOL;
+        }
+        $tourMaHrs = MyProject_Time_Converter::timeToHours($tourMaSeconds, 's');
+    }
+    
+    $fp_total = 0;
+    if (!empty($_tour['resources']['FP'])) {
+        $r = $_tour['resources']['FP'];
+        $tourFpNum = count($_tour['resources']['FP']);
+        foreach($r as $_fp) {
+            $fp_total+= $_fp['kosten'];
+        }
+        $trFpTitleBar = '<tr class="' . $tourClass . ' sum fp_sum" data-rsrctype="fp"><th><th>Fahrzeuge: ' . count($r) . '</th><th>Leistung</th><th>&euro;/Ltr</th><th>Zeit</th><th>Km</th><th class="sum">Summe <span class="sum_val"/>'.number_format($fp_total,2,',','.').'</th></tr>' . PHP_EOL;
+        
+        foreach($r as $_fp) {
+            ++$fp_rownr;
+            $_id = $_fp['id'];
+            $rTypKey = 'FP-'.$_fp['fid'];
+            $trFpRows.= '<tr data-rsrctype="fp" data-rsrcid="'.$_fp['fid'].'" data-tourid="'.$_tour_id.'" class="' . $tourClass . ' rsrc fp ' . $rTypKey . '">' 
+                 .'<td>'
+                 .'<td><span class="rsrctitle">' . $_fp['kennzeichen'] . ', ' . $_fp['fahrzeugart'] . '</span></td>' . PHP_EOL
+                 .'<td><span class="rsrclstg">' . $_fp['leistungs_name'] . '</span></td>' . PHP_EOL
+                 .'<td id="fp-'.$_id.'-kpe" data-kpe="'.$_fp['kosten_pro_einheit'].'">' . number_format($_fp['kosten_pro_einheit'], 2, ',', '.') . '</td>' . PHP_EOL
+                 .'<td><input ' . $zeReadOnlyStat . ' type="text" class="fp_einsatzdauer" name="fp[' . $_tour_id . ']['.$_id.'][einsatzdauer]" value="'.substr($_fp['einsatzdauer'],0,5).'" /></td>' . PHP_EOL
+                 .'<td><input ' . $zeReadOnlyStat . ' type="text" class="abschluss-menge fp_km" id="fp-'.$_id.'-km" name="fp[' . $_tour_id . ']['.$_id.'][km]" value="'.$_fp['km'].'" /></td>' . PHP_EOL
+                 .'<td><input ' . $zeReadOnlyStat . ' type="text" class="abschluss-menge fp_summe" name="fp[' . $_tour_id . ']['.$_id.'][kosten]" value="'.number_format($_fp['kosten'],2,',','.').'"></td>' . PHP_EOL
+                 .'<td><input class="autocalc" type="checkbox" id="fp-'.$_id.'-auto" checked="checked"><label for="fp-'.$_id.'-auto">Automatisch berechnen</label></td>' . PHP_EOL
+                 .'</tr>' . PHP_EOL;
+        }
+    }
+    $tourTotal = $ma_total + $fp_total;
+    $allToursTotal+= $tourTotal;
+    
+    echo strtr($trTitleBar, array(
+                '{tourTotal}' => number_format($tourTotal,2,',','.'), 
+                '{tourMaNum}' => $tourMaNum,
+                '{tourFpNum}' => $tourFpNum,
+                '{tourMaHrs}' => number_format($tourMaHrs, 1, ',', '.'),
+            )
+        ) . $trMaTitleBar . $trMaRows . $trFpTitleBar . $trFpRows;
+//    echo '<tr class="' . $tourClass . ' tour_sum"><td class="tour_sum" colspan=6><span class="sum_val"></span></td><td></tr>' . PHP_EOL;
+    
+}
+
+$disabledApply  = ($tour_data['zeiten_erfasst_am']) ? 'disabled="true"' : '';
+$disabledFinish = ($tour_data['zeiten_erfasst_am']) ? 'disabled="true"' : '';
+$disabledReopen = ($tour_data['zeiten_erfasst_am']) ? '' : 'disabled="true"';
+echo '<tr>';
+echo '<td>';
+echo '<input type="button" name="toggleEditAll" class="" value="+/-" />';
+echo '<td colspan=5>';
+
+if ($this->ajax_response->error) {
+    echo '<div class="errorbox">';
+    echo $this->ajax_response->error;
+    echo '</div>';
+}
+
+if (!$vorgang_status['auftrag_abgeschlossen_user']) {
+    if ($tourenZeitenErfasstStatus->num_unerfasst > 0) {
+        echo 'Markierte Touren ';
+        echo '<input data-vars="" type="button" name="update" id="btnUpdateTourenAbschlussZeiten"'. (!$allowedUTZ ? ' disabled="true" ':'') . ' value="speichern" />' . PHP_EOL;
+        echo '<input data-vars=\'{"finish":1}\' type="button" name="finish" id="btnFinishTourenAbschlussZeiten"'. (!$allowedUTZ ? ' disabled="true" ':'') . ' value="speichern u. abschliessen" />' . PHP_EOL;
+    } else {
+        echo '<input data-vars=\'{"finishauftrag":1}\' type="button" name="finish" id="btnFinishVorgang"'. (!$allowedUTZ ? ' disabled="true" ':'') . ' value="Vorgang schliessen" />' . PHP_EOL;
+    }
+}
+//echo '<input ' . $disabledReopen . ' data-vars="" type="button" name="open"   id="btnOpenTourenAbschlussZeiten"'  . (!$allowedUTZ ? ' disabled="true" ':'') . ' value="Zur Bearbeitung &ouml;ffnen" />' . PHP_EOL;
+
+echo '</td>';
+echo '<td style="vertical-align:middle;">';
+echo '<span id="allToursTotal" class="sum_val">' . number_format($allToursTotal,2,',','.') . '</span>';
+echo '</td>';
+echo '<td>';
+echo '</tr>';
+
+echo '</table>' . PHP_EOL;
+echo '</form>' . PHP_EOL;
+echo '</fieldset>' . PHP_EOL;
+echo '</div>' . PHP_EOL;
+
+?>
+<div id="logDialog" title="Kopier-Warnung!"></div>
+<script> 
+$(function() {
+
+$("tr.sum").each( function() {
+        berechneSumme( $(this).attr("data-tourid"), $(this).attr("data-rsrctype") );
+});
+jQuery("table#ma-abschluss-table button.apply_einsatzdauer").unbind("click").click(function(e){
+   e.preventDefault();
+   var refId = $(this).attr("data-ref");
+   
+   jQuery(this)
+       .closest("table")
+       .find("input.abschluss-menge.ma_einsatzdauer:not(#"+refId+")")
+       .val( jQuery("#" + refId).val() )
+       .trigger("change");
+});
+
+jQuery("table#ma-abschluss-table button.apply_tour_einsatzdauer").unbind("click").click(function(e){
+   e.preventDefault();
+   var refId = $(this).attr("data-ref");
+   var tourClass = $(this).attr("data-tourclass");
+   var ma_sum = 0;
+        
+   jQuery(this)
+       .closest("table")
+       .find("tr." + tourClass + " input.abschluss-menge.ma_einsatzdauer:not(#"+refId+")")
+       .val( jQuery("#" + refId).val() )
+       .trigger("change");
+});
+
+function berechneSumme( tourid, rsrcType ) {
+        if ( !jQuery("tr.tour" + tourid + "." + rsrcType + "_sum").length ) {
+           var sumSelector = "tr.tour" + tourid + "." + rsrcType + "_sum";
+           // alert("#297 return false\ntourid: " + tourid + "\nrsrcType: " + rsrcType + "\n\$(" + sumSelector + ").length: " + \$(sumSelector).length );
+           return false;
+        }
+        
+        var s = 0.0;
+        var s1 = s;
+        var v = 0.0;
+        jQuery("tr.tour" + tourid + "[data-rsrctype="+rsrcType+"] input.abschluss-menge." + rsrcType + "_summe").each(function() {
+            v = parseFloat($(this).val().replace(",", "."));
+            if ( isNaN(v) || !parseInt(v*100) ) return;            
+            s+= v;
+        });
+        
+        jQuery("tr.tour" + tourid + "." + rsrcType + "_sum th.sum span.sum_val").text( ("" + s.toFixed(2) ).replace(".", ",") );
+        
+        var tourTotal = 0;
+        jQuery("tr.tour" + tourid + ".sum").each( function() {
+            var o = jQuery("span.sum_val", this);
+            if ( !o.length || o.text() == 0) return;
+            tourTotal+= parseFloat( o.text() );
+        });
+        jQuery("tr.tour" + tourid + ".tour_sum span.sum_val").text( ("" + tourTotal.toFixed(2) ).replace(".", ",") );
+        
+        var allToursTotal = 0;
+        jQuery("tr.tour_sum span.sum_val").each(function(){
+            var o = jQuery( this);
+            if ( o.text() == 0) return;
+            allToursTotal+= parseFloat( o.text() );
+        });
+        jQuery("span#allToursTotal").text( ("" + allToursTotal.toFixed(2) ).replace(".", ",") );
+}
+
+jQuery("#btnUpdateTourAbschlussZeiten", "#DispoAbschlussZeiten").unbind("click").click(function() {
+    var self = this;
+    jQuery.get(
+    '<?= $updateUrl; ?>',
+    $('#frmTourAbschlussZeiten').serialize(), 
+    function(data, textStatus, jqXHR){
+        alert( 'Die Angaben wurden aktualisiert und werden neu geladen!');
+
+        var tabs = $(self).closest("div.ui-tabs")
+        var current_index = $(tabs).tabs("option","selected");
+        $(tabs).tabs('load',current_index);
+    });
+});
+
+
+if (0) jQuery("#btnUpdateTourenAbschlussZeiten", "#DispoTourenAbschlussZeiten").unbind("click").click(function() {
+    var self = this;
+    jQuery.post(
+    '<?=$updateTourenUrl; ?>',
+    $('#frmTourenAbschlussZeiten').serialize(), 
+    function(data, textStatus, jqXHR){
+        alert( 'Die Angaben wurden aktualisiert und werden neu geladen!');
+
+        var tabs = $(self).closest("div.ui-tabs")
+        var current_index = $(tabs).tabs("option","selected");
+        $(tabs).tabs('load',current_index);
+    });
+});
+
+        
+jQuery("input#btnFinishTourAbschlussZeiten").unbind("click").click(function(e) {
+   var numErrorMaFields = 0;
+   var numWarningMaFields = 0;
+   var numErrorFpFields = 0;
+   var numWarningFpFields = 0;
+   if (jQuery(this)[0].checked) {
+        jQuery(this)
+            .closest("div#DispoAbschlussZeiten")
+            .find("input.abschluss-menge.ma_einsatzdauer")
+            .each(function() {
+                var v = jQuery(this).val();
+                if (0 == v.length || !v.match(/[0-9]+[0-9:,.]*/)) {
+                    ++numErrorMaFields;
+                    jQuery(this).css({backgroundColor:"#F8E0E0"});
+                } else if( v.match(/[^1-9]/) ) {
+                    ++numWarningMaFields;
+                    jQuery(this).css({backgroundColor:"#E0E0F8"});
+                }
+            })
+            .end()
+            .find("input.abschluss-menge.fp_km")
+            .each(function() {
+                var v = jQuery(this).val();
+                if (0 == v.length || !v.match(/[0-9]+[0-9:,.]*/)) {
+                    ++numErrorFpFields;
+                    jQuery(this).css({backgroundColor:"#F8E0E0"});
+                } else if( v.match(/[^1-9]/) ) {
+                    ++numWarningFpFields;
+                    jQuery(this).css({backgroundColor:"#E0E0F8"});
+                }
+             });
+        if (numErrorMaFields || numErrorFpFields) {
+            jQuery(this)[0].checked = false;
+            alert( (numErrorMaFields ? numErrorMaFields + " Mitarbeiter-Zeiten sind noch nicht eingetragen!\n" : "") +
+                   (numErrorFpFields ? numErrorFpFields + " Fuhrpark-Km sind noch nicht eingetragen!\n" : "")
+            );
+            e.preventDefault();
+            return false;
+        } else if(numWarningMaFields || numWarningFpFields) {
+            alert( "Warnung!\n" + 
+                   (numWarningMaFields ? numWarningMaFields + " Mitarbeiter-Zeiten enhalten 0-Werte!\n" : "") +
+                   (numWarningFpFields ? numWarningFpFields + " Fuhrpark-Km enthalten 0-Werte!\n" : "")
+            );
+        }
+    }
+    
+    var self = this;
+    jQuery.get(
+    '<?=$updateUrl; ?>',
+    $('#frmTourAbschlussZeiten').serialize() + "&finish=1", 
+    function(data, textStatus, jqXHR){
+        alert( 'Die Angaben wurden aktualisiert und werden neu geladen!');
+        var tabs = $(self).closest("div.ui-tabs")
+        var current_index = $(tabs).tabs("option","selected");
+        $(tabs).tabs('load',current_index);
+    });
+});
+
+        
+jQuery("input#btnFinishTourenAbschlussZeiten,input#btnUpdateTourenAbschlussZeiten,input#btnFinishVorgang").unbind("click").click(function(e) {
+   var numErrorMaFields = 0;
+   var numWarningMaFields = 0;
+   var numErrorFpFields = 0;
+   var numWarningFpFields = 0;
+        
+   var checkedTourenIds = [];
+   jQuery("div#DispoTourenAbschlussZeiten tr.tourTitle.checked").each(function() {
+        checkedTourenIds.push( $(this).attr("data-tourclass").substr( 4) );
+   });
+//   alert( "checkedTourenIds: " + checkedTourenIds.join(";") );
+   var data = {};
+   
+//    alert( "id: " + $(this).attr("id") + "; class: " + $(this).attr("class") + " v: " + v );
+   // tour22763
+   if (checkedTourenIds.length) {
+        jQuery(this)
+            .closest("div#DispoTourenAbschlussZeiten")
+            .find("tr.tour" + checkedTourenIds.join(", tr.tour") )
+            .find("input.abschluss-menge.ma_einsatzdauer")
+            .each(function() {
+                var tourid = $(this).closest("tr").attr("data-tourid");
+                if (-1 == $.inArray( 
+                    $(this).closest("tr").attr("data-tourid"), 
+                    checkedTourenIds )
+                ) {
+                    // alert(tourid + " ist nicht in checkedTouren enthalten: " + checkedTourenIds.join(";") );
+                    return;
+                }
+                // alert(tourid + " ist in checkedTouren enthalten: " + checkedTourenIds.join(";") );                
+                
+                var v = jQuery(this).val();
+                if (0 == v.length || !v.match(/[0-9]+[0-9:,.]*/)) {
+                    ++numErrorMaFields;
+                    jQuery(this).css({backgroundColor:"#F8E0E0"});
+                } else if( v.replace(/^0*/, "").match(/^[^1-9]/) ) {
+                    alert("#496 v: " + v);
+                    ++numWarningMaFields;
+                    jQuery(this).css({backgroundColor:"#E0E0F8"});
+                } else {
+                    jQuery(this).css({backgroundColor:"inherit"});
+                    data[ $(this).attr("name") ] = $(this).val();
+                }
+            })
+            .end()
+            .find("input.abschluss-menge.fp_km")
+            .each(function() {
+                if (-1 == $.inArray( 
+                    $(this).closest("tr").attr("data-tourid"), 
+                    checkedTourenIds )
+                ) return;
+                
+                var v = jQuery(this).val();
+                if (0 == v.length || !v.match(/[0-9]+[0-9:,.]*/)) {
+                    ++numErrorFpFields;
+                    jQuery(this).css({backgroundColor:"#F8E0E0"});
+                } else if( v.match(/[^1-9]/) ) {
+                    ++numWarningFpFields;
+                    jQuery(this).css({backgroundColor:"#E0E0F8"});
+                } else {
+                    jQuery(this).css({backgroundColor:"inherit"});
+                    data[ $(this).attr("name") ] = $(this).val();
+                }
+             });
+     
+        if (numErrorMaFields || numErrorFpFields) {
+            alert( (numErrorMaFields ? numErrorMaFields + " Mitarbeiter-Zeiten sind noch nicht eingetragen!\n" : "") +
+                   (numErrorFpFields ? numErrorFpFields + " Fuhrpark-Km sind noch nicht eingetragen!\n" : "")
+            );
+            e.preventDefault();
+            return false;
+        } else if(numWarningMaFields || numWarningFpFields) {
+            alert( "Warnung!\n" + 
+                   (numWarningMaFields ? numWarningMaFields + " Mitarbeiter-Zeiten enhalten 0-Werte!\n" : "") +
+                   (numWarningFpFields ? numWarningFpFields + " Fuhrpark-Km enthalten 0-Werte!\n" : "")
+            );
+        }
+    }
+    
+    jQuery(this).closest("div#DispoTourenAbschlussZeiten")
+        .find("tr.tour" + checkedTourenIds.join(", tr.tour") ).find("input[name]").each(function() {
+            data[ $(this).attr("name") ] = $(this).val();
+        });
+    
+    var dataLen = 0;
+    for(i in data) dataLen++;
+    if ( !dataLen) {
+//        alert("Es wurden keine Werte eingetragen!");
+//        return;
+    }
+    
+    if ( $(this).attr("data-vars") ) $.extend( data, $.parseJSON($(this).attr("data-vars")));
+    var url = ("finish" in data && data.finish == 1) ? '<?=$finishTourenUrl; ?>' : '<?=$updateTourenUrl; ?>';
+    if ("finishauftrag" in data) url = '<?=$finishTourenUrl; ?>&finishauftrag=1';
+    var self = this;
+    
+    jQuery.post(
+        url,
+        data, 
+        function(data, textStatus, jqXHR){
+            alert( 'Die Angaben wurden aktualisiert und werden neu geladen!');
+            var tabs = $(self).closest("div.ui-tabs")
+            var current_index = $(tabs).tabs("option","selected");
+            $(tabs).tabs('load',current_index);
+        }
+    );
+});
+
+jQuery("input#btnApplyInputToAllTours").unbind("click").click(function() {
+    var fromInput = {};
+    $("table tr.rsrc", "div#DispoAbschlussZeiten").each(function() {
+        var rsrcKey = $(this).attr("data-rsrctype")+"-"+$(this).attr("data-rsrcid");
+        fromInput[ rsrcKey ] = this;
+    });
+    var finishedTours = {};
+    $("tr.tour_sum.finished", "div#DispoTourenAbschlussZeiten").each(function() {
+        var tourid = $(this).attr("data-tourid");
+        finishedTours[ tourid ] = 1;
+    });
+    //alert( "finishedTours: " + JSON.stringify(finishedTours));
+    
+    var logExtraRsrc = {};
+    $("table tr.rsrc", "div#DispoTourenAbschlussZeiten").each(function() {
+        var type = $(this).attr("data-rsrctype");
+        var rsrc = type + "-" + $(this).attr("data-rsrcid");
+        var tourid = $(this).attr("data-tourid");
+        if (tourid in finishedTours) return true;
+        
+        if (rsrc in fromInput) {
+            $("input."+type+"_einsatzdauer", this).val( $("input."+type+"_einsatzdauer", fromInput[rsrc]).val() );
+            $("input."+type+"_summe", this).val( $("input."+type+"_summe", fromInput[rsrc]).val() );
+            if ( $(this).is(".fp") ) {
+                $("input."+type+"_km", this).val( $("input."+type+"_km", fromInput[rsrc]).val() );
+            }
+        } else {
+            var tourid = $(this).attr("data-tourid");
+            if (!(tourid in logExtraRsrc)) {
+                logExtraRsrc[tourid] = {
+                    "Tour" : $("tr.tour"+tourid+" td span.tourtitle").text(),
+                    "Ressourcen": {}
+                };
+            }
+            logExtraRsrc[tourid]["Ressourcen"][rsrc] = $("td span.rsrctitle", this).text();
+        }
+    });
+    var log = "";
+    for(var i in logExtraRsrc) {
+        log+= logExtraRsrc[i]["Tour"] + "\n";
+        for(var j in logExtraRsrc[i]["Ressourcen"]) {
+            log+= " * " + logExtraRsrc[i]["Ressourcen"][j] + "\n";
+        }
+        log+= "\n";
+    }
+    if (!log) return;
+    
+    var dlg = $("#logDialog");
+    if (dlg.is(".ui-dialog-content")) dlg.dialog("close").dialog("destroy");
+    $("#logDialog").html("").append(
+        $("<p/>")
+        .addClass("message")
+       // .css({maxHeight:300,yOverflow:"scroll"})
+        .html(
+            "<div><b>Für folgende Ressourcen in anderen Touren konnten" +
+            "keine Aufwandsangaben übernommen werden!</b></div>" +
+            log.split("\n").join("<br>")
+        )
+     )
+     .dialog({
+        title: "Kopier-Warnung!",
+        height:350,
+        width:400,
+        autoOpen:true,
+        buttons: {
+            Cancel: function() {
+                dlg.dialog( "close" );
+                if (dlg.dialog( "isOpen" )) {
+                    alert("#3 Dialog should allready be closed, if not. So the Backup-Function is called");
+                    $(this).closest(".ui-dialog").find("a.ui-dialog-titlebar-close.ui-corner-all span.ui-icon.ui-icon-closethick").trigger("click");
+                    alert("#4 isOpen: " + dlg.dialog( "isOpen" ) );
+                }
+            }
+        }
+    }); 
+});
+
+jQuery("input#btnOpenTourAbschlussZeiten").click(function() {
+    var self = this;
+    jQuery.get(
+    '<?=$reopenUrl; ?>',
+    $('#frmTourAbschlussZeiten').serialize(), 
+    function(data, textStatus, jqXHR){
+        alert( 'Die Angaben wurden aktualisiert und werden neu geladen!');
+
+        var tabs = $(self).closest("div.ui-tabs")
+        var current_index = $(tabs).tabs("option","selected");
+        $(tabs).tabs('load',current_index);
+    });  
+});
+
+jQuery("input.abschluss-menge").unbind("change").bind("change", function() {
+    var t = $(this).attr("id").split("-");
+    if (! $("#"+t[0]+"-"+t[1]+"-auto").attr("checked") ) return;
+    
+    var r = t[0],
+        i = t[1],
+        tr= $(this).closest("tr"),
+        tourid = tr.attr("data-tourid"),
+        ke= $("#" + r + "-" + i + "-kpe").attr("data-kpe"),
+        m = $(this).val().replace(",", ".");
+        // alert("r " + r + "\ni " + i + "\ntr " + tr + "\ntourid " + tourid + "\nke " + ke + "\nm " + m);
+    if (isNaN(ke) || !m || "00:00" == m) {
+        alert("# isNaN(ke) || !m || 00:00 ==m");
+    }
+    
+    if (isNaN(ke) || !m || "00:00" == m) {
+        $("input[name=" + r + "\\[" + tourid + "\\]\\[" + i + "\\]\\[kosten\\]']", tr).val("0,00");
+        $("input[name=" + r + "\\[" + i + "\\]\\[kosten\\]']", tr).val("0,00");
+        // alert("#57 ke: " + ke + "; m: " + m);
+    }
+    else if ("fp"==r) {
+        if (isNaN(m)) {
+            alert("Pruefen Sie die Angaben, es wurden nicht-numerische Zeichen gefunden!");
+        } else {
+            $("input[name=" + r + "\\[" + tourid + "\\]\\[" + i + "\\]\\[kosten\\]]", tr).val( ((ke * m).toFixed(2) + "").replace(".", ",") );
+            $("input[name=" + r + "\\[" + i + "\\]\\[kosten\\]]", tr).val( ((ke * m).toFixed(2) + "").replace(".", ",") );
+        }
+    } else {
+        var hms = m.split(":");
+        var h = hms[0].replace(/^0*/, "");
+        var mm = (hms.length > 1) ? hms[1].replace(/^0*/, "") : 0;
+        if (!h && !mm) {
+          //alert("#70 h: " + h + "; mm: " +mm);
+          return;
+        }
+        var k = (Math.round( (ke * h + (ke * (mm/60))) * 100 )/100);
+        if ( isNaN(k) ) {
+            alert("Pruefen Sie die Angaben, es wurden nicht-numerische Zeichen gefunden!");
+            k = "";
+        }
+        $("input[name=" + r + "\\[" + tourid + "\\]\\[" + i + "\\]\\[kosten\\]]", tr).val( (k.toFixed(2) + "").replace(".", ",") );            
+        $("input[name=" + r + "\\[" + i + "\\]\\[kosten\\]]", tr).val( (k.toFixed(2) + "").replace(".", ",") );            
+    }
+    berechneSumme(tourid, r);
+});
+        
+jQuery("tr.tour_sum").addClass("expanded").find("span.expandable").unbind("click").bind("click", function(e) {
+   var tr = $(this).closest("tr").toggleClass("expanded");
+   $("tr." + tr.attr("data-tourclass") + ":not(.tourTitle)").toggle( tr.is(".expanded") );
+}).trigger("click");
+        
+jQuery("input:checkbox[name=saveTour\\[\\]]").unbind("change").bind("change", function(e) {
+   var tr = $(this).closest("tr");
+   
+   if ($(this)[0].checked && !tr.is(".expanded") ) {
+       tr.find("span.expandable").trigger("click");       
+   }
+   $(this).closest("tr").toggleClass("checked", $(this)[0].checked );
+});
+jQuery("input:checkbox[name=saveTour\\[\\]]").trigger("change");
+        
+jQuery("input:button[name=toggleEditAll]").bind("click", function() {
+   if ( $(this).is(".all") ) {
+      jQuery("tr.tourTitle").addClass("expanded").find("span.expandable").trigger("click");
+      $(this).removeClass("all");
+   } else {
+      jQuery("tr.tourTitle").removeClass("expanded").find("span.expandable").trigger("click");
+      jQuery("input:checkbox[name=saveTour\\[\\]]").attr('checked',true).trigger('change');
+      $(this).addClass("all");
+   }
+});
+
+jQuery("input.autocalc:checkbox").button({icons:{primary:"ui-icon-calculator"},text:false}).click(function(){
+    if ( $(this).attr("checked")) {
+        $("input.abschluss-menge", $(this).closest("tr")).trigger("change")
+    }
+});
+
+});
+</script>

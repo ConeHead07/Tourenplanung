@@ -1,0 +1,523 @@
+<?php
+$this->layout()->disableLayout();
+$r = Zend_Controller_Front::getInstance()->getResponse();
+$r->setHeader('Content-Type', 'text/html; charset=UTF-8', true);
+
+$tour_id         = &$this->ajax_response->data->tour_id;
+$mandant         = &$this->ajax_response->data->mandant;
+$auftragsnummer  = &$this->ajax_response->data->auftragsnummer;
+$positionen      = &$this->ajax_response->data->positionen;
+$dispovorgang    = &$this->ajax_response->data->dispovorgang;
+$tourenStati     = &$this->ajax_response->data->tourenStati;
+
+//echo Zend_Debug::dump($this->ajax_response, '$this->ajax_response', false);
+$allowedUAP = $this->ajax_response->allowed->updateabschlusspositionen;
+$allowedFTA = $this->ajax_response->allowed->finishtourabschluss;
+$allowedFAA = $this->ajax_response->allowed->finishauftragsabschluss;
+        
+
+$SumTouren = count($tourenStati);
+$SumTourenDisponiert    = 0;
+$SumTourenAbgeschlossen = 0;
+
+//echo '<pre>'.print_r($tourenStati, 1).'</pre>'.PHP_EOL;
+foreach($tourenStati as $_tour) {
+    //echo '<pre>'.print_r($_tour,1).'</pre>'.PHP_EOL;
+    if ($_tour['tour_disponiert_user'])    ++$SumTourenDisponiert;
+    if ($_tour['tour_abgeschlossen_user']) ++$SumTourenAbgeschlossen;
+}
+
+//echo '<pre>' . print_r($this->ajax_response->data,1).'</pre>';
+
+if (!empty($dispovorgang['tour_disponiert_user'])):
+
+$rkl_grund_opts_json = json_encode(array('', 'Kunde', 'Mertens'));
+$nl_grund_opts_json  = json_encode(array('', 'Kunde', 'Mertens'));
+
+$updatePosUrl = $this->url(array('action'=>'updateabschlusspositionen'));
+
+echo '<div id="DispoAbschluss">';
+echo 'Anzahl Positionen: ' . count($positionen).'<br>'.PHP_EOL;
+echo 'Listenansicht - Positionen: '
+    .'<span id="FilterDispoAll">Alle</span> | '
+    .'<span id="FilterDispoOther">Anderer Touren</span> | '
+    .'<span id="FilterDispoThis">Dieser Tour</span> | '
+    .'<span id="FilterDispoRest">Offene</span> <br>'.PHP_EOL;
+
+echo '<form id="DispoAbschlussMengen" style="display:inline;margin:0;">';
+echo <<<EOT
+<style>
+    table#DispoAbschluss, table#DispoAbschluss * td {
+        border-collapse:collapse;
+        border:1px solid #d2d2d2;
+    }
+    table#DispoAbschluss * td {
+        padding:2px 1px 0 1px;
+    }
+    a#PosSelectAll {
+        color:green;
+    }
+    a#PosSelectNone {
+        color:#f00;
+    }
+    
+    tr.abschluss-other {
+        color:#222;
+    }
+    tr.abschluss-offen td {
+        color:#f00;
+    }
+    tr.abschluss-fertig {
+        color:#008000;
+    }
+    tr.abschluss-teil {
+        color:#00f;
+    }
+</style>
+EOT;
+
+
+if ($dispovorgang['tour_disponiert_user']) {
+    echo 'Die Disposition der Positionen wurde am ' . $dispovorgang['tour_disponiert_am'];
+    echo ' von '. $dispovorgang['tour_disponiert_user'] . ' fertiggestellt!<br>' . PHP_EOL;
+}
+
+echo '<table id="DispoAbschluss" border=1 cellspacing=0 cellpadding=1>';
+    echo '<tr>'
+        .'<th colspan=1></th>'
+        .'<th colspan=11>Mengenangaben zu diesem Vorgang</th>'
+        .'</tr>' . PHP_EOL;
+    
+    echo '<tr>';
+    echo '<th style="vertical-align:bottom">Bezeichnung';
+    echo '<th style="vertical-align:bottom" title="Einheit">Einh.';
+    echo '<th style="vertical-align:bottom" title="Auftragsmenge">Auftr';
+    echo '<th style="vertical-align:bottom" title="Bestellmenge">Best';
+    echo '<th style="vertical-align:bottom" title="Mengenanagabe, wieviel Einheiten bereits auf anderen Touren verbucht sind">andere<br/>Touren';
+    echo '<th style="vertical-align:bottom" title="Mengenangabe f&uuml;r diese Tour">diese<br/>Tour';
+    echo '<th style="vertical-align:bottom">Rest';
+    echo '<th style="vertical-align:bottom" class="LTitle"><span>Geliefert</span>';
+    echo '<th style="vertical-align:bottom" class="RKLTitle"><span>Rekla</span>';
+    echo '<th style="vertical-align:bottom">Grund';
+    echo '<th style="vertical-align:bottom" class="NLTitle"><span>Neu-Lfg</span>';
+    echo '<th style="vertical-align:bottom">Grund';
+    echo '<th style="vertical-align:bottom">Txt';
+    echo '</tr>';
+
+$lastBestellNr = '-1';
+$AuftragSum  = 0;
+$BestelltSum = 0;
+$RestSum  = 0;
+$DispoSum = 0;
+$OtherSum = 0;
+$LSum = 0;
+$RKLSum = 0;
+$NLSum = 0;
+$DoInitPositions = true;
+
+$NichtAbgeschlossenePositionen = array();
+
+// Gruppiere Positionen, auf meherere Touren aufgeteilt sind
+// und pruefe, ob es sich um Erst-Initialisierung der Positionen handelt
+// bzw. noch nichts auf dieser Tour gebucht wurde
+for($i = 0; $i < count($positionen); $i++) {
+    $_p = $positionen[$i];
+    if ( (int)$positionen[$i]['DisponierteMenge'] > 0) {
+        $DoInitPositions = false;
+    }
+    
+    $_pos_nr      = $_p['APosNr'];
+    $_tour_id     = ($_p['DisponierteTour'] > 0 ) ? $_p['DisponierteTour'] : 'none';
+    $_dispo_menge = (int)$_p['DisponierteMenge'];
+    $gruppiertePositionen[$_pos_nr]['touren'][$_tour_id] = &$positionen[$i];
+    
+    if (!isset($gruppiertePositionen[$_pos_nr]['stat'])) {
+        $gruppiertePositionen[$_pos_nr]['stat'] = array(
+            'count'    => 0,
+            'this'     => 0,
+            'other'    => 0,
+            'sum'      => 0,
+            'rest'     => $_p['AMenge'],
+            'orderedA' => $_p['AMenge'],
+            'orderedB' => $_p['BMenge'],
+            'bestellnr'=> $_p['Bestellnummer'],
+            'bestellname'=> $_p['BestellName'],
+            'bezeichnung'=> $_p['Bezeichnung'],
+            'unit'     => (preg_match(':st.ck|stk:i',$_p['Bestellmengeneinheit'])?'St.':$_p['Bestellmengeneinheit']),
+        );
+    }
+    
+    $gruppiertePositionen[$_pos_nr]['stat']['count']++;
+    $gruppiertePositionen[$_pos_nr]['stat']['sum']+=  $_dispo_menge;
+    $gruppiertePositionen[$_pos_nr]['stat']['rest']-= $_dispo_menge;
+    
+    if ($_tour_id == $tour_id)
+        $gruppiertePositionen[$_pos_nr]['stat']['this'] =  $_dispo_menge;
+    else
+        $gruppiertePositionen[$_pos_nr]['stat']['other']+= $_dispo_menge;
+    
+}
+
+foreach($gruppiertePositionen as $_apos_nr => $_positionen) {
+    $_stat      = $_positionen['stat'];
+    $AMenge     = $_stat['orderedA'];
+    $BMenge     = $_stat['orderedB'];
+    $RMenge     = ($_stat['rest'] < 0) ? 0 : $_stat['rest'];
+    $OtherTours = $_stat['other'];
+    $ThisTour   = $_stat['this'];
+    $DMenge     = $_stat['this'];
+    
+    $AuftragSum += (int)$AMenge;
+    $BestelltSum+= (int)$BMenge;
+    $DispoSum   += $_stat['this'];
+    $RestSum    += $RMenge;
+    
+    $PosOnThisTour = (isset($_positionen['touren'][$tour_id])) ? $_positionen['touren'][$tour_id] : null;
+    
+    $_abschlussStatus = 'other';
+     
+    if ($PosOnThisTour !== null) {
+        $LMenge     = $PosOnThisTour['AbschlussMenge'];
+        $RKLMenge   = $PosOnThisTour['AbschlussReklaMenge'];
+        $NLMenge    = $PosOnThisTour['AbschlussNLMenge'];
+
+        $RKLGrund   = $PosOnThisTour['AbschlussReklaGrund'];
+        $NLGrund    = $PosOnThisTour['AbschlussNLGrund'];
+
+        $LSum      += $LMenge;
+        $RKLSum    += $RKLMenge;
+        $NLSum     += $NLMenge;
+
+        $InputBemerkg     = $PosOnThisTour['AbschlussBemerkung'];
+        $InputLMengeKey   = 'LMengen['.$_apos_nr.']';
+        $InputRKLMengeKey = 'RKLMengen['.$_apos_nr.']';
+        $InputNLMengeKey  = 'NLMengen['.$_apos_nr.']';
+        $InputRKLGrundKey = 'RKLGrund['.$_apos_nr.']';
+        $InputNLGrundKey  = 'NLGrund['.$_apos_nr.']';
+        $InputBemerkgKey  = 'Bemerkungen['.$_apos_nr.']';
+        
+        $ungeklaerteMenge = $ThisTour - $LMenge - $RKLMenge - $NLMenge;
+        if ($ungeklaerteMenge > 0) {
+            $NichtAbgeschlossenePositionen[$_apos_nr] = $ungeklaerteMenge;
+            $_abschlussStatus = (($LMenge + $RKLMenge + $NLMenge)>0) ? 'teil' : 'offen';
+            
+        } else {
+            $_abschlussStatus = 'fertig';
+        }
+    }
+    $BestellNr  = $_stat['bestellnr'];
+    $BestellName= $_stat['bestellname'];
+    $Bezeichnung= $_stat['bezeichnung'];
+    
+    $unit       = $_stat['unit'];
+    
+    // Formatier Mengenangaben
+    if (is_numeric($AMenge)) $AMenge = ($unit=='St.')?(int)$AMenge : number_format($AMenge,2,',','.');
+    if (is_numeric($BMenge)) $BMenge = ($unit=='St.')?(int)$BMenge : number_format($BMenge,2,',','.');
+    if (is_numeric($DMenge)) $DMenge = ($unit=='St.')?(int)$DMenge : number_format($DMenge,2,',','.');
+    if (is_numeric($RMenge)) $RMenge = ($unit=='St.')?(int)$RMenge : number_format($RMenge,2,',','.');
+    
+    
+    $OtherSum+= $OtherTours;
+    
+    if ($lastBestellNr != $BestellNr) {
+        echo '<tr class="DispoItemTitle"><td colspan="13">'
+            .'<b>' . ($BestellName ? $BestellName : 'Ohne Bestellnr') . '</b></td></tr>';
+    }
+    
+    echo '<tr class="DispoItem abschluss-'.$_abschlussStatus.($PosOnThisTour?' PosOnThisTour':'') .'">';
+    echo '<td>' . $Bezeichnung;
+    echo '<td>' . $unit;
+    echo '<td class="AMenge">' . $AMenge;
+    echo '<td class="BMenge">' . $BMenge;
+    echo '<td class="OtherTours" rel-value="'.$OtherTours.'">' . $OtherTours;
+    echo '<td class="DMenge" rel-value="'.$ThisTour.'">' . $ThisTour.'';
+    echo '<td class="RMenge" rel-value="'.$RMenge.'">' . $RMenge;
+    
+    if ($PosOnThisTour !== null) {
+        echo '<td class="LMenge">'
+            .'<input type="hidden" name="PositionKeys[]" value="'.$_apos_nr.'" />'
+            .'<input type="text" size="6" class="PositionsMengen LMengen" name="'.$InputLMengeKey.'" value="' . $LMenge.'">';
+
+        echo '<td class="RKLMenge" rel-value="'.$RKLMenge.'">'
+            .'<input type="text" size="6" class="PositionsMengen RKLMengen" name="'.$InputRKLMengeKey.'" value="' . $RKLMenge.'"></td>';
+        echo '<td class="ReklaGrund" rel-value="'.$RKLGrund.'" rel-name="'.$InputRKLGrundKey.'">' . $RKLGrund . '</td>';
+
+        echo '<td class="NLMenge" rel-value="' . $NLMenge.'">'
+            .'<input type="text" size="6" class="PositionsMengen NLMengen" name="'.$InputNLMengeKey.'" value="' . $NLMenge.'"></td>';
+        echo '<td class="NLGrund" rel-value="' . $NLGrund . '" rel-name="'.$InputNLGrundKey.'">' . $NLGrund . '</td>';
+        echo '<td><span class="edtxt" title="Bemerkung"/></td>';
+        echo '</tr>';
+
+        echo '<tr style="display:'.(strlen($InputBemerkg)?'':'none').'">'
+            .'<td style="text-align:right;vertical-align:top;padding-right:5px;">Bemerkung: </td>'
+            .'<td colspan=11><textarea style="width:100%" name="'.$InputBemerkgKey.'">'.$InputBemerkg.'</textarea></td></tr>';
+    } else {
+        echo '<td colspan=6></td></tr>';
+    }
+    
+    $lastBestellNr = $BestellNr;
+}
+    echo '<tr>';
+    echo '<td>Summe: ';
+    echo '<td class="ASum">' . $AuftragSum;
+    echo '<td class="BSum">' . $BestelltSum;
+    echo '<td class="OtherSum">' . $OtherSum;
+    echo '<td class="DispoThisTour BNr_">';
+    echo '<td class="DSum">' . $DispoSum;
+    echo '<td class="RSum">' . $RestSum;
+    echo '<td class="LSum">' . $LSum;
+    echo '<td class="ReklaSum" colspan=2>' . $RKLSum;
+    echo '<td class="NLSum"    colspan=2>' . $NLSum;
+    echo '<td/>';
+    echo '</tr>';
+    
+echo '</table>';
+echo '<input type="hidden" name="tour_id" value="'.$tour_id.'">';
+echo '<input type="hidden" name="Mandant" value="'.$mandant.'">';
+echo '<input type="hidden" name="Auftragsnummer" value="'.$auftragsnummer. '">';
+echo '</form>';
+
+
+$buttons = '<button id="TourAbschlussApplyChanges" %DisableApply% onclick="">Übernehmen</button>'
+          .'<button id="%TourAbschlussID%" %TourAbschlussDisable%>%TourAbschlussLabel%</button>'
+          .'<button id="%AuftragAbschlussID%" %AuftragAbschlussDisable% >%AuftragAbschlussLabel%</button>';
+$btnSettings = array(
+    '%DisableApply%'            => ' disabled="true"',
+    '%TourAbschlussID%'         => 'TourAbschlussFinish',
+    '%TourAbschlussLabel%'      => 'Tourlieferung abschliessen',
+    '%TourAbschlussDisable%'    => ' disabled="true"',
+    '%AuftragAbschlussID%'      => 'AuftragAbschlussFinish',
+    '%AuftragAbschlussLabel%'   => 'Auftrag abschliessen',
+    '%AuftragAbschlussDisable%' => ' disabled="true"',
+    
+);
+
+$status  = '';
+if ($dispovorgang['tour_abgeschlossen_user']) {
+    $status .= 'Tour wurde am ' . $dispovorgang['tour_abgeschlossen_am'] . ' von ' . $dispovorgang['tour_abgeschlossen_user'] . ' abgeschlossen!<br/>' . PHP_EOL;
+    
+    if ($dispovorgang['auftrag_abgeschlossen_user']) {
+        $btnSettings['%AuftragAbschlussID%']    = 'AuftragAbschlussOpen';
+        $btnSettings['%AuftragAbschlussLabel%'] = 'Auftrag noch mal öffnen';
+        
+        $status .= 'Der gesamt Vorgang wurde am ' . $dispovorgang['auftrag_abgeschlossen_am'] . ' von '
+                 . $dispovorgang['auftrag_abgeschlossen_user'] . ' abgeschlossen!<br/>' . PHP_EOL;
+    } else {
+        $btnSettings['%TourAbschlussID%']       = 'TourAbschlussOpen';
+        $btnSettings['%TourAbschlussLabel%']    = 'Tour wieder öffnen';
+        $btnSettings['%TourAbschlussDisable%']  = '';
+        
+        $btnSettings['%AuftragAbschlussID%']    = 'AuftragAbschlussFinish';
+        $btnSettings['%AuftragAbschlussLabel%'] = 'Auftrag abschliessen';
+        
+        if ($RestSum == 0 && $SumTouren == $SumTourenAbgeschlossen) 
+        $btnSettings['%AuftragAbschlussDisable%'] = '';
+    } 
+} else {
+    $btnSettings['%DisableApply%']          = '';
+    $btnSettings['%TourAbschlussID%']       = 'TourAbschlussFinish';
+    $btnSettings['%TourAbschlussLabel%']    = 'Tourauslieferung abschliessen';
+
+    if ( count($NichtAbgeschlossenePositionen) == 0)
+    $btnSettings['%TourAbschlussDisable%']  = '';
+        
+    $status .= '<br>Im Abschluss stehen noch ' 
+            . count($NichtAbgeschlossenePositionen) . ' ungeklaerte Positionen '
+            . '(Mengen: ' . array_sum($NichtAbgeschlossenePositionen) . ')!<br/>' . PHP_EOL;
+    if ($RestSum) $status.= 'In der Disposition bestehen noch ' . $RestSum . ' undisponierte Mengen!<br/>' . PHP_EOL;
+}
+
+if (!$allowedUAP) $btnSettings['%DisableApply%'] = ' disabled="true"';
+if (!$allowedFTA) $btnSettings['%TourAbschlussDisable%'] = ' disabled="true"';
+if (!$allowedFAA) $btnSettings['%AuftragAbschlussDisable%'] = ' disabled="true"';
+echo strtr($buttons, $btnSettings) . '<br/>' . PHP_EOL . $status . PHP_EOL;
+
+$baseUrl = $this->baseUrl();
+
+echo '</div>';  // Closing: #DispoAbschluss
+echo <<<EOT
+<script>
+
+$("span#FilterDispoThis", "#DispoAbschluss").click( function(e) {
+    $("tr.DispoItem:has(td.DMenge[rel-value>0])", "#DispoAbschluss").show();
+    $("tr.DispoItem:has(td.DMenge[rel-value=0])", "#DispoAbschluss").hide();
+});
+
+$("span#FilterDispoOther", "#DispoAbschluss").click( function(e) {
+    $("tr.DispoItem:has(td.OtherTours[rel-value>0])", "#DispoAbschluss").show();
+    $("tr.DispoItem:has(td.OtherTours[rel-value=0])", "#DispoAbschluss").hide();
+});
+
+$("span#FilterDispoRest", "#DispoAbschluss").click( function(e) {
+    $("tr.DispoItem:has(td.RMenge[rel-value>0])", "#DispoAbschluss #DispoAbschluss").show();
+    $("tr.DispoItem:has(td.RMenge[rel-value=0])", "#DispoAbschluss #DispoAbschluss").hide();
+});
+
+$("span#FilterDispoAll", "#DispoAbschluss").click( function(e) {
+    $("tr.DispoItem", "#DispoAbschlussn").show();
+});
+
+jQuery("#TourAbschlussApplyChanges", "#DispoAbschluss").click(function() {
+    var self = this;
+//    alert( $('#DispoAbschlussMengen').serialize() );
+    jQuery.get(
+    '$updatePosUrl',
+    $('#DispoAbschlussMengen', "#DispoAbschluss").serialize(), 
+    function(data, textStatus, jqXHR){
+        alert( 'Positionsmengen wurden uebertragen, Mengen werden neu geladen!');
+
+        var tabs = $(self).closest("div.ui-tabs.TourTabbedSheet")
+        var current_index = $(tabs).tabs("option","selected");
+        $(tabs).tabs('load',current_index);
+    });
+});
+
+
+jQuery("#TourAbschlussFinish", "#DispoAbschluss").click(function() {
+    var self = this;
+    jQuery.get(
+    '$baseUrl/touren/ajax/finishtourabschluss',
+    $('#DispoAbschlussMengen', "#DispoAbschluss").serialize(), 
+    function(data, textStatus, jqXHR){
+        alert( 'Die Dispositionen der Positionen zu dem Vorgang wurde abgeschlossen!');
+
+        var tabs = $(self).closest("div.ui-tabs.TourTabbedSheet")
+        var current_index = $(tabs).tabs("option","selected");
+        $(tabs).tabs('load',current_index);
+    });
+});
+
+jQuery("#TourAbschlussOpen", "#DispoAbschluss").click(function() {
+    var self = this;
+    jQuery.get(
+    '$baseUrl/touren/ajax/opentourabschluss',
+    $('#DispoAbschlussMengen').serialize(), 
+    function(data, textStatus, jqXHR){
+        alert( 'Die Dispositionen der Positionen zu dem Vorgang wurde wieder geöffnet!');
+
+        var tabs = $(self).closest("div.ui-tabs.TourTabbedSheet")
+        var current_index = $(tabs).tabs("option","selected");
+        $(tabs).tabs('load',current_index);
+    });
+});
+
+jQuery("#AuftragAbschlussFinish", "#DispoAbschluss").click(function() {
+    var self = this;
+    jQuery.get(
+    '$baseUrl/touren/ajax/finishauftragsabschluss',
+    $('#DispoAbschlussMengen', "#DispoAbschluss").serialize(), 
+    function(data, textStatus, jqXHR){
+        alert( 'Der Auftrag wurde abgeschlossen!');
+
+        var tabs = $(self).closest("div.ui-tabs.TourTabbedSheet")
+        var current_index = $(tabs).tabs("option","selected");
+        $(tabs).tabs('load',current_index);
+    });
+});
+
+jQuery("#AuftragAbschlussOpen", "#DispoAbschluss").click(function() {
+    var self = this;
+    jQuery.get(
+    '$baseUrl/touren/ajax/openauftragsabschluss',
+    $('#DispoAbschlussMengen').serialize(), 
+    function(data, textStatus, jqXHR){
+        alert( 'Der Auftrag wurde wieder geöffnet!');
+
+        var tabs = $(self).closest("div.ui-tabs.TourTabbedSheet")
+        var current_index = $(tabs).tabs("option","selected");
+        $(tabs).tabs('load',current_index);
+    });
+});
+
+$("#DispoAbschluss").find("td span.edtxt").fbIcon({icon:'comment',css:{}}).css({marginRight:'3px'}).click(function(){
+    $(this).closest("tr").next().toggle();
+});
+
+(function($){
+    var rkl_options = $rkl_grund_opts_json;
+    var nl_options  = $nl_grund_opts_json;
+    
+    $("td.ReklaGrund", "#DispoAbschluss").each( function() {
+        var s = $("<select/>").attr({ name: $(this).attr('rel-name') });
+        var o = null;
+        for(var i in rkl_options) {
+           o = $("<option/>").attr({text: rkl_options[i], value:rkl_options[i]});
+           if ($(this).attr("rel-value") == rkl_options[i]) o.attr({selected: true});
+           s.append( o );
+        }
+        $(this).html('').append( s );
+    });
+    
+    $("td.NLGrund", "#DispoAbschluss").each( function() {
+        var s = $("<select/>").attr({ name: $(this).attr('rel-name') });
+        var o = null;
+        for(var i in nl_options) {
+           o = $("<option/>").attr({text: nl_options[i], value:nl_options[i]});
+           if ($(this).attr("rel-value") == nl_options[i]) o.attr({selected: true});
+           s.append( o );
+        }
+        $(this).html('').append( s );
+    });
+    
+    $("th.LTitle span", "#DispoAbschluss").button().bind('click', function(e) {
+        if (typeof($(this).data('toggleRest')) != 'boolean') $(this).data('toggleRest', true);
+        var toggleRest = $(this).data('toggleRest');
+        $("tr.DispoItem.PosOnThisTour", "#DispoAbschluss").each(function() {
+            if (toggleRest) {
+                var d = parseInt( $("td.DMenge", this).attr('rel-value'));
+                var r = parseInt( $("td.RKLMenge input.RKLMengen", this).val());
+                var n = parseInt( $("td.NLMenge input.NLMengen", this).val());
+                $("td.LMenge input.LMengen", this).val(Math.max(0, d-r-n) );
+            } else {
+                $("td.LMenge input.LMengen", this).val( 0 );
+            }
+        });
+        $(this).data('toggleRest', !$(this).data('toggleRest') );
+    }).find('span').css({padding:'0 2px'});
+    
+    $("th.RKLTitle span", "#DispoAbschluss").button().bind('click', function(e) {
+        if ( typeof( $(this).data('toggleRest') ) != 'boolean' ) $(this).data('toggleRest', true);
+        var toggleRest = $(this).data('toggleRest');
+        $("tr.DispoItem.PosOnThisTour", "#DispoAbschluss").each(function() {
+            if ( toggleRest ) {
+                var d = parseInt( $("td.DMenge", this).attr('rel-value'));
+                var l = parseInt( $("td.LMenge input.LMengen", this).val());
+                var n = parseInt( $("td.NLMenge input.NLMengen", this).val());
+                $("td.RKLMenge input.RKLMengen", this).val(Math.max(0, d-l-n) );
+            } else {
+                $("td.RKLMenge input.RKLMengen", this).val( 0 );
+            }
+        });
+        $(this).data('toggleRest', !$(this).data('toggleRest') );
+    }).find('span').css({padding:'0 2px'});
+    
+    $("th.NLTitle span", "#DispoAbschluss").button().bind('click', function(e) {
+        if ( typeof( $(this).data('toggleRest') ) != 'boolean') $(this).data('toggleRest', true);
+        var toggleRest = $(this).data('toggleRest');
+        $("tr.DispoItem.PosOnThisTour", "#DispoAbschluss").each(function() {
+            if ( toggleRest ) {
+                var d = parseInt( $("td.DMenge", this).attr('rel-value') );
+                var l = parseInt( $("td.LMenge input.LMengen", this).val() );
+                var r = parseInt( $("td.RKLMenge input.RKLMengen", this).val() );
+                $("td.NLMenge input.NLMengen", this).val(Math.max(0, d-l-r) );
+            } else {
+                $("td.NLMenge input.NLMengen", this).val( 0 );
+            }
+        });
+        $(this).data('toggleRest', !$(this).data('toggleRest') );
+    }).find('span').css({padding:'0 2px'});
+})(jQuery);
+
+
+
+</script>
+EOT;
+
+else:
+    echo 'Vorgang wurde noch nicht fertig disponiert!';
+endif;
+
+
+//echo '<pre>'. print_r($dispovorgang, 1).'</pre>';
+//echo '<pre>'. print_r($this->ajax_response->data, 1).'</pre>';

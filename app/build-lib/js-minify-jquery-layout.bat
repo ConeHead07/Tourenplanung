@@ -1,0 +1,1 @@
+java -jar ./compiler.jar --js=../public/jquery/ui/layout/jquery.layout-latest.js --js_output_file=../public/jquery/ui/layout/min/jquery.layout-all.min.js

@@ -1,0 +1,199 @@
+<?php
+/* @var $this Zend_View */
+require_once 'JqGridHeader.php';
+JqGridHeader::enable(true);
+?>
+<script type="text/javascript">
+//<![CDATA[
+jQuery(function() {jQuery("#gridVorgaengeLst").jqGrid(
+{
+    "colNames":[
+        "Mandant","WWS-Nr","A-Art","B-Stat","UB-Stat","GrNr","K-Nr",
+        "Adr","PLZ","Ort","Land","L-Name",
+        "KW","Jahr","L-Termin","Fix","LieferterminHinweisText"
+    ],
+    "colModel":[
+        {"name":"Mandant","index":"Mandant","editable":false,"hidden":true},
+        {"name":"Auftragsnummer","index":"Auftragsnummer","editable":false, "key":true, 
+            "cellattr":function( rowId, value, rowObject, colModel, arrData){ return ' colspan=2'},
+            "formatter":function(value, options, rData){ 
+                return value +
+                  ', '+ rData['Auftragsart'] +
+                  ', '+ rData['Bearbeitungsstatus'] +
+                  ', '+ rData['UnterBearbeitungsstatus'] +
+                  ', '+ rData['Gruppierungsnr'] +
+                  '<br> '+ rData['LieferungStrassePostfach'] +
+                  '<br> '+ rData['LieferungPostleitzahl'] +
+                  ', '+ rData['LieferungOrt'] +
+                  ', '+ rData['LieferungLand'] +
+                  ', '+ rData['LieferungName'] +
+                  '<br> '+ rData['Lieferwoche'] +
+                  ', '+ rData['Lieferjahr'] +
+                  ', '+ rData['Liefertermin'] +
+                  ', '+ rData['LieferterminFix']; 
+            }},
+        {"name":"Auftragsart","index":"Auftragsart","editable":false,
+            "cellattr":function( rowId, value, rowObject, colModel, arrData){ return ' style="display:none"'}},
+        {"name":"Bearbeitungsstatus","index":"Bearbeitungsstatus","editable":false,
+            "cellattr":function( rowId, value, rowObject, colModel, arrData){ return ' style="display:none"'}},
+        {"name":"UnterBearbeitungsstatus","index":"UnterBearbeitungsstatus","editable":false,
+            "cellattr":function( rowId, value, rowObject, colModel, arrData){ return ' style="display:none"'}},
+        {"name":"Gruppierungsnummer","index":"Gruppierungsnummer","editable":false},
+        {"name":"Kundennummer","index":"Kundennummer","editable":false,
+            "cellattr":function( rowId, value, rowObject, colModel, arrData){ return ' style="display:none"'}},
+        
+        
+        {"name":"LieferungStrassePostfach","index":"LieferungStrassePostfach","editable":false,
+            "cellattr":function( rowId, value, rowObject, colModel, arrData){ return ' style="display:none"'}},
+        {"name":"LieferungPostleitzahl","index":"LieferungPostleitzahl","editable":false,
+            "cellattr":function( rowId, value, rowObject, colModel, arrData){ return ' style="display:none"'}},
+        {"name":"LieferungOrt","index":"LieferungOrt","editable":false,
+            "cellattr":function( rowId, value, rowObject, colModel, arrData){ return ' style="display:none"'}},
+        {"name":"LieferungLand","index":"LieferungLand","editable":false,
+            "cellattr":function( rowId, value, rowObject, colModel, arrData){ return ' style="display:none"'}},
+        {"name":"LieferungName","index":"LieferungName","editable":false,
+            "cellattr":function( rowId, value, rowObject, colModel, arrData){ return ' style="display:none"'}}
+        ,
+        {"name":"Lieferwoche","index":"Lieferwoche","editable":false,
+            "cellattr":function( rowId, value, rowObject, colModel, arrData){ return ' style="display:none"'}},
+        {"name":"Lieferjahr ","index":"Lieferjahr ","editable":false,
+            "cellattr":function( rowId, value, rowObject, colModel, arrData){ return ' style="display:none"'}},
+        {"name":"Liefertermin","index":"Liefertermin","editable":false,
+            "cellattr":function( rowId, value, rowObject, colModel, arrData){ return ' style="display:none"'}},
+        {"name":"LieferterminFix","index":"LieferterminFix","editable":false,
+            "cellattr":function( rowId, value, rowObject, colModel, arrData){ return ' style="display:none"'}},
+        {"name":"LieferterminHinweisText","index":"LieferterminHinweisText","editable":false,"hidden":true}
+        
+
+     ],
+    "height":"auto",
+    "jsonReader":{"repeatitems":false,"id":0},
+    "loadComplete": function() {
+        alert("loadComplete");
+    },
+    "onSelectRow": function(id) {
+        alert("select row " + id);
+    },
+    "autowidth":true,
+    "rowList":[10,20,30,40,50,100],
+    "rowNum":10,
+    "rownumbers":true,
+    "resizable":false,
+    "sortable":true,
+    "datatype":"json",
+    "url":"<?php echo APPLICATION_BASE_URL; ?>/vorgaenge/gridresponsedata",
+    "caption":"Test-Grid",
+    "shrinkToFit":true,
+    "pager":"#gridVorgaengeLst_pager",
+    "loadError":function(xhr,status,error){ alert(status+'\n'+error);},
+    "subGrid": true,
+    "subGridRowExpanded": function(subgrid_id, row_id) {
+        // we pass two parameters
+        // subgrid_id is a id of the div tag created whitin a table data
+        // the id of this elemenet is a combination of the "sg_" + id of the row
+        // the row_id is the id of the row
+        // If we want to pass additinal parameters to the url we can use
+        // a method getRowData(row_id) - which returns associative array in type name-value
+        // here we can easy construct the flowing
+        var subgrid_table_id, pager_id;
+        subgrid_table_id = subgrid_id+"_t";
+        pager_id = "p_"+subgrid_table_id;
+        var row = $( this ).getRowData(row_id);
+        var mandant = row['Mandant'];
+//        alert('row_id:'+row_id+', mandant:'+row['Mandant']+', Auftragsnumer:'+row['Auftragsnummer']);
+        
+        $("#"+subgrid_id).html(
+            "<table id='"+subgrid_table_id+"' class='scroll'></table>"
+           +"<div id='"+pager_id+"' class='scroll'></div>");
+
+        jQuery("#"+subgrid_table_id).jqGrid({ /*grid-Anweisungen*/ 
+            "url":"<?php echo APPLICATION_BASE_URL; ?>/bestellkoepfe/gridresponsedata/parentid/"+row_id+"/mandant/"+mandant,
+            "colNames":["Mandant","Auftragsnummer","Bestellnummer","Bestellungstyp","BestellName"],
+            "colModel":[
+                    {"name":"Mandant","index":"Mandant","editable":false,"hidden":true},
+                    {"name":"Auftragsnummer","index":"Auftragsnummer","editable":false,"hidden":true},
+                    {"name":"Bestellnummer","index":"Bestellnummer","editable":false, "key":true},
+                    {"name":"Bestellungstyp","index":"Bestellungstyp","editable":false},
+                    {"name":"BestellName","index":"BestellName","editable":false}
+            ],
+            "height":"auto",
+            "jsonReader":{"repeatitems":false,"id":0},
+            "autowidth":true,
+            "rowList":[10,20],
+            "rowNum":10,
+            "rownumbers":true,
+            "resizable":false,
+            "sortable":true,
+            "datatype":"json",
+            "shrinkToFit":true,
+            "pager":pager_id,
+            "loadError":function(xhr,status,error){ alert(status+'\n'+error);},
+            "subGrid": true,
+            "subGridRowExpanded": function(subgrid_id, row_id) {
+                // we pass two parameters
+                // subgrid_id is a id of the div tag created whitin a table data
+                // the id of this elemenet is a combination of the "sg_" + id of the row
+                // the row_id is the id of the row
+                // If we wan to pass additinal parameters to the url we can use
+                // a method getRowData(row_id) - which returns associative array in type name-value
+                // here we can easy construct the flowing
+                var subgrid_table_id, pager_id;
+                subgrid_table_id = subgrid_id+"_t";
+                pager_id = "p_"+subgrid_table_id;
+                
+                var row = $( this ).getRowData(row_id);
+                var mandant = row['Mandant'];
+//                alert('row_id:'+row_id+', mandant:'+row['Mandant']+', Auftragsnumer:'+row['Auftragsnummer']+', Bestellnummer:'+row['Bestellnummer']);
+
+                $("#"+subgrid_id).html(
+                    "<table id='"+subgrid_table_id+"' class='scroll'></table>"
+                   +"<div id='"+pager_id+"' class='scroll'></div>");
+
+                jQuery("#"+subgrid_table_id).jqGrid({ /*grid-Anweisungen*/ 
+                    "url":"<?php echo APPLICATION_BASE_URL; ?>/bestellpositionen/gridresponsedata/parentid/"+row_id+"/mandant/"+mandant,
+                    "colNames":["Mandant","Auftragsnummer","Bestellnummer","Positionsnummer","Artikelnummer","Bezeichnung","Liefermenge","Liefertermin","LieferterminFix"],
+                    "colModel":[
+                            {"name":"Mandant","index":"Mandant","editable":false, "key":true,"hidden":true},
+                            {"name":"Auftragsnummer","index":"Auftragsnummer","editable":false,"hidden":true},
+                            {"name":"Bestellnummer","index":"Bestellnummer","editable":false, "key":true,"hidden":true},
+                            {"name":"Positionsnummer","index":"Positionsnummer","editable":false, "key":true,"hidden":true},
+                            {"name":"Artikelnummer","index":"Artikelnummer","editable":false,"hidden":true},
+                            {"name":"Bezeichnung","index":"Bezeichnung","editable":false},
+                            {"name":"Liefermenge","index":"Liefermenge","editable":false},
+                            {"name":"Liefertermin","index":"Liefertermin","editable":false},
+                            {"name":"LieferterminFix","index":"LieferterminFix","editable":false}
+                    ],
+                    "height":"auto",
+                    "jsonReader":{"repeatitems":false,"id":0},
+                    "autowidth":true,
+                    "rowList":[10,20],
+                    "rowNum":10,
+                    "rownumbers":true,
+                    "resizable":false,
+                    "sortable":true,
+                    "datatype":"json",
+                    "shrinkToFit":true,
+                    "pager":pager_id,
+                    "loadError":function(xhr,status,error){ alert(status+'\n'+error);}
+                })
+            },
+            "subGridRowColapsed": function(subgrid_id, row_id) {
+                    // this function is called before removing the data
+                    //var subgrid_table_id;
+                    //subgrid_table_id = subgrid_id+"_t";
+                    //jQuery("#"+subgrid_table_id).remove();
+            }
+        })
+        
+    },
+    "subGridRowColapsed": function(subgrid_id, row_id) {
+            // this function is called before removing the data
+            //var subgrid_table_id;
+            //subgrid_table_id = subgrid_id+"_t";
+            //jQuery("#"+subgrid_table_id).remove();
+    }
+})
+});    //]]>
+</script>        
+    <table id="gridVorgaengeLst"></table> 
+        <div id="gridVorgaengeLst_pager"></div>

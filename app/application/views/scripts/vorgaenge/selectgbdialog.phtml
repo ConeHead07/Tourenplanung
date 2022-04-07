@@ -1,0 +1,65 @@
+<?php
+$this->layout()->disableLayout();
+
+/* @var $r Zend_Controller_Request_Abstract */
+$r = Zend_Controller_Front::getInstance()->getRequest();
+
+/* @var $this Zend_View */
+$baseUrl = $this->baseUrl();    // View-Helper der via __call (magic) 
+// an Zend_View gebunden wurden
+
+$modUrl = $baseUrl . '/' . $r->getModuleName();
+$ctrUrl = $modUrl . '/' . $r->getControllerName();
+
+$treeID = (property_exists($this, "SelectTreeId") && $this->SelectTreeId) ? $this->SelectTreeId : "treeSelectDialog";
+
+require_once 'JqGridHeader.php';
+JqGridHeader::enable(true);
+$uniqueClass = 'Unique-'.md5(time()+rand());
+?>
+<table id="<?php echo $treeID; ?>" class="treeSelectDialog <?php echo $uniqueClass; ?>"></table>
+<div  id="p<?php echo $treeID; ?>" class="ptreeSelectDialog p<?php echo $uniqueClass; ?>"></div>
+<script>
+
+jQuery("table.<?php echo $uniqueClass; ?>").jqGrid(
+{ 
+    treeGrid: true,
+    treeGridModel: 'nested',
+    ExpandColumn : 'name',
+    url: '<?php echo $ctrUrl; ?>/selectgblist?jsonReader=true',
+    datatype: "json",
+    mtype: "POST",
+    height:200,
+    rowNum:40,
+    scroll:true,
+    width:"auto",
+    forceFit : true,
+    resizable: true,
+    caption:"",
+    colNames:["id","Name"],
+    colModel:[
+        {name:'id',index:'id', width:1,hidden:true,key:true, editable:false},
+        {name:'name',index:'name', width:180, editable:false}
+    ],
+    pager : "div.p<?php echo $uniqueClass; ?>",
+    caption: "Fuhrpark Kategorien",
+    jsonReader: {
+        repeatitems: false,
+                 id: 0,
+               root: "rows"
+    },
+    loadError: function(xhr, status, error) {
+        alert(status + "\n" + error);
+    },
+    loadComplete: function(data) {
+        var gridContainer = $(this).closest("#gbox_" + $(this).attr("id"));
+        $("div.ui-widget-header", gridContainer).hide();
+        $("div.ui-jqgrid-pager", gridContainer).hide();
+    },
+    gridComplete: function(){                
+    },
+    onCellSelect: function(rowId, iCol, cellContent, event){
+        $( this ).trigger("selectTreeNode", $(this).jqGrid('getRowData', rowId) );
+    }
+}).jqGrid('sortableRows').jqGrid('gridResize', {minWidth:200}); // handles: 'e, w';
+</script>

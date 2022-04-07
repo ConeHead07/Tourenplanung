@@ -1,0 +1,356 @@
+<?php
+        /* @var $this Zend_View */
+        require_once 'JqGridHeader.php';
+        JqGridHeader::enable(true);
+        
+        $GridId = '#gridUsrLst';
+        $GridIdPager = '#gridUsrLst_pager';
+        $JqGrid = new JqGrid($GridId);
+        // Grid-Options definieren
+        $JqGrid->height('auto')
+        ->jsonReader(array( "repeatitems" => false, "id" => 0 ) )
+        ->autowidth(true)
+        ->rowList(array(10, 20, 30, 40, 50,100))
+        ->rowNum(10)
+        ->rownumbers(true)
+        ->resizable(false)
+        ->sortable(true)
+        ->datatype('json')
+        ->url($this->baseUrl() . '/vorgaenge/gridresponsedata')
+        ->editurl($this->baseUrl() . '/vorgaenge/grideditdata')
+        ->enableInlineEditingDefaults()
+        ->setNavGrid($GridIdPager, $properties = array())
+        ->caption("Test-Grid")
+        ->shrinkToFit(true)
+        ->pager($GridIdPager)
+        ->on_loadError( new JsFunction("function(xhr,status,error){ alert(status+'\\n'+error);}") )
+        ->addChainMethod('.jqGrid("filterToolbar",{stringResult: true,searchOnEnter : false})')
+//        ->addChainMethod( ".jqGrid('searchGrid', {sopt:['cn','bw','eq','ne','lt','gt','ew']} )")
+        ->colNames( array('Mandant','Auftragsnummer',
+                //'Auftragsart','Abrechnungsart',
+                'Bearbeitungsstatus','UnterBearbeitungsstatus','Referenznummer','Gruppierungsnummer','Kundennummer','Debitorenkonto','Sprache','Rechnungsanschrift','RechnungStrassePostfach','RechnungPostleitzahl','RechnungOrt','RechnungLand','AnsprechpartnerNummer','AnsprechpartnerNachname','AnsprechpartnerVorname','AnsprechpartnerAnrede','AnsprechpartnerAnrede2','AnsprechpartnerTelefon','AnsprechpartnerFax','AnsprechpartnerMail',
+                //'Lieferanschrift',
+                'LieferungName','LieferungStrassePostfach','LieferungPostleitzahl','LieferungOrt','LieferungLand','AnsprechpartnernummerLief','AnsprechpartnerNachnameLief','AnsprechpartnerVornameLief','AnsprechpartnerAnredeLief','AnsprechpartnerAnrede2Lief','Angebotanschrift','AngebotStrassePostfach','AngebotPostleitzahl','AngebotOrt','AngebotLand','AnsprechpartnerNummerAng','AnsprechpartnerNachnameAng','AnsprechpartnerVornameAng','AnsprechpartnerAnredeAng','AnsprechpartnerAnrede2Ang','AvisierungsAnschrift','AnsprechpartnerNummerAvis','AnsprechpartnerNachnameAvis','AnsprechpartnerVornameAvis','AnsprechpartnerAnredeAvis','AnsprechpartnerAnrede2Avis','MontageFirmaAnschrift','AnsprechpartnerNummerMont','AnsprechpartnerNachnameMont','AnsprechpartnerVornameMont','AnsprechpartnerAnredeMont','AnsprechpartnerAnrede2Mont','AnsprechpartnerNummerBest','AnsprechpartnerNachnameBest','AnsprechpartnerVornameBest','AnsprechpartnerAnredeBest','AnsprechpartnerAnrede2Best','AnsprechpartnerTelefonBest','AnsprechpartnerFaxBest','AnsprechpartnerMailBest','Verkaufsteam','Zahlungsbedingung','Lieferwoche','Lieferjahr','LieferterminFix','AvisierteWoche','AvisiertesJahr','AvisierterTerminFix','AvisierterTerminDauer','AvisierterTerminDisponiert','Kostenstelle',
+                //'Bestellnummer',
+                //'Bestellinfo',
+                'Sammelrechnung','Sammellieferschein','Eingangsart',
+                //'Abwicklungsart',
+                'Geschaeftsbereich','TeilRechnung',
+                //'TeilLieferung',
+                'AltenSteuersatzVerwenden','Bemerkung','Auftragswert','AuftragswertHW','FakturierterAuftragswert','FakturierterAuftragswertHW','Rohgewinn','RohgewinnHW','AuftrZuschlaegeWertNichtUmlegbar','AuftrZuschlaegeWertNichtUmlegbarHW','AuftragswertMitZuschlaegen','AuftragswertMitZuschlaegenHW','AuftragsWerteGueltig','Waehrung','Rechnungskennzeichen',
+                //'Versandbedingung',
+                //'Lieferbedingung',
+                'Filialkennung','Kopftext1','ADMitarbeiterNummer','SBMitarbeiterNummer','Tournummer','Projektkennung','StornoRechnungsnummer','Realisierungswahrschkt','AbschlussStatus','Erledigungsgrund','Mitbewerber','Steuergebiet','IstAlternativ','RechnungInklMWSt','FaktAbwMandant','AbwWaehrungsKurs','ReaktionsZeit','IstTKDAuftrag','TechnikerNummer','Kostentraeger','AngelegtProgramm','AngelegtDurch','GeaendertProgramm','GeaendertDurch','UniqueID','AvisierungILN','AngebotILN','RechnungILN','LieferungILN','MontageILN'))
+        ->colModel(array('addFieldsProperties' => array(
+                'Mandant' => array('editable'=>false),
+                'Auftragsnummer' => array('editable'=>false,'key'=>true),
+                //'Auftragsart' => array('editable'=>false),
+//                'Abrechnungsart' => array('editable'=>false),
+                'Bearbeitungsstatus' => array('editable'=>false),
+                'UnterBearbeitungsstatus' => array('editable'=>false),
+                'Referenznummer' => array('editable'=>false,'hidden'=>true),
+                'Gruppierungsnummer' => array('editable'=>false,'hidden'=>true),
+                'Kundennummer' => array('editable'=>false),
+                'Debitorenkonto' => array('editable'=>false,'hidden'=>true),
+                'Sprache' => array('editable'=>false,'hidden'=>true),
+                'Rechnungsanschrift' => array('editable'=>false,'hidden'=>true),
+                'RechnungStrassePostfach' => array('editable'=>false,'hidden'=>true),
+                'RechnungPostleitzahl' => array('editable'=>false,'hidden'=>true),
+                'RechnungOrt' => array('editable'=>false,'hidden'=>true),
+                'RechnungLand' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerNummer' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerNachname' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerVorname' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerAnrede' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerAnrede2' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerTelefon' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerFax' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerMail' => array('editable'=>false,'hidden'=>true),
+                //'Lieferanschrift' => array('editable'=>false),
+                'LieferungName' => array('editable'=>false),
+                'LieferungStrassePostfach' => array('editable'=>false,'hidden'=>true),
+                'LieferungPostleitzahl' => array('editable'=>false),
+                'LieferungOrt' => array('editable'=>false),
+                'LieferungLand' => array('editable'=>false),
+                'AnsprechpartnernummerLief' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerNachnameLief' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerVornameLief' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerAnredeLief' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerAnrede2Lief' => array('editable'=>false,'hidden'=>true),
+                'Angebotanschrift' => array('editable'=>false,'hidden'=>true),
+                'AngebotStrassePostfach' => array('editable'=>false,'hidden'=>true),
+                'AngebotPostleitzahl' => array('editable'=>false,'hidden'=>true),
+                'AngebotOrt' => array('editable'=>false,'hidden'=>true),
+                'AngebotLand' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerNummerAng' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerNachnameAng' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerVornameAng' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerAnredeAng' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerAnrede2Ang' => array('editable'=>false,'hidden'=>true),
+                'AvisierungsAnschrift' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerNummerAvis' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerNachnameAvis' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerVornameAvis' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerAnredeAvis' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerAnrede2Avis' => array('editable'=>false,'hidden'=>true),
+                'MontageFirmaAnschrift' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerNummerMont' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerNachnameMont' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerVornameMont' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerAnredeMont' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerAnrede2Mont' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerNummerBest' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerNachnameBest' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerVornameBest' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerAnredeBest' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerAnrede2Best' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerTelefonBest' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerFaxBest' => array('editable'=>false,'hidden'=>true),
+                'AnsprechpartnerMailBest' => array('editable'=>false,'hidden'=>true),
+                'Verkaufsteam' => array('editable'=>false,'hidden'=>true),
+                'Zahlungsbedingung' => array('editable'=>false,'hidden'=>true),
+                'Lieferwoche' => array('editable'=>false),
+                'Lieferjahr' => array('editable'=>false),
+                'LieferterminFix' => array('editable'=>false),
+                'AvisierteWoche' => array('editable'=>false,'hidden'=>true),
+                'AvisiertesJahr' => array('editable'=>false,'hidden'=>true),
+                'AvisierterTerminFix' => array('editable'=>false,'hidden'=>true),
+                'AvisierterTerminDauer' => array('editable'=>false,'hidden'=>true),
+                'AvisierterTerminDisponiert' => array('editable'=>false,'hidden'=>true),
+                'Kostenstelle' => array('editable'=>false,'hidden'=>true),
+                //'Bestellnummer' => array('editable'=>false),
+                //'Bestellinfo' => array('editable'=>false),
+                'Sammelrechnung' => array('editable'=>false,'hidden'=>true),
+                'Sammellieferschein' => array('editable'=>false,'hidden'=>true),
+                'Eingangsart' => array('editable'=>false,'hidden'=>true),
+                //'Abwicklungsart' => array('editable'=>false),
+                'Geschaeftsbereich' => array('editable'=>false,'hidden'=>true),
+                'TeilRechnung' => array('editable'=>false,'hidden'=>true),
+                //'TeilLieferung' => array('editable'=>false),
+                'AltenSteuersatzVerwenden' => array('editable'=>false,'hidden'=>true),
+                'Bemerkung' => array('editable'=>false,'hidden'=>true),
+                'Auftragswert' => array('editable'=>false),
+                'AuftragswertHW' => array('editable'=>false,'hidden'=>true),
+                'FakturierterAuftragswert' => array('editable'=>false,'hidden'=>true),
+                'FakturierterAuftragswertHW' => array('editable'=>false,'hidden'=>true),
+                'Rohgewinn' => array('editable'=>false,'hidden'=>true),
+                'RohgewinnHW' => array('editable'=>false,'hidden'=>true),
+                'AuftrZuschlaegeWertNichtUmlegbar' => array('editable'=>false,'hidden'=>true),
+                'AuftrZuschlaegeWertNichtUmlegbarHW' => array('editable'=>false,'hidden'=>true),
+                'AuftragswertMitZuschlaegen' => array('editable'=>false,'hidden'=>true),
+                'AuftragswertMitZuschlaegenHW' => array('editable'=>false,'hidden'=>true),
+                'AuftragsWerteGueltig' => array('editable'=>false,'hidden'=>true),
+                'Waehrung' => array('editable'=>false,'hidden'=>true),
+                'Rechnungskennzeichen' => array('editable'=>false,'hidden'=>true),
+                //'Versandbedingung' => array('editable'=>false),
+                //'Lieferbedingung' => array('editable'=>false),
+                'Filialkennung' => array('editable'=>false,'hidden'=>true),
+                'Kopftext1' => array('editable'=>false,'hidden'=>true),
+                'ADMitarbeiterNummer' => array('editable'=>false,'hidden'=>true),
+                'SBMitarbeiterNummer' => array('editable'=>false,'hidden'=>true),
+                'Tournummer' => array('editable'=>false,'hidden'=>true),
+                'Projektkennung' => array('editable'=>false,'hidden'=>true),
+                'StornoRechnungsnummer' => array('editable'=>false,'hidden'=>true),
+                'Realisierungswahrschkt' => array('editable'=>false,'hidden'=>true),
+                'AbschlussStatus' => array('editable'=>false,'hidden'=>true),
+                'Erledigungsgrund' => array('editable'=>false,'hidden'=>true),
+                'Mitbewerber' => array('editable'=>false,'hidden'=>true),
+                'Steuergebiet' => array('editable'=>false,'hidden'=>true),
+                'IstAlternativ' => array('editable'=>false,'hidden'=>true),
+                'RechnungInklMWSt' => array('editable'=>false,'hidden'=>true),
+                'FaktAbwMandant' => array('editable'=>false,'hidden'=>true),
+                'AbwWaehrungsKurs' => array('editable'=>false,'hidden'=>true),
+                'ReaktionsZeit' => array('editable'=>false,'hidden'=>true),
+                'IstTKDAuftrag' => array('editable'=>false,'hidden'=>true),
+                'TechnikerNummer' => array('editable'=>false,'hidden'=>true),
+                'Kostentraeger' => array('editable'=>false,'hidden'=>true),
+                'AngelegtProgramm' => array('editable'=>false,'hidden'=>true),
+                'AngelegtDurch' => array('editable'=>false,'hidden'=>true),
+                'GeaendertProgramm' => array('editable'=>false,'hidden'=>true),
+                'GeaendertDurch' => array('editable'=>false,'hidden'=>true),
+                'UniqueID' => array('editable'=>false,'hidden'=>true),
+                'AvisierungILN' => array('editable'=>false,'hidden'=>true),
+                'AngebotILN' => array('editable'=>false,'hidden'=>true),
+                'RechnungILN' => array('editable'=>false,'hidden'=>true),
+                'LieferungILN' => array('editable'=>false,'hidden'=>true),
+                'MontageILN' => array('editable'=>false,'hidden'=>true)
+        )));
+        
+        $JqGrid->subGrid(true);
+        $JqGrid->subGridRowExpanded(new JsFunction(
+<<<EOT
+    function(subgrid_id, row_id) {
+        // we pass two parameters
+        // subgrid_id is a id of the div tag created whitin a table data
+        // the id of this elemenet is a combination of the "sg_" + id of the row
+        // the row_id is the id of the row
+        // If we want to pass additinal parameters to the url we can use
+        // a method getRowData(row_id) - which returns associative array in type name-value
+        // here we can easy construct the flowing
+        var subgrid_table_id, pager_id;
+        subgrid_table_id = subgrid_id+"_t";
+        pager_id = "p_"+subgrid_table_id;
+        var row = $( this ).getRowData(row_id);
+        var mandant = row['Mandant'];
+//        alert('row_id:'+row_id+', mandant:'+row['Mandant']+', Auftragsnumer:'+row['Auftragsnummer']);
+        
+        $("#"+subgrid_id).html(
+            "<table id='"+subgrid_table_id+"' class='scroll'></table>"
+           +"<div id='"+pager_id+"' class='scroll'></div>");
+
+        jQuery("#"+subgrid_table_id).jqGrid({ /*grid-Anweisungen*/ 
+            "url":"{APPLICATION_BASE_URL}/bestellkoepfe/gridresponsedata/parentid/"+row_id+"/mandant/"+mandant,
+            "colNames":["Mandant","Auftragsnummer","Bestellnummer","Bestellungstyp","BestellName"],
+            "colModel":[
+                    {"name":"Mandant","index":"Mandant","editable":false,"hidden":true},
+                    {"name":"Auftragsnummer","index":"Auftragsnummer","editable":false,"hidden":true},
+                    {"name":"Bestellnummer","index":"Bestellnummer","editable":false, "key":true},
+                    {"name":"Bestellungstyp","index":"Bestellungstyp","editable":false},
+                    {"name":"BestellName","index":"BestellName","editable":false}
+            ],
+            "height":"auto",
+            "jsonReader":{"repeatitems":false,"id":0},
+            "autowidth":true,
+            "rowList":[10,20],
+            "rowNum":10,
+            "rownumbers":false,
+            "resizable":false,
+            "sortable":true,
+            "datatype":"json",
+            "shrinkToFit":true,
+            "pager":pager_id,
+            "loadError":function(xhr,status,error){ alert(status+'\\n'+error);},
+            "loadComplete": function() {
+                if ( $( this ).jqGrid( 'getGridParam', 'lastpage' ) < 2) {
+                    $('#'+pager_id).toggle();
+                }
+            },
+            "subGrid": true,
+            "subGridRowExpanded": function(subgrid_id, row_id) {
+                // we pass two parameters
+                // subgrid_id is a id of the div tag created whitin a table data
+                // the id of this elemenet is a combination of the "sg_" + id of the row
+                // the row_id is the id of the row
+                // If we wan to pass additinal parameters to the url we can use
+                // a method getRowData(row_id) - which returns associative array in type name-value
+                // here we can easy construct the flowing
+                var subgrid_table_id, pager_id;
+                subgrid_table_id = subgrid_id+"_t";
+                pager_id = "p_"+subgrid_table_id;
+                
+                var row = $( this ).getRowData(row_id);
+                var mandant = row['Mandant'];
+//                alert('row_id:'+row_id+', mandant:'+row['Mandant']+', Auftragsnumer:'+row['Auftragsnummer']+', Bestellnummer:'+row['Bestellnummer']);
+
+                $("#"+subgrid_id).html(
+                    "<table id='"+subgrid_table_id+"' class='scroll'></table>"
+                   +"<div id='"+pager_id+"' class='scroll'></div>");
+
+                jQuery("#"+subgrid_table_id).jqGrid({ /*grid-Anweisungen*/ 
+                    "url":"{APPLICATION_BASE_URL}/bestellpositionen/gridresponsedata/parentid/"+row_id+"/mandant/"+mandant,
+                    "colNames":["Mandant","Auftragsnummer","Bestellnummer","Positionsnummer","Artikelnummer","Bezeichnung","Liefermenge","Liefertermin","LieferterminFix"],
+                    "colModel":[
+                            {"name":"Mandant","index":"Mandant","editable":false, "key":true,"hidden":true},
+                            {"name":"Auftragsnummer","index":"Auftragsnummer","editable":false,"hidden":true},
+                            {"name":"Bestellnummer","index":"Bestellnummer","editable":false, "key":true,"hidden":true},
+                            {"name":"Positionsnummer","index":"Positionsnummer","editable":false, "key":true},
+                            {"name":"Artikelnummer","index":"Artikelnummer","editable":false},
+                            {"name":"Bezeichnung","index":"Bezeichnung","editable":false},
+                            {"name":"Liefermenge","index":"Liefermenge","editable":false},
+                            {"name":"Liefertermin","index":"Liefertermin","editable":false},
+                            {"name":"LieferterminFix","index":"LieferterminFix","editable":false}
+                    ],
+                    "height":"auto",
+                    "jsonReader":{"repeatitems":false,"id":0},
+                    "autowidth":true,
+                    "rowList":[10,20],
+                    "rowNum":10,
+                    "rownumbers":false,
+                    "resizable":false,
+                    "sortable":true,
+                    "datatype":"json",
+                    "shrinkToFit":true,
+                    "pager":pager_id,
+                    "loadComplete": function() {
+                        if ( $( this ).jqGrid( 'getGridParam', 'lastpage' ) < 2) {
+                            $('#'+pager_id).toggle();
+                        }
+                    },
+                    "loadError":function(xhr,status,error){ alert(status+'\\n'+error);}
+                })
+            },
+            "subGridRowColapsed": function(subgrid_id, row_id) {
+                    // this function is called before removing the data
+                    //var subgrid_table_id;
+                    //subgrid_table_id = subgrid_id+"_t";
+                    //jQuery("#"+subgrid_table_id).remove();
+            }
+        })
+    }
+EOT
+        ));
+        
+        /* @var $colModelList JqGridColModelList */
+        $colModelList = $JqGrid->colModel();
+        
+        // Make all Fields (also invisible, hidden) searchable!
+        /* @var $_cmItem JqGridColModel */
+        foreach($colModelList as $_cmItem) {
+            /* @var $_itemSearchOpts JqGridColModelSearchOptions */
+            $_itemSearchOpts = $_cmItem->getInstanceSearchOptions();
+            $_itemSearchOpts->set_searchhidden(true);
+        }
+        
+        $navGrid = $JqGrid->getInstanceNavGrid($GridIdPager);
+        $navGrid->set_edit(true);
+        $navGrid->set_addicon('ui-icon-suitcase');
+        $navGrid->set_search(
+                new JsFunction(
+                         '{'
+                        .'multipleSearch:true,'
+                        .'overlay:false,'
+                        .'beforeShowSearch:function() { '
+                        .' $("'.$GridId.'")[0].toggleToolbar(); },'
+                        .'onClose:function() {    	$("'.$GridId.'")[0].toggleToolbar();   }'
+                        .'}'
+                        )
+        )
+        ->addNavButton(new JqGridNavGridButton(array(
+                       'id' => 'btnTbarSearch',
+               'buttonicon' => 'ui-icon-pin-s',
+                  'caption' => 'ColSearch',
+                    'title' => 'Toggle Searching Toolbar',
+            'onclickButton' => 'function () { $("'.$GridId.'")[0].toggleToolbar(); }'
+        )));
+        
+        /* @var $searchPrm JqGridNavGridSearchFormOptions */
+        $searchPrm = $navGrid->getInstanceSearchFormOptions();
+        $searchPrm->set_sopt(array('eq'));
+        $searchPrm->set_beforeShowSearch('function() { '.' $("'.$GridId.'")[0].toggleToolbar(); }');
+        $searchPrm->set_onClose('function() { $("'.$GridId.'")[0].toggleToolbar();   }');
+        $searchPrm->set_multipleSearch(true);
+        
+        $colChooser = new JqGridColumnChooserOptions();
+        $navGrid->addNavButton(new JqGridNavGridButton(array(
+                       'id' => 'btnColCh',
+                  'caption' => 'Spalten',
+                    'title' => 'Spalten',
+            'onclickButton' => new JsFunction('function(){'.$colChooser->renderMethod($GridId).'}')
+        )));        
+        
+        $this->headScript()->appendScript( 
+                'jQuery(function() {' 
+               .(string) $JqGrid->getJsCode() 
+               .'});'
+        );
+        
+        // put your code here
+        ?>
+      
+    <table id="gridUsrLst"></table> 
+        <div id="gridUsrLst_pager"></div> 
+        
+        <table id="grid1"></table> 
+        <div id="grid1_pager"></div>
+        
+<script>

@@ -1,0 +1,56 @@
+<!--
+To change this template, choose Tools | Templates
+and open the template in the editor.
+-->
+<?php
+
+$colNames = '';
+$colModel = '';
+$jsColNames = '';
+$jsColModel = '';
+$i = 0;
+foreach($this->bestellpositionenlist[0] as $cellName => $cellValue) {
+    
+    switch($cellName) {
+        case "Mandant":
+        case "Auftragsnummer":
+        case "Bestellnummer":
+        case "Bestellungstyp":
+        case "BestellName":
+        case "Positionsnummer":
+        case "Artikelnummer":
+        case "Bezeichnung":
+        case "Liefermenge":
+        case "Liefertermin":
+        case "LieferterminFix":
+                
+            
+      //default:
+    
+        if (is_scalar($cellValue)) {
+            if ($i++) {
+                $colNames.= ',';
+                $colModel.= ',' . PHP_EOL;
+                $jsColNames.= ',';
+                $jsColModel.= ',' . PHP_EOL;
+            }
+            $hidden = (strlen($cellValue)===0) ? ",'hidden'=>true" : '';
+            $colNames.= '\''.$cellName.'\'';
+            $colModel.= "\t" . '\''.$cellName.'\' => array(\'editable\'=>false' . $hidden .')'; //key'=>true),   
+            
+            $jsColNames.= '"'.$cellName.'"';
+            $jsColModel.= "\t\t" . '{"name":"'.$cellName.'","index":"'.$cellName.'","editable":false}';
+        }
+    }
+}
+
+
+echo '<pre>';
+echo "\t".'colNames:['.$jsColNames . '],' . PHP_EOL;
+echo "\t".'colModel:['.PHP_EOL.$jsColModel . PHP_EOL . "\t" . '],' . PHP_EOL;
+echo '->colNames( array(' . $colNames . '))' . PHP_EOL;
+echo '->colModel(array(\'addFieldsProperties\' => array(' . PHP_EOL;
+echo $colModel . PHP_EOL;
+echo ')))' . PHP_EOL;
+echo print_r($this->tblCols, 1) . PHP_EOL;
+echo print_r($this->bestellkoepfelist,1) . '</pre>' . PHP_EOL;

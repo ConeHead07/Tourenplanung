@@ -1,0 +1,53 @@
+<?php
+if ($this->disableLayout) {
+    $this->layout()->disableLayout();
+}
+
+$rsrcID = $this->rsrcID;
+$total_records = $this->out->total_records;
+$numrows = $this->out->records;
+$rows = $this->out->rows;
+$page = $this->out->page;
+
+$aW = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+// die('<pre>' . print_r($this->out,1));
+
+if (!$rows) {
+    echo 'Ressource ist für diesen Zeitraum keiner Tour zugeordnet!';
+} else {
+    echo 'Ressource ist für diesen Zeitraum ' . count($rows) . ' Touren zugeordnet!';
+    $tblHead = '<thead>';
+    $tblHead.= '  <tr>';
+    $tblHead.= '    <th>#</th><th>Datum</th><th>Start</th><th>Tour-Nr</th><th>Kunde</th>';
+    $tblHead.= '  </tr>';
+    $tblHead.= '</thead>';
+
+    $tblRows = '<tbody>';
+    for ($i = 0; $i < count($rows); $i++) {
+        $w = date('w', strtotime($rows[$i]['DatumVon']));
+        $dt = $aW[$w] . ', ' . date('d.m', strtotime($rows[$i]['DatumVon']));
+        $dtY = substr($rows[$i]['DatumVon'], 0, 4);
+        $zvon = substr($rows[$i]['ZeitVon'], 0, 5);
+        $zbis = substr($rows[$i]['ZeitBis'], 0, 5);
+        $knd = $rows[$i]['LieferungName'];
+        $vti = $rows[$i]['Vorgangstitel'];
+        $tnr = $rows[$i]['tagesnr'];
+        $tblRows .= '<tr>';
+        $tblRows .= ' <td style="text-align: right;">' . ($i+1) . '</td>';
+        $tblRows .= " <td title=\"$dt.$dtY\" style=\"text-align: right;\">" . $dt . '</td>';
+        $tblRows .= " <td title=\"$zvon - $zbis\">" . $zvon . '</td>';
+        $tblRows .= ' <td>' . $tnr . '</td>';
+        $tblRows .= " <td title=\"$knd: $vti\">" . $knd . '</td>';
+        $tblRows .= '</tr>';
+    }
+    $tblRows.= '</tbody>';
+
+    echo '<table id="tblRsrcTourListCheck'.$rsrcID.'" class="tblList table-to-grid">' . $tblHead . $tblRows . '</table>';
+
+}
+
+/*
+ * t.tour_id, p.tagesnr, ak.Mandant, ak.Auftragsnummer, '
+            .'"' . $this->_resourceType . '" AS ressourcen_typ, '
+            .'ak.LieferungName, ak.Vorgangstitel, t.DatumVon, t.ZeitVon, t.ZeitBis, t.DatumBis
+ */

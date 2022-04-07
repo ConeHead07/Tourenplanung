@@ -1,0 +1,219 @@
+<?php
+//Datum / Wochentag
+//Tour Nr. Monteur ab Lager Monteur direktFahrzeugVorgänge
+//X Meyer, Schmitz, ?. Müller, ?.N ME xxx, ? 8-12Uhr 1076662 Vodafone, 13-14 Uhr 106555 Henkel, ?
+//X Meyer, Schmitz, ?. Müller, ?.N ME xxx, ? 8-17Uhr 1072662 Bayer, 17-20 Uhr 1043555 Vodafone, ?
+//X Meyer, Schmitz, ?. Müller, ?.N ME xxx, ? 8-9Uhr 1076662 Vodafone, 9-17 Uhr 106555 Henkel, ?
+
+$baseUrl = APPLICATION_BASE_URL . '/';
+$terminalBaseUrl = $baseUrl . 'touren/terminal/index/lager_id/'. $this->lager['lager_id'] . '/tag/';
+
+$i = 0;
+
+$touren = array();
+foreach ($this->data->data as $p) {
+    //die(print_r($p,1));
+    if (isset($p['timelines'])) foreach ($p['timelines'] as $tl) {
+
+        $ma_lager = array();
+        $ma_baustelle = array();
+        $fp = array();
+        $vg = array();
+        $tourGroupTitle = ($p['title'] ? '#' . $p['title'] . ' ' : '');
+        foreach ($tl['touren'] as $t) {
+            $_knd = trim($t['LieferungName']);
+            $_vti = trim($t['Vorgangstitel']);
+            if (!$t['IsDefault']) {
+                $vg[] = '<span class="vg-zeit">' . (int)($t['ZeitVon']).'-'.(int)substr($t['ZeitBis'], 0, 5) . 'Uhr</span> '
+                      . ' ' . ($_knd ?? $_vti);
+            }
+            
+            if (isset($t['resources'])) foreach ($t['resources'] as $r) {
+                switch ($r['resourceType']) {
+                    case 'MA': 
+                        $_ma = trim($r['nachname']);
+                        if ($r['einsatz_ab'] == 'Baustelle') {
+                            if (!in_array( $_ma, $ma_baustelle)) $ma_baustelle[] = $_ma; 
+                        }
+                        if (!in_array( $_ma,$ma_lager) && !in_array($_ma, $ma_baustelle)) 
+                            $ma_lager[] = $_ma; 
+                        break;
+                    case 'FP': 
+                        if (!in_array(str_replace(' ', '&nbsp;', trim($r['kennzeichen'])),$fp)) 
+                            $fp[] = str_replace(' ', '&nbsp;', trim($r['kennzeichen'])); 
+                        break;
+                }
+            }
+        }
+        
+        $ma_lager = array_diff($ma_lager, $ma_baustelle);
+        $touren[] =  array(
+            'tagesnr' => $p['tagesnr'],
+            'ma_lg' => implode(', ',  $ma_lager),
+            'ma_bs' => implode(', ',  $ma_baustelle),
+            'fp' => implode(', ',  $fp),
+            'vg' => $tourGroupTitle . implode('; ', $vg)
+        );
+    }
+}
+?>
+<html>
+    <head>
+        <meta http-equiv="refresh" content="300" />
+        <link rel="stylesheet" href="<?= $baseUrl; ?>css/fontawesome/5.3.1/css/all.css"
+              integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
+        <link rel="stylesheet" xhref="https://use.fontawesome.com/releases/v5.3.1/css/all.css"
+              integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
+
+
+        <style>
+            body {
+                background-color:#222;
+                border-collapse:collapse;
+                border-spacing:0;
+            }
+            table {
+                width:100%;
+            }
+            thead th.border {
+                border-bottom:1px dotted yellow;
+            }
+            th { 
+                text-align: left; 
+                color:yellow;
+            }
+            tbody td.border {
+                border-bottom:1px dotted #ccc;
+            }
+            td, th {
+                padding-right:4px;
+                vertical-align: top;
+            }
+            td {
+                empty-cells:show;
+            }
+            td, b {
+                color:#fff;
+            }
+            td.tagesnr {
+                color:#1c94c4;
+            }
+            span.vg-zeit {
+                color:#f00;
+            }
+            body, body *, div, span, b, th, td {
+                font-family:Arial,sans-serif;
+            }
+
+            .cal-nav .cal-nav-day {
+                padding:1.5.rem 2.5rem;
+                box-sizing: border-box;
+                height:1.3rem;
+                font-size:1rem;
+
+            }
+            .cal-nav .cal-nav-group {
+                background-color: #fff;
+                border: 1px solid #fff;
+                float: left;
+                border-radius: 4px;
+                overflow: hidden;
+            }
+            .cal-nav .cal-nav-group + .cal-nav-group {
+                margin-left:2rem;
+            }
+            .cal-nav .cal-nav-group .cal-nav-day {
+                float: left;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-width:2rem;
+                padding:0.5rem;
+            }
+            .cal-nav .cal-nav-group .cal-nav-day + .cal-nav-day {
+                margin-left: 2px;
+            }
+            .cal-nav .cal-nav-day,
+            .cal-nav .cal-nav-day a {
+                color: red;
+                text-decoration: none;
+                background-color:#aaa;
+                font-weight:normal;
+            }
+            .cal-nav .cal-nav-day.cal-nav-day__active,
+            .cal-nav .cal-nav-day.cal-nav-day__active a {
+                color: #1c94c4;
+                font-weight:bold;
+                background-color:#ccc;
+            }
+            .cal-nav .cal-nav-day.cal-nav-icon,
+            .cal-nav .cal-nav-icon {
+                width: 2.5rem;
+            }
+            .cal-nav .cal-nav-day.cal-nav-today,
+            .cal-nav .cal-nav-today {
+                width: 5rem;
+            }
+        </style>
+    </head>
+    <body>
+    
+<div>
+<div style="float:left;"><b><?php echo $this->title; ?></b></div>
+<div style="float:left;width:30%;text-align:center"><b><?php echo $this->lager['lager_name']; ?></b></div>
+<?php //*
+?>
+<div class="cal-nav" style="float:right">
+    <div class="cal-nav-group">
+        <span class="cal-nav-day cal-nav-today"><a href="<?= $terminalBaseUrl ?>" title="Heute">Heute</a></span>
+        <span class="cal-nav-day cal-nav-today"><a href="<?= $terminalBaseUrl ?>morgen" title="Morgen">Morgen</a></span>
+    </div>
+
+    <div class="cal-nav-group cal-nav-group-days">
+<?php
+foreach($this->weekdays as $_date => $_dayname): ?>
+    <span class="cal-nav-day<?= ($_date!==$this->date ? '' : ' cal-nav-day__active') ?> " _date="<?=$_date?>" this-date="<?=$this->date ?>"><a href="<?= $terminalBaseUrl . $_date ?>"><?=$_dayname ?></a></span>
+<?php endforeach; ?>
+    </div>
+    <div class="cal-nav-group cal-nav-group-btns">
+        <span class="cal-nav-day cal-nav-icon"><a href="<?= $terminalBaseUrl . $this->prevKWMondayDate ?>" title="Vorherige KW"><i class="fas fa-angle-double-left"></i></a></span>
+        <span class="cal-nav-day cal-nav-icon"><a href="<?= $terminalBaseUrl . $this->prevDay ?>" title="Vorheriger Tag"><i class="fas fa-caret-left"></i></a></span>
+            <span class="cal-nav-day cal-nav-icon"><a href="<?= $terminalBaseUrl . $this->nextDay ?>" title="Nächster tag"><i class="fas fa-caret-right"></i></a></span>
+        <span class="cal-nav-day cal-nav-icon"><a href="<?= $terminalBaseUrl . $this->nextKWMondayDate ?>" title="Nächste KW"><i class="fas fa-angle-double-right"></i></a></span>
+    </div>
+</div>
+
+    <div style="clear:both"></div>
+<?php // */
+?>
+<table>
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Ab&nbsp;lager</th>
+            <th>Vor&nbsp;Ort</th>
+            <th>Fahrzeug</th>
+            <th>Vorgaenge</th>
+        </tr>
+    <tr><th class="border" colspan=5></th></tr>
+    </thead>
+    <tbody>
+<?php
+
+foreach($touren as $_tour) {
+    echo '<tr>' . "\n"
+        .'  <td class="tagesnr">' . $_tour['tagesnr'] . '</td>' . "\n"
+        .'  <td>' . $_tour['ma_lg'] . '</td>' . "\n"
+        .'  <td>' . $_tour['ma_bs'] . '</td>' . "\n"
+        .'  <td>' . $_tour['fp'] . '</td>' . "\n"
+        .'  <td>' . $_tour['vg'] . '</td>' . "\n"
+        .'</tr>' . "\n"
+        .'<tr><td class="border" colspan=5></td></tr>' . "\n"
+        ;
+}
+?>
+    </tbody>
+</table>
+</body>
+</html>
+

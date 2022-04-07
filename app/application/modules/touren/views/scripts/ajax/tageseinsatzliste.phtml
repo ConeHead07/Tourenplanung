@@ -1,0 +1,226 @@
+<?php
+Zend_Layout::getMvcInstance()->disableLayout();
+$r = Zend_Controller_Front::getInstance()->getResponse();
+$r->setHeader('Content-Type', 'text/html; charset=UTF-8', true);
+//echo '<pre>' . print_r($this->ajax_response, 1);
+//exit;
+?>
+<style>    
+    .clear-float {
+        clear:both;
+    }
+    
+    table.table-data {
+        border-collapse:collapse;
+        border-left:1px solid #ddd;
+        border-top:1px solid #ddd;
+    }
+    table.table-data td {
+        border-right:1px solid #ddd;
+        border-bottom:1px solid #ddd;
+        vertical-align:top;
+        padding:4px 2px 0 3px;
+    }
+    table.table-data th {
+        font-weight:bold;
+        text-align:center;
+        border-right:1px solid #ddd;
+        border-bottom:2px solid #ddd;
+    }
+</style>
+<?php 
+$startDate = new DateTime($this->ajax_response->date);
+$resources = &$this->ajax_response->freeResources;
+
+$numFreeMA = (isset($resources['MA']) ? count($resources['MA']->rows) : 0);
+$numFreeFP = (isset($resources['FP']) ? count($resources['FP']->rows) : 0);
+
+echo '<h1 style="text-align:center"> Tageseinsatzliste ' . $startDate->format('d.m.Y') . '</h1>' . PHP_EOL;
+echo "<h3>Freie Resourcen: <span id='freeRsrcMA'>$numFreeMA MA</span>, <span id='freeRsrcFP'>$numFreeFP FP</span></h3>" . PHP_EOL;
+
+$portlets = &$this->ajax_response->data;
+
+$thead = <<<EOT
+    <thead class="ui-state-default">
+        <tr>
+            <th>Tour</th>
+            <th>Uhrzeit</th>
+            <th>Monteur</th>
+            <th>Monteur direkt</th>
+            <th>Kunde</th>
+            <th>Bulli</th>
+            <th>LKW</th>
+            <th>Fahrzeug</th>
+            <th>Kennzeichen</th>
+        </tr>
+    </thead>
+EOT;
+
+?>
+<script>
+$(function(){
+    $("div.TL-Portlet-Head")
+    .find("span.collapse")
+    .click(function() {
+       var c = ("string"===typeof $( this ).attr("class")) ? $( this ).attr("class") : "";
+       $( this ).toggleClass("ui-icon-triangle-1-e").toggleClass("ui-icon-triangle-1-s");
+       $( this ).parents( "div.portlet:first" ).find( "div.TL-Portlet-Body:first" ).slideToggle();
+    });
+    
+    $("table.TL-Touren").find("tr:odd").addClass("odd");
+})
+</script>
+<style>
+    div.TL-Portlet-Head {
+        background-color:#5C9CCC;
+    }
+    div.TL-Portlet-Body {
+        color:#000;
+    }
+    div.TL-Timeline-Head {
+        
+    }
+    div.TL-Timeline-Body {
+        padding-left:5px;
+    }
+    div.TL-Timeline-Body table {
+        width:100%;
+        border-collapse: collapse;
+    }
+    div.TL-Timeline-Body table th,
+    div.TL-Timeline-Body table td {
+        border-collapse: collapse;
+        border: 1px solid #2E6E9E;
+    }
+    div.TL-Timeline-Body table tr.odd {
+        background-color:#eee;
+    }
+</style>
+<?php 
+//<table class="table-data">
+//    <tbody>
+?>
+<?php 
+    foreach($portlets as $_portlet) {
+        
+        $tourNr = $_portlet['tagesnr'];
+        $nrMajor = $tourNr;
+        $nrMinor1 = 0;
+        $showMinor1 = (count($_portlet['timelines']) > 1);
+        
+        echo '<div class="portlet ui-widget-header ui-corner-all">' . PHP_EOL;
+        echo '<div class="TL-Portlet-Head ui-widget-header" rel="Portlet-'.$tourNr.'">';
+        echo '<span class="ui-icon-set" style="float:left;">';
+        echo '<span class="ui-icon collapse ui-icon-triangle-1-s"></span></span>';
+        echo 'Tour ' . $tourNr . '</div>' . PHP_EOL;
+        echo '<div class="TL-Portlet-Body"  id="Portlet-'.$tourNr.'" style="background-color:#fff;">' . PHP_EOL;
+        
+        foreach($_portlet['timelines'] as $_timeline) {
+            
+            $nrMinor2 = 0;
+            $showMinor2 = (count($_timeline['touren']) > 1);
+            
+            if ($showMinor1) $tourNr.= '.'.(++$nrMinor1);
+            echo '<div class="TL-Timeline-Head ui-state-default">Zeitschiene ' . $showMinor2 . '</div>' . PHP_EOL;
+            echo '<div class="TL-Timeline-Body">' . PHP_EOL;
+            echo '<table class="TL-Touren">' . PHP_EOL;
+            echo $thead;
+            echo '<tbody>' . PHP_EOL;
+            
+            if (1) foreach($_timeline['touren'] as $_tour) {
+                if ($_tour['IsDefault']) continue;
+                $tourNr = $nrMajor.'.'.$nrMinor1.'.'.(++$nrMinor2);
+                
+                $uhrzeit = substr($_tour['ZeitVon'], 0, 5);
+                $kunde = preg_replace('/^\d*/', '', $_tour['LieferungName']);
+                $monteure = array();
+                $monteureDrkt = array();
+                $fp_kz = array();
+                $fp_groesse = array();
+                $fp_num_lkw = 0;
+                $fp_num_bulli = 0;
+                
+                foreach($_tour['resources'] as $_rsrc) {
+                    
+                    switch($_rsrc['resourceType']) {
+                        case 'MA':
+                            if ($_rsrc['einsatz_ab'] == 'Baustelle') $monteureDrkt[] = $_rsrc['name'];
+                            $monteure[] = $_rsrc['name'];
+                            break;
+                        
+                        case 'FP':
+                            ++$fp_num_lkw;
+                            $fp_groesse[] = $_rsrc['fahrzeugart'];
+                            if (preg_match('/\d*$/', $_rsrc['kennzeichen'], $kznr))
+                                $fp_kz[] = $kznr[0];
+                            else 
+                                $fp_kz[] = $_rsrc['kennzeichen'];
+                            break;
+                    }
+                }
+                
+                echo '<tr>' . PHP_EOL;
+                echo '<td>' . $tourNr . '</td>';
+                echo '<td>' . $uhrzeit . '</td>';
+                echo '<td>' . implode('; ', $monteure) . '</td>';
+                echo '<td>' . implode('; ', $monteureDrkt) . '</td>';
+                echo '<td>' . $kunde . '</td>';
+                echo '<td>' . ($fp_num_bulli ? $fp_num_bulli : '') . '</td>';
+                echo '<td>' . ($fp_num_lkw ? $fp_num_lkw : '') . '</td>';
+                echo '<td>' . implode('; ', $fp_groesse) . '</td>';
+                echo '<td>' . implode('; ', $fp_kz) . '</td>';
+                echo '</tr>' . PHP_EOL;
+            }
+            echo '</tbody>' . PHP_EOL;
+            echo '</table>' . PHP_EOL;
+            echo '</div>' . PHP_EOL;
+        }
+        echo  '</div>' . PHP_EOL;
+        echo  '</div>' . PHP_EOL;
+    }
+//</tbody>
+//</table>
+?>
+
+<style>
+    table.freeResources td {
+        padding-right:15px;
+    }
+    
+</style>
+
+<div style="display: none;">
+<h3>Freie Resourcen:</h3>
+<?php 
+
+foreach($resources as $key => $_result) {
+    echo '<b>' . $key . '</b>' . PHP_EOL;
+    echo '<table class="freeResources '.$key.'">';
+    $n = 0;
+    foreach($_result->rows as $_row) {
+        $_cats = array();
+        foreach($_row['categories'] as $_cat) $_cats[] = $_cat['name'];
+        switch($key) {
+            case 'FP':
+            echo '<tr><td>'.(++$n).'<td>' . $_row['kennzeichen'] . ' <td>' . $_row['fahrzeugart'] . ' <td>' . implode('; ', $_cats) . '</tr>' . PHP_EOL;
+                break;
+            
+            case 'MA':
+            echo '<tr><td>'.(++$n).'<td>' . $_row['vorname'] . ' '. $_row['name'] . ' <td>' . $_row['eingestellt_als'] . ' <td>' . implode('; ', $_cats) . '</tr>' . PHP_EOL;
+            
+            break;
+        }
+    }
+    echo '</table><br/>';
+}
+?>
+</div>
+<script>
+    $("#freeRsrcFP").click(function() {
+        Fb.RouteToolTip( this, "table.freeResources.FP", "bottom", "selector");
+    });
+    $("#freeRsrcMA").click(function() {
+        Fb.RouteToolTip( this, "table.freeResources.MA", "bottom", "selector");
+    });
+</script>
+

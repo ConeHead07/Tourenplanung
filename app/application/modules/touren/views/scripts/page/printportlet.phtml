@@ -1,0 +1,223 @@
+<?php
+//die('<pre>' . print_r($this->data,1) . '</pre>');
+$this->layout()->disableLayout();
+$r = Zend_Controller_Front::getInstance()->getResponse();
+$r->setHeader('Content-Type', 'text/html; charset=UTF-8', true);
+
+$uniqueFpList = array();
+$uniqueMaList = array();
+$tls = &$this->data->timelines;
+foreach($tls as $_tl) {
+    foreach($_tl['vorgaenge'] as $_vg) {
+        foreach($_vg['resources']['FP'] as $_fzg) {
+            $uniqueFpList[$_fzg['fid']] = $_fzg;
+        }
+        foreach($_vg['resources']['MA'] as $_ma) {
+            $uniqueMaList[$_ma['mid']] = $_ma;
+        }
+    }
+}
+
+$fpList = '';
+$fpKzList = '';
+foreach($uniqueFpList as $_fzg) {
+    $fpList.= ($fpList ? '; ' : '') . $_fzg['hersteller'] . ' ' . $_fzg['fahrzeugart'];
+    $fpKzList.= ($fpKzList ? '; ' : '') . $_fzg['kennzeichen'];
+}
+
+$maList = '';
+foreach($uniqueMaList as $_ma) {
+    $maList.= ($maList ? '; ' : '') . (trim($_ma['vorname']) ? substr(trim($_ma['vorname']),0,1) . '. ' : '') . $_ma['name'];
+}
+
+?><!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <style>
+            html, * html *, html *, * {
+                font-size:12px;
+            }
+            #tblTourBasisdaten {
+                margin-top:20px;
+            }
+            @media print {
+                .noprint-display { display:none; }
+                div.start-new-site { page-break-after:always; }
+                div.start-new-site hr { display:none; }
+            }
+            div.start-new-site hr { margin:15px 0; }
+            
+            td.lbl {
+                padding-right:10px;
+                width:120px;
+            }
+            
+            #tblTourenplan {
+                width:95%;
+            }
+            #tblTourenplan th {
+                font-weight:bold;
+            }
+            
+            #tblTourenplan tbody td {
+                padding:2px 4px 2px 4px;
+            }
+            h1 {
+                font-size:1.6em;
+            }
+            h2 {
+                font-size:1.3em;
+                margin-bottom:2px;
+            }
+        </style>
+        
+        <title>Tourenplan <?php echo $this->data->lager['lager_name']; ?></title>
+    </head>
+    <body><h1><?php echo $this->data->lager['lager_name']; ?><br/>Tourenplan f&uuml;r &nbsp; Tour #<?php echo $this->data->portlet['tagesnr']; ?> &nbsp; am &nbsp; <?php echo implode('.', array_reverse(explode('-',$this->data->portlet['datum']))); ?></h1>
+        <a href="#drucken" onclick="self.print();return false;" class="noprint-display">Drucken</a>
+        <table id="tblTourBasisdaten">
+            <tr><td class="lbl">Tour:</td><td class="val"> <?php echo $this->data->portlet['tagesnr']; ?></td></tr>
+            <tr><td class="lbl">Fahrzeug:</td><td class="val"> <?php echo $fpList; ?></td></tr>
+            <tr><td class="lbl">Kennzeichen:</td><td class="val"> <?php echo $fpKzList; ?></td></tr>
+            <tr><td class="lbl">Mitarbeiter:</td><td class="val"> <?php echo $maList; ?></td></tr>
+</table>
+        
+        <h2>Tourreihenfolge</h2>
+Av = Avisiert, Pl = Pl&auml;ne, M = Menge, LK = Lagerkennung, SP = Stellplatz
+<table id="tblTourenplan" border="1" cellspacing="0">
+    <thead>
+    <th>Zeit</th>
+    <th>Auftr.Nr</th>
+    <th>Av</th>
+    <th>Pl</th>
+    <?php /*
+    <th>Positionen</th>
+    <th>M</th>
+    <th>LK</th>
+    <th>SP</th>
+ */ ?>
+    <th>Adresse</th>
+</thead>
+<tbody>
+<?php 
+foreach($this->data->timelines as $_ti => $_tl) {
+    if ($_ti) {
+        echo '<tr><td colspan="7"></td></tr>' . PHP_EOL;
+    }
+    if (isset($_tl['vorgaenge'])) foreach($_tl['vorgaenge'] as $_vi => $_vg) {
+        $tdZeit = '<td style="vertical-align:top;" xrowspan="'. max(1,count($_vg['positionen'])).'">'.substr($_vg['ZeitVon'],0,5).' - '.substr($_vg['ZeitBis'],0,5).'</td>';
+        $tdANr  = '<td style="vertical-align:top;" xrowspan="'. max(1,count($_vg['positionen'])).'">'.$_vg['Auftragsnummer'].'</td>';
+        $tdAv   = '<td style="vertical-align:top;" xrowspan="'. max(1,count($_vg['positionen'])).'">'.($_vg['avisiert'] ? 'X' : ' ').'</td>';
+        $tdPl   = '<td style="vertical-align:top;" xrowspan="'. max(1,count($_vg['positionen'])).'">'.(!empty($_vg['plaene']) || !empty($_vg['attachments']) ? 'X' : ' ').'</td>';
+        $tdAdr  = '<td style="vertical-align:top;" xrowspan="'. max(1,count($_vg['positionen'])).'">'
+               . (trim($_vg['LieferungName']) ? '<b>' . trim($_vg['LieferungName']) . '</b><br>' : '')
+               . ' '.$_vg['LieferungStrassePostfach'] . ' ' . $_vg['LieferungPostleitzahl'] . ' ' . $_vg['LieferungOrt'] 
+               . ' ('.$_vg['LieferungLand'].')<br>'
+               . (!empty($_vg['plaene']) ? '<br>'.$_vg['plaene']:'')
+               ;
+        
+        $anzahlPos = '';
+        
+        // lagerkennungen
+        $lks = array();
+        
+        // Stellplaetze
+        $sps = array();
+        
+        $sumMengen = 0;
+        
+        if (isset($_vg['positionen']) && count($_vg['positionen'])) {
+            $anzahlPos = count($_vg['positionen']);
+            foreach($_vg['positionen'] as $_pi => $_po) {
+                if (trim($_po['AP_Lagerkennung']) && !in_array($_po['AP_Lagerkennung'], $lks)) $lks[] = $_po['AP_Lagerkennung'];
+                if (trim($_po['Stellplatz'])   && !in_array($_po['Stellplatz'],   $sps)) $sps[] = $_po['Stellplatz'];
+                $sumMengen+= (int) $_po['DisponierteMenge'];
+            }
+        }
+        
+        if (0 && isset($_vg['positionen']) && count($_vg['positionen'])) {
+            foreach($_vg['positionen'] as $_pi => $_po) {
+                echo '<tr>';
+                if (!$_pi) echo $tdZeit;
+                if (!$_pi) echo $tdANr;
+                if (!$_pi) echo $tdAv;
+                if (!$_pi) echo $tdPl;
+                echo '<td>' . $_po['Bezeichnung'].'</td>'
+                    .'<td>' . $_po['DisponierteMenge'] . '</td>'
+                    .'<td>' . $_po['Lagerkennung'].'</td>'
+                    .'<td>' . $_po['Stellplatz'].'</td>' . PHP_EOL;
+                if (!$_pi) echo $tdAdr;
+                echo '</tr>';
+            } 
+        } elseif (0 && isset($_vg['positionen']) && count($_vg['positionen'])) {
+            echo '<tr>';
+            echo $tdZeit;
+            echo $tdANr;
+            echo $tdAv;
+            echo $tdPl;
+            echo '<td>' . count($_vg['positionen']) . ' Positionen</td>'
+                .'<td>' . $sumMengen  . '</td>'
+                .'<td>' . implode(',', $lks) . '</td>'
+                .'<td>' . implode(',', $sps) . '</td>' . PHP_EOL;
+            echo $tdAdr;
+            echo '</tr>';
+            
+        } else {
+        
+            echo '<tr>'
+                . $tdZeit
+                . $tdANr
+                . $tdAv
+                . $tdPl
+                // . '<td colspan=4>Ohne Positionen</td>' . PHP_EOL
+                . $tdAdr
+                . '</tr>';
+        }
+    }
+}
+?>
+</tbody>
+</table>
+<br>
+<b>Bemerkungen</b>
+<div style="width:95%">
+<?php 
+reset($this->data->timelines);
+foreach($this->data->timelines as $_ti => $_tl) {
+    if (isset($_tl['vorgaenge'])) foreach($_tl['vorgaenge'] as $_vi => $_vg) {
+        if (!trim($_vg['bemerkungen'])) continue;
+        echo '<div><b>' . $_vg['Auftragsnummer'] . '</b></div>' . PHP_EOL;
+        
+        echo '<hr/>';
+        echo $_vg['Auftragsnummer']. ' / ' . trim($_vg['LieferungName']) . ' / ' . $_vg['LieferungStrassePostfach'] . '<br/>' . PHP_EOL;
+        echo $_vg['bemerkungen'] . PHP_EOL;
+    }
+}
+?>
+<hr
+</div>
+<br />        
+Ware gem&auml;ss aufgelisteten Liefer- &amp; Montagescheinen<br />
+geladen und auf Vollst&auml;ndigkeit gepr&uuml;ft.
+<br />  
+<br />  
+
+<table>
+    <tr><td><b>_________________________________</b></td> 
+        <td><b>_________________________________</b></td></tr>
+    <tr><td>Unterschrift</td> <td>Unterschrift</td></tr>
+</table>
+<div style="display:none;" onclick="(function(o,t){
+    t.style.display=(t.style.display=='none'?'':'none');
+    o.innerHTML = (t.style.display=='none'?'Dump anzeigen':'Dump ausblenden');
+    }(this,document.getElementById('DatenDump')))">Daten Dump anzeigen</div>
+<div id="DatenDump" style="display:none">
+<?php
+// put your code here
+if (0) echo print_r($this->data, 1);
+?>
+</div>
+<div class="start-new-site" style="text-align: center"><hr/></div>
+</body>
+</html>

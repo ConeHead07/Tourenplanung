@@ -1,0 +1,406 @@
+<?php
+/* @var $r Zend_Controller_Request_Abstract */
+$r = Zend_Controller_Front::getInstance()->getRequest();
+//Zend_Debug::dump($this);
+/* @var $this Zend_View */
+$baseUrl = $this->baseUrl();    // View-Helper der via __call (magic) 
+// an Zend_View gebunden wurden
+
+$modUrl = $baseUrl . '/' . $r->getModuleName();
+$ctrUrl = $modUrl . '/' . $r->getControllerName();
+
+require_once 'JqGridHeader.php';
+JqGridHeader::enable(true);
+?><?php
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+
+echo '<table id="xtoGrid" cellpadding=1 cellspacing=0 border=1>'
+ . '<thead><tr>'
+ . '<th>Depth + '
+ . '<th>Id'
+ . '<th>Left'
+ . '<th>Right'
+ . '<th>'
+ . '<th>'
+ . '<th>'
+ . '<th>'
+ . '</tr></thead>'
+ . '<tbody>';
+
+foreach ($this->treelist as $node) {
+    $_id = $node['category_id'];
+    $_name = $node['name'];
+    echo '<tr><td>' . str_pad('', $node['depth'], '-')
+    . ' ' . $node['name']
+    . ' <td>(ID ' . $node['category_id'] . ')</td>'
+    . ' <td>' . $node['lft'] . '</td>'
+    . ' <td>' . $node['rgt'] . '</td>'
+    . ' <td><a onclick="t_delete(' . $_id . ',\'' . htmlentities($_name) . '\')">L&ouml;schen</a></td>'
+    . ' <td><a onclick="t_rename(' . $_id . ',\'' . htmlentities($_name) . '\')">Umbenennen</a></td>'
+    . ' <td><a onclick="t_add(' . $_id . ',\'' . htmlentities($_name) . '\')">Einf&uuml;gen</a></td>'
+    . ' <td><a onclick="t_move(' . $_id . ',\'' . htmlentities($_name) . '\')">Verschieben</a></td>'
+    . '</tr>';
+}
+echo '</tbody></table>';
+?>
+<div id="dialog-delete" style="display:none;" title="Delete?">
+    <p><span class="ui-icon ui-icon-alert" style="float:left; margin:0 7px 20px 0;"></span>
+    <h3 class="dlgtitle"></h3>
+    <form action="<?php echo $ctrUrl . '/del'; ?>">
+        <input name="CWithChilds" id="CDeleteWithChilds" type="checkbox" value="1">
+        <label  for="CDeleteWithChilds">Delete Childs</label>
+        <input name="CId" id="DeleteId" type="hidden" value="a">
+    </form>        
+</p>
+</div>
+
+<div id="dialog-rename" style="display:none;" title="Umbenennen?">
+    <p><span class="ui-icon ui-icon-alert" style="float:left; margin:0 7px 20px 0;"></span>
+    <h3 class="dlgtitle"></h3>
+
+    <form action="<?php echo $ctrUrl . '/rename'; ?>">
+        <label  for="RenameCName">Name: </label>
+        <input name="CName" id="RenameCName" type="text" value="a">
+        <input name="CId"   id="RenameCId"   type="hidden" value="a">
+    </form>
+</p>
+</div>
+
+<div id="dialog-add" style="display:none;" title="Einfügen?">
+    <p><span class="ui-icon ui-icon-alert" style="float:left; margin:0 7px 20px 0;"></span>
+    <h3 class="dlgtitle"></h3>
+    <form action="<?php echo $ctrUrl . '/add'; ?>">
+        Name: <input  name="CName"  id="AddCName"  type="text" value=""/><br>
+        Ref:  <select name="CRefId" id="AddCRefId" type="text" value="a"></select><br>
+        Pos:  <select name="CPos"   id="AddCPos"   type="text" value="a"></select>
+    </form>
+</p>
+</div>
+
+<div id="dialog-move" style="display:none;" title="Verschieben?">
+    <p><span class="ui-icon ui-icon-alert" style="float:left; margin:0 7px 20px 0;"></span>
+    <h3 class="dlgtitle"></h3>
+    <form action="<?php echo $ctrUrl . '/move'; ?>">
+        Ref: <select name="CRefId" id="MoveRefId" ></select><br>
+        Pos: <select name="CPos"   id="MovePos" ></select>
+        <input  name="CId"    id="MoveId"    type="hidden" value="a" />
+    </form>
+</p>
+</div>
+
+<script>
+    var DlgBaseDefault = {
+        options: {
+            width:    400,
+            height:   'auto',
+            autoOpen: false,
+            create:   function()  { $(this).data('dialogInitialized', true);},
+            destroy:  function() { $(this).removeData('dialogInitialized');},
+            modal:    true
+        },
+        functions: {
+            submit: function() {
+                var thisWidget = $( this ).dialog('widget');
+                var thisForm = $('form:first', thisWidget).get(0);
+                var thisFormElms = thisForm.elements;
+                thisForm.submit();
+                DlgBaseDefault.functions.getData();
+                $( this ).dialog( "close" );
+            },        
+            cancel: function() { $( this ).dialog( "close" ); },
+            getData: function() {
+                $.ajax({
+                    url: "<?php echo $ctrUrl . '/list?x=' . time(); ?>",
+                    cache: false,
+                    dataType: "json",
+                    success: function(data){
+                        DlgBaseDefault.data.categories = data;
+                    }
+                });
+            },
+            setOptions: function(selectBox) {
+                //            alert('setOptions ' + selectBox + ';' + selectBox.length);
+                $("option", selectBox).remove();
+                var s = '';
+                var indent = '';
+            
+                var data = DlgBaseDefault.data.categories;
+            
+                var cid=cname=cdepth='';
+                for(i in data) {
+                    cid = data[i].id;
+                    cname = data[i].name;
+                    cdepth = data[i].depth;
+                
+                    if (s.length< cdepth) for(j = s.length; j< cdepth; ++j) s+='-';
+                    indent = s.substring(0, cdepth);
+                    $("<option/>", selectBox).val(cid).text(indent+cname).appendTo(selectBox);
+                }
+            },
+            setPositions: function(selectBox) {
+                var data = DlgBaseDefault.data.positions;
+            
+                for(i in data) {
+                    $("<option/>", selectBox).val(i).text(data[i]).appendTo(selectBox);
+                }
+            },
+            setCTitle: function(dlg, title) {
+                $('h3.dlgtitle', dlg).text(title);
+            }
+        },
+        data: {
+            categories:new Array(),
+            positions:<?= json_encode($this->nodePositions); ?>
+        }
+    };
+    DlgBaseDefault.functions.getData();
+
+    function objToString(obj, depth) {
+        if (!depth) depth = "";
+        if (typeof(obj) !== "object") return obj;
+        var m = "";
+        for(i in obj) {
+            m+= depth+i+"("+typeof(obj[i])+") : ";
+            switch(typeof(obj[i])) {
+                case "string":
+                case "boolean":
+                case "number":
+                case "function":
+                    m+= obj[i] + "\n";;
+                    break;
+            
+                case "object":
+                    m+= objToString(obj[i], depth+"-")
+            }
+        }
+        return m;
+    }
+
+    var DlgDelProps = $.extend({}, DlgBaseDefault.options, {
+        buttons: {
+            "Loeschen": DlgBaseDefault.functions.submit,
+            Cancel: DlgBaseDefault.functions.cancel
+        }
+    });
+
+    var DlgRenProps = $.extend({}, DlgBaseDefault.options, {
+        buttons: {
+            "Umbenennen": DlgBaseDefault.functions.submit,
+            Cancel: DlgBaseDefault.functions.cancel
+        }
+    });
+
+    var DlgAddProps = $.extend({}, DlgBaseDefault.options, {
+        create:   function()  { 
+            $(this).data('dialogInitialized', true);
+            var cpos = $('select[name=CPos]', $(this).dialog('widget'));
+            DlgBaseDefault.functions.setPositions(cpos);
+        },
+        buttons: {
+            "Erstellen": DlgBaseDefault.functions.submit,
+            Cancel: DlgBaseDefault.functions.cancel
+        }
+    });
+
+    var DlgMovProps = $.extend({}, DlgBaseDefault.options, {
+        create:   function()  { 
+            $(this).data('dialogInitialized', true);
+            var cpos = $('select[name=CPos]', $(this).dialog('widget'));
+            DlgBaseDefault.functions.setPositions(cpos);
+        },
+        buttons: {
+            "Verschieben": DlgBaseDefault.functions.submit,
+            Cancel: DlgBaseDefault.functions.cancel
+        }
+    });
+
+    function t_delete(id, name)
+    {
+        var dialog = $( "#dialog-delete" );
+        if (!dialog.data('dialogInitialized')) {
+            dialog.dialog( DlgDelProps );
+        }
+        var thisWidget = dialog.dialog('widget');
+        $("input[name=CId]", thisWidget).val(id);
+        DlgBaseDefault.functions.setCTitle(name);
+        dialog.dialog('option','title', name + " l&ouml;schen");
+        dialog.dialog('open');
+    }
+    function t_rename(id, name)
+    {
+        var dialog = $( "#dialog-rename" );
+        if (!dialog.data('dialogInitialized')) {
+            dialog.dialog( DlgRenProps );
+        }
+        var thisWidget = dialog.dialog('widget');
+    
+        $("input[name=CId]:first",   thisWidget).val(id);
+        $("input[name=CName]:first", thisWidget).val(name);
+    
+        DlgBaseDefault.functions.setCTitle(name);
+        dialog.dialog('option','title', name + " umbenennen");
+        dialog.dialog('open');
+    }
+
+    function t_add(id, name)
+    {
+        var dialog = $( "#dialog-add" );
+        if (!dialog.data('dialogInitialized')) {
+            dialog.dialog( DlgAddProps );
+        }
+        var thisWidget = dialog.dialog('widget');
+        var thisRefId = $("select[name=CRefId]", thisWidget );   
+        DlgBaseDefault.functions.setOptions( thisRefId );
+    
+        $("select[name=CRefId]",     thisWidget).val(id);
+        $("input[name=CName]:first", thisWidget).val('');
+    
+        DlgBaseDefault.functions.setCTitle(name);
+        dialog.dialog('option','title', name + " Punkt hinzuf&uuml;gen");
+        dialog.dialog('open');
+    }
+
+
+    function t_move(id, name)
+    {
+        var dialog = $( "#dialog-move" );
+        if (!dialog.data('dialogInitialized')) {
+            dialog.dialog( DlgMovProps );
+        }
+        var thisWidget = dialog.dialog('widget');
+        var thisRefId = $("select[name=CRefId]", thisWidget);    
+    
+        DlgBaseDefault.functions.setOptions( thisRefId );
+    
+        $("input[name=CId]:first",     thisWidget).val(id);
+        $("select[name=CRefId]:first", thisWidget).val('');
+        $("input[name=CPos]:first",    thisWidget).val('');
+    
+        DlgBaseDefault.functions.setCTitle(name);
+        dialog.dialog('option','title', name + " verschieben");
+        dialog.dialog('open');
+    }
+</script>
+<script>
+    jQuery(document).ready(function(){
+        //    Funktioniert nicht mit colspans und Zellen mit Links
+        //    tableToGrid("table#toGrid");
+
+        if (1) jQuery("#west-gridJRead").jqGrid({ 
+            treeGrid: true,
+            treeGridModel: 'nested',
+            ExpandColumn : 'name',
+            url: '<?php echo $ctrUrl; ?>/list?jsonReader=true',
+            datatype: "json",
+            mtype: "POST",
+            colNames:["Aktionen", "id","Name"],
+            colModel:[		
+                {name:'act',index:'act', width:56,sortable:false},
+                {name:'id',index:'id', width:1,hidden:true,key:true},
+                {name:'name',index:'name', width:180, editable:true},
+            ],
+            height:'auto',
+            pager : "#ptreegrid",
+            caption: "Treegrid JsonReader",
+            jsonReader: {
+                repeatitems: false,
+                         id: 0,
+                       root: "rows"
+            },
+            loadError: function(xhr, status, error) {
+                alert(status + "\n" + error);
+            },
+            loadComplete: function(data) {
+//                alert(data.toString());
+            },
+            gridComplete: function(){
+                var ids = jQuery("#west-gridJRead").jqGrid('getDataIDs');
+                for(var i=0;i < ids.length;i++){
+                        var cl = ids[i];
+                        be = "<button class=\"jqgrid-row-btn jqgrid-row-btn-edit\"   style='height:20px;width:18px;' type='button' value='E' onclick=\"jQuery('#west-gridJRead').editRow('"+cl+"');\">E</button>"; 
+                        se = "<button class=\"jqgrid-row-btn jqgrid-row-btn-save\"   style='height:20px;width:18px;' type='button' value='S' onclick=\"jQuery('#west-gridJRead').saveRow('"+cl+"');\">S</button>"; 
+                        ce = "<button class=\"jqgrid-row-btn jqgrid-row-btn-cancel\" style='height:20px;width:18px;' type='button' onclick=\"jQuery('#west-gridJRead').restoreRow('"+cl+"');\">C</button>"; 
+                        jQuery("#west-gridJRead").jqGrid('setRowData',ids[i],{act:be+se+ce});
+                }
+                jQuery("button.jqgrid-row-btn-edit",   "#west-gridJRead").button({text:false,icons:{primary:"ui-icon-pencil" }});
+                jQuery("button.jqgrid-row-btn-save",   "#west-gridJRead").button({text:false,icons:{primary:"ui-icon-disk"   }});
+                jQuery("button.jqgrid-row-btn-cancel", "#west-gridJRead").button({text:false,icons:{primary:"ui-icon-cancel" }});
+            }
+        });
+        
+        
+        if (0) jQuery("#west-gridJson").jqGrid({ 
+            treeGrid: true,
+            treeGridModel: 'nested',
+            ExpandColumn : 'name',
+            url: '<?php echo $ctrUrl; ?>/list',
+            datatype: "json",
+            mtype: "POST",
+            colNames:["id","Name"],
+            colModel:[
+                {name:'id',index:'id', width:1,hidden:true,key:true},
+                {name:'name',index:'name', width:180},
+            ],
+            height:'auto',
+            pager : "#ptreegrid",
+            caption: "Treegrid Json Cell",
+            loadError: function(xhr, status, error) {
+                alert(status + "\n" + error);
+            },
+            loadComplete: function(data) {
+//                alert(data.toString());
+            }
+        });
+        
+        if (0) jQuery("#west-gridXml").jqGrid({
+            url: '<?php echo $ctrUrl; ?>/list?format=xml',
+            datatype: "xml",
+            height: "auto",
+            pager: false,
+            loadui: "disable",
+            colNames: ["id","Items"],
+            colModel: [
+                {name: "id",width:1,hidden:true, key:true},
+                {name: "name", width:150, resizable: false, sortable:false}
+            ],
+            treeGrid: true,
+            caption: "jqGrid Demos xml-tree",
+            ExpandColumn: "name",
+            autowidth: true,
+            //width: 180,
+            rowNum: 200,
+            ExpandColClick: true,
+            treeIcons: {leaf:'ui-icon-document-b'},
+            onSelectRow: function(rowid) {
+                var treedata = $("#west-grid").jqGrid('getRowData',rowid);
+                if(treedata.isLeaf=="true") {
+                    var st = "#t"+treedata.id;
+                    if($(st).html() != null ) {
+                        maintab.tabs('select',st);
+                    } else {
+                        treedata.url+="?hohoho=12345"
+                        maintab.tabs('add',st, treedata.menu);
+                        $(st,"#tabs").load(treedata.url);
+                        //alert("treedata.url: "+treedata.url);
+                    }
+                }
+            },
+            loadError: function(xhr, status, error) {
+                alert('#132 ' + status + "\n" + error + "\n" + xhr.responseText );
+            },
+            loadComplete: function(data) {
+                alert(data.toString());
+            }
+        });
+
+    });
+</script> 
+<br>
+<table id="west-gridJson"></table>
+<table id="west-gridJRead"></table>
+<table id="west-gridXml"></table>
+//Zend_Debug::dump($this->treelist);

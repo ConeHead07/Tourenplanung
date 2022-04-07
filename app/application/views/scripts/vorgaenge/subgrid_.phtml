@@ -1,0 +1,132 @@
+    <script type="text/javascript">
+    //<![CDATA[
+jQuery(function() {jQuery("#gridUsrLst").jqGrid(
+{
+    "colNames":["Mandant","Autragsnumme","Auftragsart","B-Status","UB-Status","GruppNr","K-Nr","LieferungName"],
+    "colModel":[
+        {"name":"Mandant","index":"Mandant","editable":false},
+        {"name":"Auftragsnummer","index":"Auftragsnummer","editable":false, "key":true},
+        {"name":"Auftragsart","index":"Auftragsart","editable":false},
+        {"name":"Bearbeitungsstatus","index":"Bearbeitungsstatus","editable":false},
+        {"name":"UnterBearbeitungsstatus","index":"UnterBearbeitungsstatus","editable":false},
+        {"name":"Gruppierungsnummer","index":"Gruppierungsnummer","editable":false},
+        {"name":"Kundennummer","index":"Kundennummer","editable":false},
+        {"name":"LieferungName","index":"LieferungName","editable":false},
+     ],
+    "height":"auto",
+    "jsonReader":{"repeatitems":false,"id":0},
+    "autowidth":true,
+    "rowList":[10,20,30,40,50,100],
+    "rowNum":10,
+    "rownumbers":true,
+    "resizable":false,
+    "sortable":true,
+    "datatype":"json",
+    "url":"<?php echo APPLICATION_BASE_URL; ?>/vorgaenge/gridresponsedata",
+    "caption":"Test-Grid",
+    "shrinkToFit":true,
+    "pager":"#gridUsrLst_pager",
+    "loadError":function(xhr,status,error){ alert(status+'\n'+error);},
+    "subGridRowExpanded": function(subgrid_id, row_id) {
+        // we pass two parameters
+        // subgrid_id is a id of the div tag created whitin a table data
+        // the id of this elemenet is a combination of the "sg_" + id of the row
+        // the row_id is the id of the row
+        // If we wan to pass additinal parameters to the url we can use
+        // a method getRowData(row_id) - which returns associative array in type name-value
+        // here we can easy construct the flowing
+        var subgrid_table_id, pager_id;
+        subgrid_table_id = subgrid_id+"_t";
+        pager_id = "p_"+subgrid_table_id;
+
+        $("#"+subgrid_id).html(
+            "<table id='"+subgrid_table_id+"' class='scroll'></table>"
+           +"<div id='"+pager_id+"' class='scroll'></div>");
+
+        jQuery("#"+subgrid_table_id).jqGrid({ /*grid-Anweisungen*/ 
+            "url":"<?php echo APPLICATION_BASE_URL; ?>/bestellkoepfe/gridresponsedata/id/"+row_id,
+            "colNames":["Mandant","Auftragsnummer","Bestellnummer","Bestellungstyp","BestellName"],
+            "colModel":[
+                    {"name":"Mandant","index":"Mandant","editable":false},
+                    {"name":"Auftragsnummer","index":"Auftragsnummer","editable":false},
+                    {"name":"Bestellnummer","index":"Bestellnummer","editable":false, "key":true},
+                    {"name":"Bestellungstyp","index":"Bestellungstyp","editable":false},
+                    {"name":"BestellName","index":"BestellName","editable":false}
+            ],
+            "height":"auto",
+            "jsonReader":{"repeatitems":false,"id":0},
+            "autowidth":true,
+            "rowList":[10,20],
+            "rowNum":10,
+            "rownumbers":true,
+            "resizable":false,
+            "sortable":true,
+            "datatype":"json",
+            "caption":"Test-Grid",
+            "shrinkToFit":true,
+            "pager":pager_id,
+            "loadError":function(xhr,status,error){ alert(status+'\n'+error);},
+        
+            "subGridRowExpanded": function(subgrid_id, row_id) {
+                // we pass two parameters
+                // subgrid_id is a id of the div tag created whitin a table data
+                // the id of this elemenet is a combination of the "sg_" + id of the row
+                // the row_id is the id of the row
+                // If we wan to pass additinal parameters to the url we can use
+                // a method getRowData(row_id) - which returns associative array in type name-value
+                // here we can easy construct the flowing
+                var subgrid_table_id, pager_id;
+                subgrid_table_id = subgrid_id+"_t";
+                pager_id = "p_"+subgrid_table_id;
+
+                $("#"+subgrid_id).html(
+                    "<table id='"+subgrid_table_id+"' class='scroll'></table>"
+                   +"<div id='"+pager_id+"' class='scroll'></div>");
+
+                jQuery("#"+subgrid_table_id).jqGrid({ /*grid-Anweisungen*/ 
+                    "url":"<?php echo APPLICATION_BASE_URL; ?>/bestellpositionen/gridresponsedata/uniqueid/"+row_id,
+                    "colNames":["Mandant","Bestellnummer","Positionsnummer","Artikelnummer","Bezeichnung","Liefermenge","Liefertermin","LieferterminFix","Auftragsnummer"],
+                    "colModel":[
+                            {"name":"Mandant","index":"Mandant","editable":false, "key":true},
+                            {"name":"Auftragsnummer","index":"Auftragsnummer","editable":false},
+                            {"name":"Bestellnummer","index":"Bestellnummer","editable":false, "key":true},
+                            {"name":"Positionsnummer","index":"Positionsnummer","editable":false, "key":true},
+                            {"name":"Artikelnummer","index":"Artikelnummer","editable":false},
+                            {"name":"Bezeichnung","index":"Bezeichnung","editable":false},
+                            {"name":"Liefermenge","index":"Liefermenge","editable":false},
+                            {"name":"Liefertermin","index":"Liefertermin","editable":false},
+                            {"name":"LieferterminFix","index":"LieferterminFix","editable":false},
+                            {"name":"Auftragsnummer","index":"Auftragsnummer","editable":false}
+                    ],
+                    "height":"auto",
+                    "jsonReader":{"repeatitems":false,"id":0},
+                    "autowidth":true,
+                    "rowList":[10,20],
+                    "rowNum":10,
+                    "rownumbers":true,
+                    "resizable":false,
+                    "sortable":true,
+                    "datatype":"json",
+                    "caption":"Test-Grid",
+                    "shrinkToFit":true,
+                    "pager":pager_id,
+                    "loadError":function(xhr,status,error){ alert(status+'\n'+error);},
+                })
+            },
+            "subGridRowColapsed": function(subgrid_id, row_id) {
+                    // this function is called before removing the data
+                    //var subgrid_table_id;
+                    //subgrid_table_id = subgrid_id+"_t";
+                    //jQuery("#"+subgrid_table_id).remove();
+            }
+        })
+        
+    },
+    "subGridRowColapsed": function(subgrid_id, row_id) {
+            // this function is called before removing the data
+            //var subgrid_table_id;
+            //subgrid_table_id = subgrid_id+"_t";
+            //jQuery("#"+subgrid_table_id).remove();
+    }
+});    //]]>
+</script>  

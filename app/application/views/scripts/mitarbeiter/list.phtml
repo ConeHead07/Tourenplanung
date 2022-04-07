@@ -1,0 +1,458 @@
+<?php
+$front = Zend_Controller_Front::getInstance();
+$request = $front->getRequest();
+$modul = $request->getModuleName();
+$controller = $request->getControllerName();
+$baseUrlSperrzeiten = $this->url(array('module' => 'touren','controller'=>'resourcesSperrzeiten','action'=>'gridlist', 'rsrcType'=>'MA', 'ajax'=>1), null, FALSE);
+$baseUrlDispozeiten = $this->url(array('module' => 'touren','controller'=>'resourcesDispozeiten','action'=>'gridlist', 'rsrcType'=>'MA', 'ajax'=>1), null, FALSE);
+$baseUrlRsrcTouren = $this->url(array('module' => 'touren','controller'=>'resourcesDispozeiten','action'=>'gridtourlist', 'rsrcType'=>'MA', 'ajax'=>1), null, FALSE);
+
+$lagerOptions = $this->lagerOptionsList;
+
+// Cache frontendoptions
+$frontendOptions = array(
+    'lifetime' => 10 // 10 Sekunde 24*60*60*3 // 3 Tage cachen
+);
+// Cache backendoptions
+$backendOptions = array(
+    // Directory where to put the cache files
+    'cache_dir' => APPLICATION_PATH . '/cache'
+);
+// Cache object
+$cache = Zend_Cache::factory('Output',
+    'APC',
+    $frontendOptions,
+    $backendOptions);
+
+// Cache id
+$cacheID = md5($this->module .'/'.$this->controller.'/'.$this->action.'26');
+
+
+/* @var $this Zend_View */
+require_once 'JqGridHeader.php';
+JqGridHeader::enable(true);
+?>
+<!-- link type="text/css" rel="stylesheet" href="<?php echo APPLICATION_BASE_URL; ?>/jquery/autocomplete_chooser/chooser.css" / -->
+<style>
+    div.ui-jqgrid,
+    #gbox_treeSelectDialog {
+        border:2px #d2d2d2 solid;
+        padding:1px;
+    }
+</style>
+<!-- requires /jquery/util/jquery.chooser.js, ist in jquery.util-all.min.js enthalten -->
+<script>
+
+    function showDialogFpDispozeiten(id, exclusiv) {
+        var title = (exclusiv ? "Disponierbare Zeiten" : "Sperrzeiten");
+        var baseUrl = (exclusiv ? "<?=$baseUrlDispozeiten; ?>" : "<?=$baseUrlSperrzeiten; ?>")
+        var url = baseUrl + (baseUrl.indexOf("?") == -1 ? '?' : '&') + "rsrcID="+id;
+        $("#DialogDispozeiten").dialog({title:title,autoOpen:true,height:'auto',width:'auto'}).dialog('open').load(url);
+    }
+    function showDialogRsrcTouren(id) {
+        var title = "Disponierte Touren";
+        var baseUrl = "<?=$baseUrlRsrcTouren; ?>";
+        var url = baseUrl + (baseUrl.indexOf("?") == -1 ? '?' : '&') + "rsrcID="+id;
+        var dialogDivId = 'DialogRsrcTourenMa'+id;
+        console.log({line:57,title,baseUrl,url,dialogDivId});
+        if ( $("#" + dialogDivId).length === 0) {
+            $("<div/>").attr('id', dialogDivId).insertAfter( $('#DialogsRsrcTouren') );
+            console.log('Create Dialog', 'success', $("#" + dialogDivId).length);
+        }
+        console.log('Open Dialog RsrcTouren');
+        $("#" + dialogDivId).dialog({title:title,autoOpen:true,height:'auto',width:'auto'}).dialog('open').load(url);
+    }
+
+    $(function(){
+        var baseUrl = <?php echo json_encode(APPLICATION_BASE_URL . "/$controller/gridresponsedata"); ?>;
+        $("#RsrcFilterBtnSet").buttonset();
+        $("#RsrcFilterBtnSet").find("#rsrcFilterAll,#rsrcFilterInt,#rsrcFilterExt").click(function(){
+            var url = baseUrl+"?extFilter="+$(this).val();
+            $("#gridUsrLst").jqGrid('setGridParam',{search:true, url:url} ).trigger("reloadGrid");
+        });
+    });
+</script>
+
+<?php
+
+$appendGridScript = '';
+// everything before this is not cached
+if (!($appendGridScript = $cache->load($cacheID))) {
+// begin cache
+
+    require_once 'JqGridColModelFormatter.php';
+
+    $GridId = '#gridUsrLst';
+    $GridIdPager = '#gridUsrLst_pager';
+    $JqGrid = new JqGrid($GridId);
+    // Grid-Options definieren
+    $JqGrid->height('auto')
+        ->jsonReader(array( "repeatitems" => false, "id" => 0 ) )
+        ->width(800)
+        ->rowList(array(10, 20, 30, 40, 50,100))
+        ->rowNum(100)
+        ->rownumbers(true)
+        ->resizable(false)
+        ->sortable(true)
+        ->datatype('json')
+        ->url(APPLICATION_BASE_URL . '/mitarbeiter/gridresponsedata')
+        ->editurl(APPLICATION_BASE_URL . '/mitarbeiter/grideditdata')
+        ->enableInlineEditingDefaults()
+        ->setNavGrid($GridIdPager, $properties = array())
+        ->caption("Test-Grid")
+        ->shrinkToFit(true)
+        ->pager($GridIdPager)
+        ->on_loadError( new JsFunction("function(xhr,status,error){ alert('#57 list.phtml \\nxhr.reponseText:' + xhr.responseText + '\\nstatus: ' + status+'\\nerror: '+error);}") )
+        ->addChainMethod('.jqGrid("filterToolbar",{stringResult: true,searchOnEnter : false})')
+//        ->addChainMethod( ".jqGrid('searchGrid', {sopt:['cn','bw','eq','ne','lt','gt','ew']} )")
+        ->colNames( array('Sperren','Gebucht','Touren','Id', 'Extern', 'Menge', 'Leistung', 'Standort', 'Name', 'Vorname', 'Abteilung',  'Position', 'FK', 'U-Anspruch','Kategorien') )
+        ->colModel(array('addFieldsProperties' => array(
+            "sperren" => array('key'=>false, 'editable'=>false, 'sortable'=>false, 'search'=>false, 'formatter' => new JsFunction(
+                'function(cellvalue, options, rowObject) { '
+                .'return "<a href=\'#"+rowObject.mid+"\' onclick=\'showDialogFpDispozeiten("+rowObject.mid+",0);return false;\' >Sperrzeiten</a>"; '
+                .'}'
+            )),
+            "dispo" => array('key'=>false, 'editable'=>false, 'sortable'=>false, 'search'=>false, 'formatter' => new JsFunction(
+                'function(cellvalue, options, rowObject) { '
+                .'return "<a href=\'#"+rowObject.mid+"\' onclick=\'showDialogFpDispozeiten("+rowObject.mid+",1);return false;\' >Dispozeiten</a>"; '
+                .'}'
+            )),
+            "touren" => array('key'=>false, 'editable'=>false, 'sortable'=>false, 'search'=>false, 'formatter' => new JsFunction(
+                'function(cellvalue, options, rowObject) { '
+                .'return "<a href=\'#"+rowObject.mid+"\' onclick=\'showDialogRsrcTouren("+rowObject.mid+",1);return false;\' >Touren</a>"; '
+                .'}'
+            )),
+            "mid" => array('key'=>true),
+            "extern_id" => array('editable'=>true, 'edittype' => 'text'),
+            "menge"  => array('editable'=>true, 'edittype'=>'text', 'editrules'=>array('number'=>true)),
+            "leistungs_id" => array('editable'=>true, 'edittype' => 'text'),
+            "standort" => array(
+                'editable'=>true,
+                'edittype'=>'select',
+                'editoptions'=>array("value"=>$lagerOptions)
+            ),
+            "name" => array('editable'=>true, 'edittype'=>'text', 'editoptions'=>null),
+            "vorname" => array('editable'=>true, 'edittype'=>'text'),
+            "abteilung" => array('editable'=>true, 'edittype'=>'text'),
+            "eingestellt_als" => array('editable'=>true, 'edittype'=>'text'),
+            "fuehrerscheinklassen" => array('editable'=>true, 'edittype'=>'text'),
+            "urlaubsanspruch" => array('editable'=>true, 'edittype'=>'text'),
+            "categories" => array('editable'=>true, 'edittype'=>'text',
+                'sortable'=>false,
+                'searchoptions' => array(
+                    'sopt' => array('eq', 'ne'),
+                    'dataInit' => new JsFunction('function (el) {                                                
+                                                $(el).click(function() {
+                                                    var self = this;
+                                                    $(this).hide();
+                                                    var input = $(this).clone();
+                                                    $(this).after( input );
+                                                    input.attr("id", $(this).attr("id") + "_clone");
+                                                    input.attr("name", $(this).attr("name") + "_clone");
+                                                    input.show().attr("readonly",true);
+                                                    input.click(function(){
+                                                        var id = "CategoryDialog";
+                                                        var input = $(this);
+                                                        var dialog = $("#"+id);
+                                                        if (!dialog.length) {
+                                                            dialog = $("<div/>").attr("id", id)
+                                                            .appendTo("body")
+                                                            .css({position:"absolute", zIndex:999})
+                                                            .bind("mouseleave", function() { $(this).hide(); })
+                                                            .load("' . APPLICATION_BASE_URL . '/macategories/selectdialog?treeID=treeSearchDialogMA", 
+                                                                function() {
+                                                                $("#treeSearchDialogMA").bind("selectTreeNode", function(event, data) {
+                                                                    $(self).val( data.id );
+                                                                    input.val( data.name );
+                                                                    $(self).trigger("change").trigger("keydown");
+                                                                    dialog.hide();
+                                                                });
+                                                            });
+                                                        }
+                                                        dialog.show().css({left:input.offset()["left"], top: input.offset()["top"] + input.outerHeight() });
+                                                    });
+                                                    $(input).trigger("click");
+                                                });
+                                              }')
+                ),
+            ),
+        )));
+
+    $jqGridMethods = new JqGridMethods();
+    $JqGrid->addChainMethod(
+        $jqGridMethods->gridResize(array())
+    );
+
+    /* @var $colModelList JqGridColModelList */
+    $colModelList = $JqGrid->colModel();
+
+    $JqGrid->enableInlineEditingDefaults(array('oneditfunc' => new JsFunction('function() {
+            // Input für Initialisierung leeren, Daten wurden zuvor von der
+            // CustomUnformatter-Funktion in td.dat(inputData) abgelegt
+            // von wo sie zur Initialisierung des Chooser-Objekts ausgelesen werden
+            var $input = $( "#"+id+"_categories" ).val( "" );
+            
+            // Chooser registrieren und an Input-Feld binden
+            if (0) jqChooser.register( $input, "' . APPLICATION_BASE_URL . '/macategories/autocomplete");
+            else jqChooser.registerUserBox( $input, "' . APPLICATION_BASE_URL . '/macategories/selectdialog", 
+                function(searchInput) {            
+                    $(searchInput).hide();
+                    $("#treeSelectDialog").bind("selectTreeNode", function(event, data) {
+                        jqChooser.addValue( searchInput, data.id, data.name );
+                        CategoryIdCache[data.id] = data.name;
+                    });
+            });
+            
+            // Chooser mit Werten befüllen
+            var data = $input.closest( "td" ).data("inputData");
+            var chooserSearch = jqChooser.getSearchInputByOriginInput( $input );
+            jqChooser.setData( chooserSearch, data );
+            
+            // Autocomplete-Chooser: extern_id
+            $( "#"+id+"_extern_id" ).fbChooser({
+                "showSearchInput": true
+                ,"source": "' . APPLICATION_BASE_URL . '/extern/autocomplete?type=MA"
+                ,"multiple": false
+                ,"cacheValues" : ExternIdCache
+            });
+            
+            // Autocomplete-Chooser: leistungs_id
+            $( "#"+id+"_leistungs_id" ).fbChooser({
+                "showSearchInput": true
+                ,"source": "' . APPLICATION_BASE_URL . '/leistung/autocomplete?type=MA"
+                ,"multiple": false
+                ,"cacheValues" : LeistungsIdCache
+            });
+        }')));
+
+    $colModelList->getItem('categories')->getInstanceFormatterCustom(
+        'function( cellvalue, opts, rowObject ) {
+                var colIndex = opts.colModel.index,
+                    selector = "tr#"+opts.rowId + " td[aria-describedby="+opts.gid+"_"+colIndex+"]",
+                    selContext = "#"+opts.gid,
+                    $cell = $( selector, selContext ),
+                    html = "";
+                    
+                if ($cell.length ) {
+                    var cachedata = CategoryIdCache,
+                        values = cellvalue.split(","),
+                        label = "";
+                        
+                    if (cellvalue)
+                    for(var i = 0; i < values.length; ++i)  {
+                        label =  (typeof(cachedata[ values[i] ] ) !== "undefined") ? cachedata[ values[i] ] : "ERR: ID ";
+                        html+= "<span rel-value=\'"+values[i]+"\' rel-label=\'"+label+"\'>"+label+";</span>";
+                        continue;
+                    }
+                } else {
+                    if (typeof(cellvalue)=="object") {
+                        for(var i in cellvalue) {
+                            html+= "<span rel-value=\'"+cellvalue[i].category_id+"\' rel-label=\'"+cellvalue[i].name+"\'>"+cellvalue[i].name+";</span>";
+                            CategoryIdCache[ cellvalue[i].category_id ] = cellvalue[i].name;
+                        }
+                    } else { html = "<span rel-value=\'"+cellvalue+"\' rel-label=\'"+cellvalue+"\' />"+cellvalue+"</span>"; }
+                }
+                return html;
+            }'
+    );
+    $colModelList->getItem('categories')->getInstanceUnformatCustom(
+        'function( cellvalue, options, cell ) {
+                var data = [], values = [];
+                $("span", cell).each( function(index) {
+                    data.push( { value: $( this ).attr("rel-value"), label: $( this ).attr("rel-label")} );
+                    values.push( $( this ).attr("rel-value") );
+                });
+                $( cell ).data("inputData", data );                
+                return values.join(",");
+            }'
+    );
+
+    $colModelList->getItem('extern_id')->getInstanceFormatterCustom(
+        'function( cellvalue, opts, rowObject ) {
+                if (!parseInt(cellvalue) ) return "";
+                var cellSelector = "tr#"+opts.rowId + " td[aria-describedby="+opts.gid+"_"+opts.colModel.index+"]";
+                var cell = $(cellSelector),
+                    html = "";
+                
+                // Beim ersten Rendering des Feldes vertrauen wir dem rowObjet,
+                // auch da ExternIdCache noch nicht befuellt ist
+                var lbl = (!cell.length) ? rowObject["extern_firma"]
+                          :(( typeof(ExternIdCache[ cellvalue ]) !== "undefined" && ExternIdCache[ cellvalue ] !== null  ) 
+                            ? ExternIdCache[ cellvalue ] : cellvalue);
+                
+                return "<span rel-value=\'"+cellvalue+"\' rel-label=\'"+lbl+"\'>"+lbl+"</span>";                 
+            }'
+    );
+    $colModelList->getItem('extern_id')->getInstanceUnformatCustom(
+        'function( cellvalue, options, cell ) {
+                var span = $("span", cell);
+                if (!span.length) return "";
+                var val = span.attr("rel-value");
+                ExternIdCache[ val ] = span.attr("rel-label");
+                return val;
+            }'
+    );
+
+    $colModelList->getItem('leistungs_id')->getInstanceFormatterCustom(
+        'function( cellvalue, opts, rowObject ) {
+                if (!parseInt(cellvalue) ) return "";
+                var cellSelector = "tr#"+opts.rowId + " td[aria-describedby="+opts.gid+"_"+opts.colModel.index+"]";
+                var cell = $(cellSelector),
+                    html = "";
+                
+                // Beim ersten Rendering des Feldes vertrauen wir dem rowObjet,
+                // auch da LeistungsIdCache noch nicht befuellt ist
+                var lbl = (!cell.length) ? rowObject["leistungs_name"]
+                          :(( typeof(LeistungsIdCache[ cellvalue ]) !== "undefined" && LeistungsIdCache[ cellvalue ] !== null  ) 
+                            ? LeistungsIdCache[ cellvalue ] : cellvalue);
+                
+                return "<span rel-value=\'"+cellvalue+"\' rel-label=\'"+lbl+"\'>"+lbl+"</span>";                 
+            }'
+    );
+    $colModelList->getItem('leistungs_id')->getInstanceUnformatCustom(
+        'function( cellvalue, options, cell ) {
+                var span = $("span", cell);
+                if (!span.length) return "";
+                var val = span.attr("rel-value");
+                LeistungsIdCache[ val ] = span.attr("rel-label");
+                return val;
+            }'
+    );
+
+    /* @var $colModelList JqGridColModelList */
+    $colModelList = $JqGrid->colModel();
+
+    // Make all Fields (also invisible, hidden) searchable!
+    /* @var $_cmItem JqGridColModel */
+    foreach($colModelList as $_cmItem) {
+        /* @var $_itemSearchOpts JqGridColModelSearchOptions */
+        $_itemSearchOpts = $_cmItem->getInstanceSearchOptions();
+        if ($_itemSearchOpts && method_exists($_itemSearchOpts, 'set_searchhidden') ) {
+            $_itemSearchOpts->set_searchhidden(true);
+        } else {
+//                die('Not a Method!');
+        }
+    }
+
+    $navGrid = $JqGrid->getInstanceNavGrid($GridIdPager);
+    $navGrid->set_edit(true);
+//        $navGrid->set_addicon('ui-icon-plus');
+    $navGrid->set_search(
+        new JsFunction(
+            '{'
+            .'multipleSearch:true,'
+            .'overlay:false,'
+            .'beforeShowSearch:function() { '
+            .' $("'.$GridId.'")[0].toggleToolbar(); },'
+            .'onClose:function() {    	$("'.$GridId.'")[0].toggleToolbar();   }'
+            .'}'
+        )
+    )
+        ->addNavButton(new JqGridNavGridButton(array(
+            'id' => 'btnTbarSearch',
+            'buttonicon' => 'ui-icon-pin-s',
+            'caption' => 'ColSearch',
+            'title' => 'Toggle Searching Toolbar',
+            'onclickButton' => 'function () { $("'.$GridId.'")[0].toggleToolbar(); }'
+        )));
+
+    if (1) $navGrid->getInstanceAddFormOptions()->onafterShowForm($frmHelper = new JsFunction(
+        'function(formid) {'
+        .'//alert("#344");
+                
+            // Input für Initialisierung leeren, Daten wurden zuvor von der
+            // CustomUnformatter-Funktion in td.dat(inputData) abgelegt
+            // von wo sie zur Initialisierung des Chooser-Objekts ausgelesen werden
+            var $input = $( "#categories", formid ).val( "" );
+            
+            // Chooser registrieren und an Input-Feld binden
+            jqChooser.registerUserBox( $input, "' . APPLICATION_BASE_URL . '/macategories/selectdialog", 
+                function(searchInput) {            
+                    $(searchInput).hide();
+                    $("#treeSelectDialog").bind("selectTreeNode", function(event, data) {
+                        jqChooser.addValue( searchInput, data.id, data.name );
+                        CategoryIdCache[data.id] = data.name;
+                    });
+            });
+            
+            // Chooser mit Werten befüllen
+            var data = $input.closest( "td" ).data("inputData");
+            var chooserSearch = jqChooser.getSearchInputByOriginInput( $input );
+            jqChooser.setData( chooserSearch, data );
+            
+            // Autocomplete-Chooser: extern_id
+            $( "#extern_id", formid ).fbChooser({
+                "showSearchInput": true
+                ,"source": "' . APPLICATION_BASE_URL . '/extern/autocomplete?type=MA"
+                ,"multiple": false
+                ,"cacheValues" : ExternIdCache
+            });
+            
+            // Autocomplete-Chooser: leistungs_id
+            $( "#leistungs_id", formid ).fbChooser({
+                "showSearchInput": true
+                ,"source": "' . APPLICATION_BASE_URL . '/leistung/autocomplete?type=MA"
+                ,"multiple": false
+                ,"cacheValues" : LeistungsIdCache
+            });
+            '
+        .'}'
+    ));
+    $navGrid->getInstanceAddFormOptions()->setProperty('recreateForm', true);
+    $navGrid->getInstanceEditFormOptions()->setProperty('recreateForm', true);
+    $navGrid->getInstanceEditFormOptions()->onafterShowForm($frmHelper);
+
+    /* @var $searchPrm JqGridNavGridSearchFormOptions */
+    $searchPrm = $navGrid->getInstanceSearchFormOptions();
+    $searchPrm->set_sopt(array('eq'));
+    $searchPrm->set_beforeShowSearch('function() { '.' $("'.$GridId.'")[0].toggleToolbar(); }');
+    $searchPrm->set_onClose('function() { $("'.$GridId.'")[0].toggleToolbar();   }');
+    $searchPrm->set_multipleSearch(true);
+
+    $colChooser = new JqGridColumnChooserOptions();
+    $navGrid->addNavButton(new JqGridNavGridButton(array(
+        'id' => 'btnColCh',
+        'caption' => 'Spalten',
+        'title' => 'Spalten',
+        'onclickButton' => new JsFunction('function(){'.$colChooser->renderMethod($GridId).'}')
+    )));
+
+
+    $afterSubmit = <<<EOT
+function (response, postdata)  {
+    console.log({response:response, postdata:postdata});
+    var re = $.parseJSON( response.responseText );
+    if (re.type === 'error' && 'err' in re) {
+        // alert(re.err);
+    } else if (re.type === 'success') {
+        alert('Aktion erfolgreich durchgefuehrt!');
+    }
+    return [ (re.type == 'success'), (re.type == 'success' ? re.msg : re.err), re.id];
+}
+EOT;
+
+    $navGrid->getInstanceAddFormOptions()->onafterSubmit(new JsFunction($afterSubmit));
+    $navGrid->getInstanceEditFormOptions()->onafterSubmit(new JsFunction($afterSubmit));
+
+    $appendGridScript =
+        'var CategoryIdCache = new Array();' . PHP_EOL
+        .'var ExternIdCache = {};' . PHP_EOL
+        .'var LeistungsIdCache = {};' . PHP_EOL
+        .'jQuery(function() {'  . PHP_EOL
+        .(string) $JqGrid->getJsCode()
+        .'});';
+    // end cache
+    $cache->save($appendGridScript, $cacheID);
+}
+$this->headScript()->appendScript( $appendGridScript );
+?>
+<span id="RsrcFilterBtnSet"><button>Filter: </button><input type="radio" id="rsrcFilterAll" name="rsrcFilter" value="all"><label for="rsrcFilterAll">Alle</label>
+    <input type="radio" id="rsrcFilterInt" name="rsrcFilter" value="int"><label for="rsrcFilterInt">Interne</label>
+    <input type="radio" id="rsrcFilterExt" name="rsrcFilter" value="ext"><label for="rsrcFilterExt">Externe</label>
+    </span>
+
+<table id="gridUsrLst"></table>
+<div id="gridUsrLst_pager"></div>
+
+<div id="DialogDispozeiten" title="Dispozeiten"></div>
+<div id="DialogsRsrcTouren"></div>

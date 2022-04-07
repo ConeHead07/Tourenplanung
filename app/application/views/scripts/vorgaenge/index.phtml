@@ -1,0 +1,30 @@
+<!--
+To change this template, choose Tools | Templates
+and open the template in the editor.
+-->
+<?php
+
+$colNames = '';
+$colModel = '';
+$i = 0;
+foreach($this->vorgaengelist[0] as $cellName => $cellValue) {
+    
+    if (is_scalar($cellValue)) {
+        if ($i++) {
+            $colNames.= ',';
+            $colModel.= ',' . PHP_EOL;
+        }
+        $hidden = (strlen($cellValue)===0) ? ",'hidden'=>true" : '';
+        $colNames.= '\''.$cellName.'\'';
+        $colModel.= "\t" . '\''.$cellName.'\' => array(\'editable\'=>false' . $hidden .')'; //key'=>true),   
+    }
+}
+
+
+echo '<pre>';
+echo print_r($this->tblCols, 1) . PHP_EOL;
+echo '->colNames( array(' . $colNames . '))' . PHP_EOL;
+echo '->colModel(array(\'addFieldsProperties\' => array(' . PHP_EOL;
+echo $colModel . PHP_EOL;
+echo ')))' . PHP_EOL;
+echo print_r($this->vorgaengelist,1) . '</pre>' . PHP_EOL;

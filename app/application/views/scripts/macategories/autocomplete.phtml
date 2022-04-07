@@ -1,0 +1,21 @@
+<?php
+
+$this->layout()->disableLayout();
+$rsp = Zend_Controller_Front::getInstance()->getResponse();
+$rqt = Zend_Controller_Front::getInstance()->getRequest();
+
+$rsp->setHeader('Content-Type', 'application/json; charset=UTF-8');
+
+echo '[';
+for($i = 0; $i < count($this->autocomplete); ++$i) {
+    $node = $this->autocomplete[$i];
+    echo ($i?"\n,":"").'{'
+        .'"value":'.json_encode($node['category_id']) . ','
+        .'"label":'.json_encode(utf8_encode($node['name'])) . ','
+        .'"lft":'.json_encode($node['lft']) . ','
+        .'"rgt":'.json_encode($node['rgt']) . ','
+        .'"isLeaf":'.($node['rgt']==$node['lft']+1 ? 'true' : 'false') . ''
+        .'}' . PHP_EOL;    
+}
+echo ']' . PHP_EOL;
+return;

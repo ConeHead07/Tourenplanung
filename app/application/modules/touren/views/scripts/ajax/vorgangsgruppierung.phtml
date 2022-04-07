@@ -1,0 +1,44 @@
+<script>
+if (!Fb) Fb = {};
+if (!Fb.showCalendar) {
+    Fb.showCalendar = function(d) {
+        var found = false;
+        $("div.fbDispoCalendar").each(function(){
+            if (found) return;
+            var cd = $(this).fbDispoCalendar('getDate');
+            if ($.datepicker.formatDate('yy-mm-dd', cd) == d) {
+                found = true;
+            }
+        });
+        if (!found) Fb.addCalendar(d); //alert('Not Found ' + d);
+    }
+}
+</script>
+<style>
+    ul.vorgangsgruppierung * {
+        font-weight:normal;
+    }
+</style>
+<?php 
+$this->layout()->disableLayout();
+$li = '';
+
+foreach($this->ajax_response->data as $i => $v) {
+    $li.= '<li>' . $v['ANR'] . ' ' . htmlentities($v['Vorgangstitel']);
+    if (count($v['touren'])) {
+        $li.= '<ul>';
+        foreach($v['touren'] as $_tour) {
+            $li.= '<li><a style="color:blue;" href="" title="&ouml;ffne ' . $_tour['DatumVon'] .'" onclick="Fb.showCalendar(\'';
+            $li.= $_tour['DatumVon'] . '\');return false;">';
+            $li.= date_de('D d.m.Y', strtotime($_tour['DatumVon'])) . ' bis ' . date_de('D d.m.Y', strtotime($_tour['ZeitVon']));
+            $li.= '</a></li>';
+        }
+        $li.= '</ul>';
+    }
+    $li.= '</li>';
+    
+}
+if ($li) echo '<ul class="vorgangsgruppierung">' . $li . '</ul>';
+
+//echo '<pre>' . print_r($this->ajax_response,1) . '</pre>';
+

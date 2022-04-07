@@ -1,0 +1,6 @@
+php ./combine.php --writemode=w --out=..\public\css\all-layout.max.css --in=..\public\css\default.css ..\public\css\jq_themes.extensions.css ..\public\css\jquery.fbMultiSearchBox.css ..\public\css\forms.css ../public/css/droplinebar.css
+php ./combine.php --writemode=a --out=..\public\css\all-layout.max.css --in=..\public\jquery\themes\redmond\jquery-ui-1.8.16.custom.css --cssbaseurl=../jquery/themes/redmond/
+php ./combine.php --writemode=a --out=..\public\css\all-layout.max.css --in=..\public\jquery\ui\layout\css\documentation.css ..\public\jquery\ui\layout\css\global.css --cssbaseurl=../jquery/ui/layout/css/
+php ./combine.php --writemode=a --out=..\public\css\all-layout.max.css --in=..\public\jquery\autocomplete_chooser\chooser.css --cssbaseurl=../jquery/autocomplete_chooser/
+php ./combine.php --writemode=a --out=..\public\css\all-layout.max.css --in=..\public\jquery\util\jquerytoast\jquery.toast.css
+java -jar ./yuicompressor-2.4.7.jar ..\public\css\all-layout.max.css -o ..\public\css\all-layout.min.css

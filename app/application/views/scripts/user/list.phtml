@@ -1,0 +1,592 @@
+<?php
+
+$baseUrlUsrProfile = $this->url(
+        array(
+            'module' => $this->module,
+            'controller'=>$this->controller,
+            'action'=>'profile'), null, FALSE); 
+
+/** @var $this Zend_View */
+require_once 'JqGridHeader.php';
+JqGridHeader::enable(true);
+  
+// Cache frontendoptions
+$frontendOptions = array(
+   'lifetime' => 0 //24*60*60*3 // 3 Tage cachen
+);
+// Cache backendoptions
+$backendOptions = array(
+    // Directory where to put the cache files
+    'cache_dir' => APPLICATION_PATH . '/cache' 
+);
+// Cache object
+$cache = Zend_Cache::factory('Output',
+                             'APC',
+                             $frontendOptions,
+                             $backendOptions);
+
+// Cache id
+$cacheID = md5($this->module .'/'.$this->controller.'/'.$this->action.':::allowed='.(int)$this->grideditAllowed);
+
+// everything before this is not cached
+if (!($appendGridScript = $cache->load($cacheID))) {
+// begin cache
+
+    $inlineRowEditParams = array(
+//        'keys' => 'true', // Aktiviert Tasten zur Steuerung (Enter=Save,ESC=Cancel)
+//        'oneditfunc' => 'null',
+//        'successfunc'=> 'null',
+//        'aftersavefunc' => 'null',
+//        'errorfunc' => 'null',
+//        'afterrestorefunc' => 'null', 
+    );
+    
+    $inlineRowSaveParams = array(
+//        'keys' => 'true', 
+//        'oneditfunc' => 'null', 
+        'succesfunc' => new JsFunction('function (response)  {
+//                alert( "successfunc! " + typeof(response) + " " + response.responseText ); // response.responseText );
+//                return false;
+                var re = (response.responseText) ? $.parseJSON( response.responseText ) : response;
+                if (re.err) alert(re.err);
+                return (typeof(re)=="object" && re.type == \'success\');
+            }'),
+//        'url' => 'null',
+//        'extraparam' => 'null',
+//        'aftersavefunc' => new JsFunction('function(){alert("asf")}'),
+//        'errorfunc' => new JsFunction('function(){alert("ef")}'),
+//        'afterrestorefunc' => new JsFunction('function(){alert("af")}'),
+    );
+    $inlineRowRestoreParams = array(
+        'afterrestorefunc' => 'null',
+    );
+    
+    $GridId = '#gridUsrLst';
+    $GridIdPager = '#gridUsrLst_pager';
+    $JqGrid = new JqGrid($GridId);
+    // Grid-Options definieren
+    $JqGrid->height('auto')
+    ->jsonReader(array( "repeatitems" => false, "id" => 0 ) )
+    ->width(800)
+    ->rowList(array(10, 20, 30, 40, 50,100))
+    ->rowNum(10)
+    ->rownumbers(true)
+    ->resizable(false)
+    ->sortable(true)
+    ->datatype('json')
+    ->url( APPLICATION_BASE_URL . '/user/gridresponsedata')
+    ->setNavGrid($GridIdPager, $properties = array())
+    ->caption("Test-Grid")
+    ->shrinkToFit(true)
+    ->pager($GridIdPager)
+    ->on_loadError( new JsFunction("function(xhr,status,error){ alert(status+'\\n'+error);}") )
+    ->addChainMethod('.jqGrid("filterToolbar",{stringResult: true,searchOnEnter : false})')
+//        ->addChainMethod( ".jqGrid('searchGrid', {sopt:['cn','bw','eq','ne','lt','gt','ew']} )")
+    ->colNames( array('profile', 'uid', 'name', 'pw', 'pw wh', 'role', 'standorte') )
+    ->colModel(array('addFieldsProperties' => array(
+            "profile" => array('key'=>false, 'editable'=>false, 'sortable'=>false, 'search'=>false, 'formatter' => new JsFunction(
+                     'function(cellvalue, options, rowObject) { '
+//                    .'var m="";for(var i in rowObject) m+=i+":"+rowObject[i]+";"; alert(m);'
+                    .'return "<a href=\'#"+rowObject.user_id+"\' onclick=\'showDialogUsrProfile("+rowObject.user_id+");return false;\' >Profil</a>"; '
+                    .'}'
+                    )),
+            "user_id" => array('key'=>true),
+            "user_name" => array('editable'=>$this->grideditAllowed, 'edittype'=>'text', 'editoptions'=>null),
+            "user_pw" => array('editable'=>$this->grideditAllowed, 'edittype'=>'text', 'hidden' => true, 'editrules' => array('edithidden'=>true) ),
+            "user_pw_wh" => array('editable'=>$this->grideditAllowed, 'edittype'=>'text', 'hidden' => true, 'editrules' => array('edithidden'=>true) ),
+            "user_role" => array('editable'=>$this->grideditAllowed, 'edittype'=>'select'),
+            "standorte" => array('editable'=>$this->grideditAllowed, 'edittype'=>'select' ),
+    )));
+    
+        
+    /* @var $colModelList JqGridColModelList */
+    $colModelList = $JqGrid->colModel();    
+    
+//        , editoptions:{value:{1:'One',2:'Two'}}
+    // Make all Fields (also invisible, hidden) searchable!
+    /* @var $_cmItem JqGridColModel */
+    foreach($colModelList as $_cmItem) {
+        /* @var $_itemSearchOpts JqGridColModelSearchOptions */
+        $_itemSearchOpts = $_cmItem->getInstanceSearchOptions();
+        $_itemSearchOpts->set_searchhidden(true);
+    }
+
+    $navGrid = $JqGrid->getInstanceNavGrid($GridIdPager);
+    $navGrid->set_edit($this->grideditAllowed);
+    $navGrid->set_search(
+        new JsFunction(
+                    '{'
+                .'multipleSearch:true,'
+                .'overlay:false,'
+                .'beforeShowSearch:function() { '
+                .' $("'.$GridId.'")[0].toggleToolbar(); },'
+                .'onClose:function() {    	$("'.$GridId.'")[0].toggleToolbar();   }'
+                .'}'
+                )
+        )
+        ->addNavButton(new JqGridNavGridButton(array(
+                        'id' => 'btnTbarSearch',
+                'buttonicon' => 'ui-icon-pin-s',
+                    'caption' => 'ColSearch',
+                    'title' => 'Toggle Searching Toolbar',
+            'onclickButton' => 'function () { $("'.$GridId.'")[0].toggleToolbar(); }'
+        )));
+    
+    $afterSubmit = <<<EOT
+    function (response, postdata)  {
+    alert( "checkResponseAfterSubmit!" ); // response.responseText );
+    var re = $.parseJSON( response.responseText );
+    return [ (re.type == 'success'), (re.type == 'success' ? re.msg : re.err), re.id];
+}
+EOT;
+    
+    if ($this->grideditAllowed) {
+        $JqGrid
+        ->editurl(APPLICATION_BASE_URL . '/user/grideditdata')
+        ->enableInlineEditingDefaults(
+            $inlineRowEditParams, $inlineRowSaveParams, $inlineRowRestoreParams);
+        
+        $colModelList->getItem('user_pw')->getInstanceEditRules()->set_edithidden(true);
+        $colModelList->getItem('user_pw_wh')->getInstanceEditRules()->set_edithidden(true);
+        $colModelList->getItem('user_role')->getInstanceEditOptions()->set_value(array(
+            'user'=>'user',
+            'dispo'=>'dispo',
+            'controller'=>'controller',
+            'innendienst'=>'innendienst',
+            'admin'=>'admin'
+        ));
+        $colModelList->getItem('standorte')->getInstanceEditOptions()->set_value(array(
+            'Neuss'=>'Neuss','Berlin'=>'Berlin','Wiesbaden'=>'Wiesbaden'
+        ))->set_others('multiple', true);
+        
+        $navGrid->getInstanceAddFormOptions()->onafterSubmit(new JsFunction($afterSubmit));
+        $navGrid->getInstanceEditFormOptions()->onafterSubmit(new JsFunction($afterSubmit));
+    } else {
+        $navGrid->set_add(false)->set_edit(false)->set_del(false);
+    }
+
+    /* @var $searchPrm JqGridNavGridSearchFormOptions */
+    $searchPrm = $navGrid->getInstanceSearchFormOptions();
+    $searchPrm->set_sopt(array('eq'));
+    $searchPrm->set_beforeShowSearch('function() { '.' $("'.$GridId.'")[0].toggleToolbar(); }');
+    $searchPrm->set_onClose('function() { $("'.$GridId.'")[0].toggleToolbar();   }');
+    $searchPrm->set_multipleSearch(true);
+
+    $colChooser = new JqGridColumnChooserOptions();
+    $navGrid->addNavButton(new JqGridNavGridButton(array(
+                    'id' => 'btnColCh',
+                'caption' => 'Spalten',
+                'title' => 'Spalten',
+        'onclickButton' => new JsFunction('function(){'.$colChooser->renderMethod($GridId).'}')
+    )));
+    
+    $appendGridScript =  
+    'jQuery(function() {' 
+            .(string) $JqGrid->getJsCode() 
+            .'});';
+    // end cache
+    $cache->save($appendGridScript);
+}
+
+if ( $this->layout()->isEnabled() )
+    $this->headScript()->appendScript( $appendGridScript );
+else 
+    echo '<script>' . $appendGridScript . '</script>' . PHP_EOL;
+
+?> 
+<script>
+function showDialogUsrProfile(id) {
+    var baseUrl = "<?=$baseUrlUsrProfile; ?>";
+    var url = baseUrl + (baseUrl.indexOf("?") == -1 ? '?' : '&') + "id="+id;
+    $("#DialogUsrProfile").dialog({autoOpen:true,height:'auto',width:'auto'}).dialog('open').load(url);
+    
+}
+
+function checkResponseAfterSubmit(response, postdata)  {
+    alert( "checkResponseAfterSubmit!" ); // response.responseText );
+    var re = $.parseJSON( response.responseText );
+    return [ (re.type == 'success'), (re.type == 'success' ? re.msg : re.err), re.id];
+}
+</script>
+<table id="gridUsrLst"></table> 
+<div id="gridUsrLst_pager"></div> 
+
+<div id="DialogUsrProfile" title="Benutzerprofil"></div>
+<?php 
+
+/**
+
+ * // =================================================
+// === Classical use of the "Core" of Zend_Cache ===
+// =================================================
+
+<?php
+
+require_once 'Zend/Cache.php';
+
+$frontendOptions = array(
+    'lifeTime' => 7200 // cache lifetime of 2 hours
+);
+
+$backendOptions = array(
+    'cacheDir' => '/tmp/' // Directory where to put the cache files (make sure to add a trailing slash)
+);
+
+$cache = Zend_Cache::factory('Core', 'File', $frontendOptions, $backendOptions);
+
+$id = 'foo'; // cache id of "what we want to cache"
+
+if (!($cache->test($id))) {
+    // cache missed
+    
+    require_once ... // for perfs reasons, all "require_once" have to be loaded ONLY if the cache is missed
+    require_once ...
+    
+    // we build "what we want to cache"
+    // for example
+    $data = '';
+    for ($i=0;$i<10000;$i++) {
+        $data = $data . $i;
+    } 
+    
+    // We save the result into the cache
+    $cache->save($data);
+
+} else {
+    // cache hit
+    
+    $data = $cache->load($id);
+
+}
+
+// do something with $data :)
+// [...]
+
+?>
+
+
+// =================================================
+// === "Compact" use of the "Core" of Zend_Cache ===
+// =================================================
+
+// This is ok if you store only strings into the cache
+// (because with "automaticSerialization" option, it's possible to store
+//  some booleans into cache)
+
+<?php
+
+// [...] // require and configuration
+
+$cache = Zend_Cache::factory('Core', 'File', $frontendOptions, $backendOptions);
+$id = 'foo'; // cache id of "what we want to cache"
+
+if (!($data = $cache->load($id))) {
+    // cache missed
+    
+    $data = '';
+    for ($i=0;$i<10000;$i++) {
+        $data = $data . $i;
+    }
+    
+    $cache->save($data);
+    
+} 
+
+echo($data);
+
+?>
+
+
+// =================================================
+// === "Compact" use of the "Core" of Zend_Cache ===
+// === (example with two blocks)                 ===
+// =================================================
+
+// This is ok if you store only strings into the cache
+// (because with "automaticSerialization" option, it's possible to store
+//  some booleans into cache)
+
+<?php
+
+// [...] // require and configuration
+
+$cache = Zend_Cache::factory('Core', 'File', $frontendOptions, $backendOptions);
+$id1 = 'foo'; // cache id of block1
+$id2 = 'bar'; // cache id of block2
+
+// BLOCK1
+if (!($data = $cache->load($id1))) {
+    // cache missed
+    
+    $data = '';
+    for ($i=0;$i<10000;$i++) {
+        $data = $data . $i;
+    }
+    
+    $cache->save($data);
+    
+} 
+echo($data);
+
+// NEVER CACHED BLOCK
+echo('NEVER CACHED !');
+
+// BLOCK2
+if (!($data = $cache->load($id2))) {
+    // cache missed
+    
+    $data = '';
+    for ($i=0;$i<10000;$i++) {
+        $data = $data . '!';
+    }
+    
+    $cache->save($data);
+    
+} 
+echo($data);
+
+?>
+
+
+// =========================================================
+// === "Compact" use of the "Core" of Zend_Cache         ===
+// === (example with two blocks and different lifetimes) ===
+// =========================================================
+
+<?php
+
+// [...] // require and configuration
+
+$cache = Zend_Cache::factory('Core', 'File', $frontendOptions, $backendOptions);
+$id1 = 'foo'; // cache id of block1
+$id2 = 'bar'; // cache id of block2
+
+// BLOCK1
+if (!($data = $cache->load($id1))) {
+    // cache missed
+    
+    $data = '';
+    for ($i=0;$i<10000;$i++) {
+        $data = $data . $i;
+    }
+    
+    $cache->save($data);
+    
+} 
+echo($data);
+
+// NEVER CACHED BLOCK
+echo('NEVER CACHED !');
+
+// BLOCK2
+if (!($data = $cache->load($id2))) {
+    // cache missed
+    
+    $data = '';
+    for ($i=0;$i<10000;$i++) {
+        $data = $data . '!';
+    }
+    
+    $cache->save($data, null, array(), 3600);
+    // => this cache will have a specific lifeTime of 3600 seconds
+    
+} 
+echo($data);
+
+?>
+
+
+// ============================================================
+// === Classical use of the "Output" frontend of Zend_Cache ===
+// ============================================================
+
+<?php
+
+require_once 'Zend/Cache.php';
+
+$frontendOptions = array(
+    'lifeTime' => 7200 // cache lifetime of 2 hours
+);
+
+$backendOptions = array(
+    'cacheDir' => '/tmp/' // Directory where to put the cache files (make sure to add a trailing slash)
+);
+
+$cache = Zend_Cache::factory('Output', 'File', $frontendOptions, $backendOptions);
+
+$id = 'foo'; // cache id of "what we want to cache"
+
+if (!($cache->start($id))) {
+    // cache is not hit !
+    
+    // Output you want to cache
+    for ($i=0;$i<10000;$i++) {
+        echo($i);
+    }
+
+    // store "captured" output into cache
+    $cache->end();
+}
+
+?>
+
+
+// ==============================================================
+// === Classical use of the "Function" frontend of Zend_Cache ===
+// ==============================================================
+
+<?php
+
+require_once 'Zend/Cache.php';
+
+$frontendOptions = array(
+    'lifeTime' => 7200 // cache lifetime of 2 hours
+);
+
+$backendOptions = array(
+    'cacheDir' => '/tmp/' // Directory where to put the cache files (make sure to add a trailing slash)
+);
+
+$cache = Zend_Cache::factory('Function', 'File', $frontendOptions, $backendOptions);
+
+function function_to_cache($arg1, $arg2) {
+    echo("called function_to_cache($arg1, $arg2)");
+    return $arg1 + $arg2;
+}
+
+// First call, the function will be called
+$res1 = $cache->call('function_to_cache', array(1, 3));
+echo($res1);
+
+// Second call, output and result will be get from cache
+$res2 = $cache->call('function_to_cache', array(1, 3));
+echo($res2);
+
+// Third call, the function will be called (because argument values are different)
+$res3 = $cache->call('function_to_cache', array(2, 5));
+echo($res3);
+
+?>
+
+
+// ===========================================================
+// === Classical use of the "Class" frontend of Zend_Cache ===
+// === (mode : class)                                      ===
+// ===========================================================
+
+<?php
+
+// Class to cache
+class test {
+
+    public static function foobar($param1, $param2) {
+        echo "foobar_output($param1, $param2)";
+        return "foobar_return($param1, $param2)";   
+    }
+
+}
+
+require_once 'Zend/Cache.php';
+
+$frontendOptions = array(
+    'lifeTime' => 7200 // cache lifetime of 2 hours,
+    'cachedEntity' => 'test'
+);
+
+$backendOptions = array(
+    'cacheDir' => '/tmp/' // Directory where to put the cache files (make sure to add a trailing slash)
+);
+
+$cache = Zend_Cache::factory('Class', 'File', $frontendOptions, $backendOptions);
+
+// First call, the static method will be called
+$res1 = $cache->foobar(1, 3);
+echo($res1);
+
+// Second call, output and result will be get from cache
+$res2 = $cache->foobar(1, 3);
+echo($res2);
+
+// Third call, the method will be called (because argument values are different)
+$res3 = $cache->foobar(2, 5)
+echo($res3);
+
+?>
+
+
+// ===========================================================
+// === Classical use of the "Class" frontend of Zend_Cache ===
+// === (mode : object)                                     ===
+// ===========================================================
+
+<?php
+
+// Class to cache
+class test {
+
+    private $_string = 'hello !';
+      
+    public function foobar2($param1, $param2) {
+        echo($this->_string);
+        echo "foobar2_output($param1, $param2)";
+        return "foobar2_return($param1, $param2)";   
+    }
+
+}
+
+require_once 'Zend/Cache.php';
+
+$frontendOptions = array(
+    'lifeTime' => 7200 // cache lifetime of 2 hours,
+    'cachedEntity' => new test()
+);
+
+$backendOptions = array(
+    'cacheDir' => '/tmp/' // Directory where to put the cache files (make sure to add a trailing slash)
+);
+
+$cache = Zend_Cache::factory('Class', 'File', $frontendOptions, $backendOptions);
+
+// First call, the method will be called
+$res1 = $cache->foobar(1, 3);
+echo($res1);
+
+// Second call, output and result will be get from cache
+$res2 = $cache->foobar(1, 3);
+echo($res2);
+
+// Third call, the method will be called (because argument values are different)
+$res3 = $cache->foobar(2, 5)
+echo($res3);
+
+?>
+
+
+// ==========================================================
+// === Classical use of the "File" frontend of Zend_Cache ===
+// ==========================================================
+
+<?php
+
+// The file frontend is used to get a cache driven by a master file
+// for example, you have a config file declared as master file
+// => all your cache records will be invalidated if the config file is touched
+// (very usefull to avoid the parsing of a XML file at each time for example)
+
+require_once 'Zend/Cache.php';
+
+$frontendOptions = array(
+    'lifeTime' => null // no lifetime,
+    'masterFile' => '/path/to/your/master.file' // your master file here
+);
+
+$backendOptions = array(
+    'cacheDir' => '/tmp/' // Directory where to put the cache files (make sure to add a trailing slash)
+);
+
+$cache = Zend_Cache::factory('File', 'File', $frontendOptions, $backendOptions);
+
+// [...] identical to the "Core" use
+
+?>
+ */
